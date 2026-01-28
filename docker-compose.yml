@@ -65,7 +65,7 @@ services:
 
   web:
     build:
-      context: ../AIBE4_FinalProject_Team1_FE/frontend
+      context: ../AIBE4_FinalProject_Team1_FE
       dockerfile: Dockerfile
     depends_on:
       backend:
