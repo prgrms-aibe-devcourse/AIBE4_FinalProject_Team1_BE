@@ -1,0 +1,41 @@
+# Build outputs
+build/
+out/
+target/
+
+# Gradle
+.gradle/
+
+# IDE
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Node (if any)
+node_modules/
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
+*.md
+HELP.md
+
+# Claude
+.claude/
+
+# QueryDSL generated
+src/main/generated/
+
+# Logs
+*.log
+logs/
