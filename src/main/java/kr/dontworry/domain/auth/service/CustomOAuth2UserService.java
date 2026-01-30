@@ -1,15 +1,15 @@
-package kr.dontworry.auth.service;
+package kr.dontworry.domain.auth.service;
 
-import kr.dontworry.auth.dto.CustomOAuth2User;
-import kr.dontworry.auth.dto.GoogleUserInfo;
-import kr.dontworry.auth.dto.KakaoUserInfo;
-import kr.dontworry.auth.dto.OAuth2UserInfo;
-import kr.dontworry.auth.exception.AuthErrorCode;
-import kr.dontworry.auth.exception.AuthException;
-import kr.dontworry.user.entity.SocialAccount;
-import kr.dontworry.user.entity.User;
-import kr.dontworry.user.repository.SocialAccountRepository;
-import kr.dontworry.user.repository.UserRepository;
+import kr.dontworry.domain.auth.dto.CustomOAuth2User;
+import kr.dontworry.domain.auth.dto.GoogleUserInfo;
+import kr.dontworry.domain.auth.dto.KakaoUserInfo;
+import kr.dontworry.domain.auth.dto.OAuth2UserInfo;
+import kr.dontworry.domain.auth.exception.AuthErrorCode;
+import kr.dontworry.domain.auth.exception.AuthException;
+import kr.dontworry.domain.user.entity.SocialAccount;
+import kr.dontworry.domain.user.entity.User;
+import kr.dontworry.domain.user.repository.SocialAccountRepository;
+import kr.dontworry.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;

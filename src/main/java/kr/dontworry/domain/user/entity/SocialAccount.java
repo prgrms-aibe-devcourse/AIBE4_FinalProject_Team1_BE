@@ -1,4 +1,4 @@
-package kr.dontworry.user.entity;
+package kr.dontworry.domain.user.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;

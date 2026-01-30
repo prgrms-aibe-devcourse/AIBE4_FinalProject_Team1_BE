@@ -1,4 +1,4 @@
-package kr.dontworry.auth.exception;
+package kr.dontworry.domain.auth.exception;
 
 import kr.dontworry.global.exception.ErrorModel;
 import lombok.AllArgsConstructor;

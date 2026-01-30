@@ -1,11 +1,11 @@
-package kr.dontworry.auth.service;
+package kr.dontworry.domain.auth.service;
 
-import kr.dontworry.auth.entity.RefreshToken;
-import kr.dontworry.auth.exception.AuthException;
-import kr.dontworry.auth.exception.AuthErrorCode;
-import kr.dontworry.auth.repository.RefreshTokenRepository;
+import kr.dontworry.domain.auth.entity.RefreshToken;
+import kr.dontworry.domain.auth.exception.AuthException;
+import kr.dontworry.domain.auth.exception.AuthErrorCode;
+import kr.dontworry.domain.auth.repository.RefreshTokenRepository;
 import kr.dontworry.global.auth.jwt.JwtProvider;
-import kr.dontworry.auth.dto.CustomUserDetails;
+import kr.dontworry.domain.auth.dto.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;

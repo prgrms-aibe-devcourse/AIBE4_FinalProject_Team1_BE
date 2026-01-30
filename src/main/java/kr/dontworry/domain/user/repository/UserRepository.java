@@ -1,6 +1,6 @@
-package kr.dontworry.user.repository;
+package kr.dontworry.domain.user.repository;
 
-import kr.dontworry.user.entity.User;
+import kr.dontworry.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
