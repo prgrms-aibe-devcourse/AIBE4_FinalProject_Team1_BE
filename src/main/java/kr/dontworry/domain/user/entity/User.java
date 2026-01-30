@@ -1,12 +1,11 @@
-package kr.dontworry.user.entity;
+package kr.dontworry.domain.user.entity;
 
 import jakarta.persistence.*;
-import kr.dontworry.common.BaseTimeEntity;
+import kr.dontworry.domain.common.BaseTimeEntity;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLRestriction;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;

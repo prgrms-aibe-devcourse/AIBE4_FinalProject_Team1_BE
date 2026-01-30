@@ -1,4 +1,4 @@
-package kr.dontworry.auth.dto;
+package kr.dontworry.domain.auth.dto;
 
 public record AccessTokenResponse(String accessToken) {
 }

@@ -1,6 +1,6 @@
 package kr.dontworry.global.config;
 
-import kr.dontworry.auth.service.CustomOAuth2UserService;
+import kr.dontworry.domain.auth.service.CustomOAuth2UserService;
 import kr.dontworry.global.auth.filter.JwtAuthenticationFilter;
 import kr.dontworry.global.auth.handler.OAuth2SuccessHandler;
 import kr.dontworry.global.auth.jwt.JwtProvider;

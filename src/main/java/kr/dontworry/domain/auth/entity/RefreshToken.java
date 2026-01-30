@@ -1,4 +1,4 @@
-package kr.dontworry.auth.entity;
+package kr.dontworry.domain.auth.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

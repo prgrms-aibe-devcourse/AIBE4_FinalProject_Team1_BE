@@ -1,7 +1,7 @@
-package kr.dontworry.auth.controller;
+package kr.dontworry.domain.auth.controller;
 
-import kr.dontworry.auth.dto.AccessTokenResponse;
-import kr.dontworry.auth.service.AuthService;
+import kr.dontworry.domain.auth.dto.AccessTokenResponse;
+import kr.dontworry.domain.auth.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

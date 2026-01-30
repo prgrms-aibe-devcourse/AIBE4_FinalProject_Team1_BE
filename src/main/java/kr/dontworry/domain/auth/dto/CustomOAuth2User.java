@@ -1,6 +1,6 @@
-package kr.dontworry.auth.dto;
+package kr.dontworry.domain.auth.dto;
 
-import kr.dontworry.user.entity.User;
+import kr.dontworry.domain.user.entity.User;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
