@@ -11,14 +11,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/v1/auths")
 @RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
 
-    @PostMapping("/refresh")
-    public ResponseEntity<AccessTokenResponse> refresh(
+    @PostMapping("/access-tokens")
+    public ResponseEntity<AccessTokenResponse> reissueAccessToken(
             @CookieValue(name = "refresh_token", required = false) String refreshToken) {
 
         if (refreshToken == null) {
