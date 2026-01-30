@@ -1,11 +1,11 @@
-package kr.dontworry.global.auth.oauth2.handler;
+package kr.dontworry.global.auth.handler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kr.dontworry.auth.entity.RefreshToken;
 import kr.dontworry.auth.repository.RefreshTokenRepository;
 import kr.dontworry.global.auth.jwt.JwtProvider;
-import kr.dontworry.global.auth.oauth2.dto.CustomOAuth2User;
+import kr.dontworry.auth.dto.CustomOAuth2User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;

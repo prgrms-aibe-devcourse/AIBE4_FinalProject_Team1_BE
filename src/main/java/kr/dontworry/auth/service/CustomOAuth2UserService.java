@@ -1,9 +1,9 @@
-package kr.dontworry.global.auth.oauth2;
+package kr.dontworry.auth.service;
 
-import kr.dontworry.global.auth.oauth2.dto.CustomOAuth2User;
-import kr.dontworry.global.auth.oauth2.dto.GoogleUserInfo;
-import kr.dontworry.global.auth.oauth2.dto.KakaoUserInfo;
-import kr.dontworry.global.auth.oauth2.dto.OAuth2UserInfo;
+import kr.dontworry.auth.dto.CustomOAuth2User;
+import kr.dontworry.auth.dto.GoogleUserInfo;
+import kr.dontworry.auth.dto.KakaoUserInfo;
+import kr.dontworry.auth.dto.OAuth2UserInfo;
 import kr.dontworry.user.entity.SocialAccount;
 import kr.dontworry.user.entity.User;
 import kr.dontworry.user.repository.SocialAccountRepository;

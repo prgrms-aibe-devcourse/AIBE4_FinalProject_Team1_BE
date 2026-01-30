@@ -2,8 +2,8 @@ package kr.dontworry.global.config;
 
 import kr.dontworry.global.auth.filter.JwtAuthenticationFilter;
 import kr.dontworry.global.auth.jwt.JwtProvider;
-import kr.dontworry.global.auth.oauth2.CustomOAuth2UserService;
-import kr.dontworry.global.auth.oauth2.handler.OAuth2SuccessHandler;
+import kr.dontworry.auth.service.CustomOAuth2UserService;
+import kr.dontworry.global.auth.handler.OAuth2SuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

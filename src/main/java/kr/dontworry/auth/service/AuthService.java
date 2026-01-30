@@ -5,7 +5,7 @@ import kr.dontworry.auth.exception.AuthException;
 import kr.dontworry.auth.exception.ErrorCode;
 import kr.dontworry.auth.repository.RefreshTokenRepository;
 import kr.dontworry.global.auth.jwt.JwtProvider;
-import kr.dontworry.global.auth.oauth2.dto.CustomUserDetails;
+import kr.dontworry.auth.dto.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;

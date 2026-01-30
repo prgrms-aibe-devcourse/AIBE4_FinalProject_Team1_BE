@@ -1,4 +1,4 @@
-package kr.dontworry.global.auth.oauth2.dto;
+package kr.dontworry.auth.dto;
 
 import kr.dontworry.user.entity.User;
 import lombok.Getter;

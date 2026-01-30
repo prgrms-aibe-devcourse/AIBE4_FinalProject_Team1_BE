@@ -1,4 +1,4 @@
-package kr.dontworry.global.auth.oauth2.dto;
+package kr.dontworry.auth.dto;
 
 public interface OAuth2UserInfo {
     String getProvider();
