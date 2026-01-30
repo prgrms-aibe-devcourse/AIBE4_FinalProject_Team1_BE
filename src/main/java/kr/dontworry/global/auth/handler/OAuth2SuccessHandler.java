@@ -2,10 +2,10 @@ package kr.dontworry.global.auth.handler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import kr.dontworry.auth.dto.CustomOAuth2User;
 import kr.dontworry.auth.entity.RefreshToken;
 import kr.dontworry.auth.repository.RefreshTokenRepository;
 import kr.dontworry.global.auth.jwt.JwtProvider;
-import kr.dontworry.auth.dto.CustomOAuth2User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -13,6 +13,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 
@@ -35,6 +36,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         Long userId = principal.getUserId();
 
+        String accessToken = jwtProvider.createAccessToken(authentication, userId);
         String refreshToken = jwtProvider.createRefreshToken(authentication, userId);
 
         refreshTokenRepository.save(new RefreshToken(userId, refreshToken));
@@ -44,12 +46,16 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 .secure(false)
                 .path("/")
                 .maxAge(7 * 24 * 60 * 60)
-                .sameSite("Lax")
+                .sameSite("None")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-        clearAuthenticationAttributes(request);
+        String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl)
+                .path("/oauth/redirect")
+                .queryParam("accessToken", accessToken)
+                .build().toUriString();
 
-        getRedirectStrategy().sendRedirect(request, response, frontendUrl + "/oauth/redirect");
+        clearAuthenticationAttributes(request);
+        getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 }
