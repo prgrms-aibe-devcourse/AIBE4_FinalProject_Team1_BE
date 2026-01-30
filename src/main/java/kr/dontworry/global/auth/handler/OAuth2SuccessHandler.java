@@ -8,6 +8,7 @@ import kr.dontworry.domain.auth.repository.RefreshTokenRepository;
 import kr.dontworry.global.auth.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
@@ -16,6 +17,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     private final JwtProvider jwtProvider;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Value("${app.frontend-url:http://localhost}")
     private String frontendUrl;
@@ -50,9 +54,12 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
+        String temporaryCode = UUID.randomUUID().toString();
+        redisTemplate.opsForValue().set(temporaryCode, accessToken, Duration.ofMinutes(1));
+
         String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl)
                 .path("/oauth/redirect")
-                .queryParam("accessToken", accessToken)
+                .queryParam("code", temporaryCode)
                 .build().toUriString();
 
         clearAuthenticationAttributes(request);
