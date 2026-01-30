@@ -18,6 +18,8 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
+
 @Service
 @RequiredArgsConstructor
 public class CustomOAuth2UserService
@@ -34,24 +36,33 @@ public class CustomOAuth2UserService
         OAuth2User oauth2User = super.loadUser(userRequest);
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
 
-        OAuth2UserInfo userInfo = switch (registrationId) {
-            case "google" -> new GoogleUserInfo(oauth2User.getAttributes());
-            case "kakao" -> new KakaoUserInfo(oauth2User.getAttributes());
-            default -> throw new AuthException(AuthErrorCode.UNSUPPORTED_PROVIDER);
-        };
+        OAuth2UserInfo userInfo = createOAuth2UserInfo(registrationId, oauth2User.getAttributes());
 
-        String email = userInfo.getEmail();
-
-        User user = socialAccountRepository.findByProviderAndProviderId(registrationId, userInfo.getProviderId())
-                .map(SocialAccount::getUser)
-                .orElseGet(() -> {
-                    User existingUser = userRepository.findByEmail(email)
-                            .orElseGet(() -> userRepository.save(new User(email)));
-
-                    socialAccountRepository.save(new SocialAccount(registrationId, userInfo.getProviderId(), existingUser));
-                    return existingUser;
-                });
+        User user = getOrSaveUser(registrationId, userInfo);
 
         return new CustomOAuth2User(user, oauth2User.getAttributes());
+    }
+
+    private OAuth2UserInfo createOAuth2UserInfo(String registrationId, Map<String, Object> attributes) {
+        return switch (registrationId) {
+            case "google" -> new GoogleUserInfo(attributes);
+            case "kakao" -> new KakaoUserInfo(attributes);
+            default -> throw new AuthException(AuthErrorCode.UNSUPPORTED_PROVIDER);
+        };
+    }
+
+    private User getOrSaveUser(String registrationId, OAuth2UserInfo userInfo) {
+        return socialAccountRepository.findByProviderAndProviderId(registrationId, userInfo.getProviderId())
+                .map(SocialAccount::getUser)
+                .orElseGet(() -> registerNewUser(registrationId, userInfo));
+    }
+
+    private User registerNewUser(String registrationId, OAuth2UserInfo userInfo) {
+        User user = userRepository.findByEmail(userInfo.getEmail())
+                .orElseGet(() -> userRepository.save(new User(userInfo.getEmail())));
+
+        socialAccountRepository.save(new SocialAccount(registrationId, userInfo.getProviderId(), user));
+
+        return user;
     }
 }
