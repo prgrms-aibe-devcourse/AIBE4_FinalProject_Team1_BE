@@ -39,19 +39,18 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 (CustomOAuth2User) authentication.getPrincipal();
 
         Long userId = principal.getUserId();
-        String jit = UUID.randomUUID().toString();
+        String jti = UUID.randomUUID().toString();
 
         String accessToken = jwtProvider.createAccessToken(authentication, userId);
-        String refreshToken = jwtProvider.createRefreshToken(userId, jit);
+        String refreshToken = jwtProvider.createRefreshToken(userId, jti);
 
-        refreshTokenRepository.save(new RefreshToken(userId, refreshToken));
+        refreshTokenRepository.save(new RefreshToken(jti, userId));
 
         ResponseCookie cookie = ResponseCookie.from("refresh_token", refreshToken)
                 .httpOnly(true)
                 .secure(false)
                 .path("/")
                 .maxAge(7 * 24 * 60 * 60)
-                .sameSite("None")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
