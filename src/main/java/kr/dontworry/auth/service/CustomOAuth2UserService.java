@@ -4,6 +4,8 @@ import kr.dontworry.auth.dto.CustomOAuth2User;
 import kr.dontworry.auth.dto.GoogleUserInfo;
 import kr.dontworry.auth.dto.KakaoUserInfo;
 import kr.dontworry.auth.dto.OAuth2UserInfo;
+import kr.dontworry.auth.exception.AuthErrorCode;
+import kr.dontworry.auth.exception.AuthException;
 import kr.dontworry.user.entity.SocialAccount;
 import kr.dontworry.user.entity.User;
 import kr.dontworry.user.repository.SocialAccountRepository;
@@ -35,7 +37,7 @@ public class CustomOAuth2UserService
         OAuth2UserInfo userInfo = switch (registrationId) {
             case "google" -> new GoogleUserInfo(oauth2User.getAttributes());
             case "kakao" -> new KakaoUserInfo(oauth2User.getAttributes());
-            default -> throw new RuntimeException("지원하지 않는 제공자입니다.");
+            default -> throw new AuthException(AuthErrorCode.UNSUPPORTED_PROVIDER);
         };
 
         String email = userInfo.getEmail();
