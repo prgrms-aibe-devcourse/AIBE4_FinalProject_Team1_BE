@@ -46,14 +46,6 @@ public class JwtProvider {
     }
 
     public String createAccessToken(Authentication auth, Long userId) {
-        return createToken(auth, userId, accessTokenExpTime);
-    }
-
-    public String createRefreshToken(Authentication auth, Long userId) {
-        return createToken(auth, userId, refreshTokenExpTime);
-    }
-
-    private String createToken(Authentication auth, Long userId, long expireTime) {
         String authorities = auth.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
@@ -62,9 +54,27 @@ public class JwtProvider {
                 .setSubject(String.valueOf(userId))
                 .claim("auth", authorities)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expireTime))
+                .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpTime))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
+    }
+
+    public String createRefreshToken(Long userId, String jti) {
+        return Jwts.builder()
+                .setSubject(String.valueOf(userId))
+                .setId(jti)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + refreshTokenExpTime))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String getJti(String token) {
+        return parseClaims(token).getId();
+    }
+
+    public Long getUserId(String token) {
+        return Long.valueOf(parseClaims(token).getSubject());
     }
 
     public Authentication getAuthentication(String token) {
@@ -75,7 +85,7 @@ public class JwtProvider {
                         .map(SimpleGrantedAuthority::new)
                         .toList();
 
-        Long userId = Long.valueOf(claims.getSubject());
+        Long userId = getUserId(token);
 
         CustomUserDetails principal =
                 new CustomUserDetails(userId, authorities);
