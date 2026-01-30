@@ -1,13 +1,12 @@
 package kr.dontworry.auth.exception;
 
+import kr.dontworry.global.exception.BusinessException;
+import kr.dontworry.global.exception.ErrorModel;
 import lombok.Getter;
 
 @Getter
-public class AuthException extends RuntimeException {
-    private final ErrorCode errorCode;
-
-    public AuthException(ErrorCode errorCode) {
-        super(errorCode.getMessage());
-        this.errorCode = errorCode;
+public class AuthException extends BusinessException {
+    public AuthException(ErrorModel errorModel) {
+        super(errorModel);
     }
 }
