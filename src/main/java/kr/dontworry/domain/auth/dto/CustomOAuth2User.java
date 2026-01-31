@@ -1,6 +1,5 @@
 package kr.dontworry.domain.auth.dto;
 
-import kr.dontworry.domain.user.entity.User;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -14,13 +13,11 @@ import java.util.Map;
 public class CustomOAuth2User implements OAuth2User {
 
     private final Long userId;
-    private final String email;
     private final Map<String, Object> attributes;
 
-    public CustomOAuth2User(User user,
+    public CustomOAuth2User(Long userId,
                             Map<String, Object> attributes) {
-        this.userId = user.getId();
-        this.email = user.getEmail();
+        this.userId = userId;
         this.attributes = attributes;
     }
 

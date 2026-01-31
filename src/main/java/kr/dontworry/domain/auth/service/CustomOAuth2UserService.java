@@ -37,10 +37,9 @@ public class CustomOAuth2UserService
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
 
         OAuth2UserInfo userInfo = createOAuth2UserInfo(registrationId, oauth2User.getAttributes());
-
         User user = getOrSaveUser(registrationId, userInfo);
 
-        return new CustomOAuth2User(user, oauth2User.getAttributes());
+        return new CustomOAuth2User(user.getId(), oauth2User.getAttributes());
     }
 
     private OAuth2UserInfo createOAuth2UserInfo(String registrationId, Map<String, Object> attributes) {
