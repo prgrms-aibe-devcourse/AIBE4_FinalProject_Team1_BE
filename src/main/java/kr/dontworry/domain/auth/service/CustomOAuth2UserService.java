@@ -59,7 +59,7 @@ public class CustomOAuth2UserService
 
     private User registerNewUser(String registrationId, OAuth2UserInfo userInfo) {
         User user = userRepository.findByEmail(userInfo.getEmail())
-                .orElseGet(() -> userRepository.save(new User(userInfo.getEmail())));
+                .orElseGet(() -> userRepository.save(new User(userInfo.getEmail(), userInfo.getName())));
 
         socialAccountRepository.save(new SocialAccount(registrationId, userInfo.getProviderId(), user));
 

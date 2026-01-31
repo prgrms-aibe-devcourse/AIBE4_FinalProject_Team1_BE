@@ -29,6 +29,9 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false, unique = true, updatable = false)
     private UUID publicId;
 
+    @Column(nullable = false)
+    private String nickname;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<SocialAccount> socialAccounts = new ArrayList<>();
 
@@ -39,8 +42,9 @@ public class User extends BaseTimeEntity {
         this.publicId = UUID.randomUUID();
     }
 
-    public User(String email) {
+    public User(String email, String nickname) {
         this.email = email;
+        this.nickname = nickname;
     }
 
     public void withdraw() {
