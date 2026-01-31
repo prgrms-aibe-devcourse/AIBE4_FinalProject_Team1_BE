@@ -22,8 +22,8 @@ docker compose up -d --build
 | Service | URL |
 |--|-----|
 | Web App | http://localhost |
-| Swagger UI | http://localhost/api/swagger-ui/index.html |
-| OpenAPI JSON | http://localhost/api/v3/api-docs |
+| Swagger UI | http://localhost/swagger-ui/index.html |
+| OpenAPI JSON | http://localhost/v3/api-docs |
 
 ---
 
