@@ -1,11 +1,11 @@
 package kr.dontworry.domain.auth.controller;
 
 import jakarta.servlet.http.HttpServletResponse;
-import kr.dontworry.domain.auth.dto.AccessTokenResponse;
 import kr.dontworry.domain.auth.dto.TokenResponse;
 import kr.dontworry.domain.auth.service.AuthService;
 import kr.dontworry.global.auth.constant.AuthConstant;
 import kr.dontworry.global.util.CookieUtil;
+import kr.dontworry.global.util.HeaderUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpHeaders;
@@ -20,9 +20,10 @@ public class AuthController {
     private final AuthService authService;
     private final RedisTemplate<String, String> redisTemplate;
     private final CookieUtil cookieUtil;
+    private final HeaderUtil headerUtil;
 
     @PostMapping("/tokens")
-    public ResponseEntity<AccessTokenResponse> reissueTokens(
+    public ResponseEntity<Void> reissueTokens(
             @CookieValue(name = AuthConstant.REFRESH_TOKEN_COOKIE_NAME, required = false) String refreshToken, HttpServletResponse response) {
 
         if (refreshToken == null) {
@@ -31,15 +32,18 @@ public class AuthController {
 
         TokenResponse tokenResponse = authService.reissueTokens(refreshToken);
 
-        response.setHeader("Authorization", "Bearer " + tokenResponse.accessToken());
+        cookieUtil.addRefreshTokenCookie(response, tokenResponse.refreshToken());
 
-        cookieUtil.addRefreshTokenCookie(response, tokenResponse.accessToken());
+        HttpHeaders headers = new HttpHeaders();
+        headerUtil.setAccessTokenHeader(headers, tokenResponse.accessToken());
 
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.noContent()
+                .headers(headers)
+                .build();
     }
 
-    @GetMapping("/exchange")
-    public ResponseEntity<?> exchangeCode(@RequestParam String code) {
+    @GetMapping("/login")
+    public ResponseEntity<String> login(@RequestParam String code) {
         String accessToken = redisTemplate.opsForValue().get(code);
 
         if (accessToken == null) {
@@ -49,8 +53,10 @@ public class AuthController {
         redisTemplate.delete(code);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.set(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
+        headerUtil.setAccessTokenHeader(headers, accessToken);
 
-        return ResponseEntity.ok().headers(headers).body("Login Success");
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body("Login Success");
     }
 }
