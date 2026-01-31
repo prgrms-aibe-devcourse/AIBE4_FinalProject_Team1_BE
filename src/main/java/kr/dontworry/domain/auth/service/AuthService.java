@@ -1,6 +1,7 @@
 package kr.dontworry.domain.auth.service;
 
 import kr.dontworry.domain.auth.dto.CustomUserDetails;
+import kr.dontworry.domain.auth.dto.TokenResponse;
 import kr.dontworry.domain.auth.entity.RefreshToken;
 import kr.dontworry.domain.auth.exception.AuthErrorCode;
 import kr.dontworry.domain.auth.exception.AuthException;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -27,16 +29,16 @@ public class AuthService {
     private final UserRepository userRepository;
 
     @Transactional
-    public String refreshAccessToken(String refreshToken) {
+    public TokenResponse refreshAccessToken(String refreshToken) {
         if (!jwtProvider.validateToken(refreshToken)) {
             throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
         }
 
         String jti = jwtProvider.getJti(refreshToken);
-        Long userId = jwtProvider.getUserId(refreshToken);
-
         RefreshToken savedToken = refreshTokenRepository.findById(jti)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND));
+
+        Long userId = jwtProvider.getUserId(refreshToken);
 
         if (!savedToken.getUserId().equals(userId)) {
             refreshTokenRepository.delete(savedToken);
@@ -55,6 +57,15 @@ public class AuthService {
                 userDetails, null, userDetails.getAuthorities()
         );
 
-        return jwtProvider.createAccessToken(authentication, userId);
+        refreshTokenRepository.delete(savedToken);
+
+        String newAccessToken = jwtProvider.createAccessToken(authentication, userId);
+
+        String newJti = UUID.randomUUID().toString();
+        String newRefreshToken = jwtProvider.createRefreshToken(userId, newJti);
+
+        refreshTokenRepository.save(new RefreshToken(newJti, userId));
+
+        return new TokenResponse(newAccessToken, newRefreshToken);
     }
 }
