@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -29,22 +28,34 @@ public class AuthService {
     private final UserRepository userRepository;
 
     @Transactional
-    public TokenResponse refreshAccessToken(String refreshToken) {
+    public TokenResponse reissueTokens(String refreshToken) {
+        RefreshToken savedToken = validateAndGetStoredRefreshToken(refreshToken);
+
+        Authentication authentication = createAuthentication(savedToken.getUserId());
+
+        return rotateTokens(savedToken, authentication);
+    }
+
+    private RefreshToken validateAndGetStoredRefreshToken( String refreshToken) {
         if (!jwtProvider.validateToken(refreshToken)) {
             throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
         }
 
         String jti = jwtProvider.getJti(refreshToken);
+        Long userId = jwtProvider.getUserId(refreshToken);
+
         RefreshToken savedToken = refreshTokenRepository.findById(jti)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND));
-
-        Long userId = jwtProvider.getUserId(refreshToken);
 
         if (!savedToken.getUserId().equals(userId)) {
             refreshTokenRepository.delete(savedToken);
             throw new AuthException(AuthErrorCode.REFRESH_TOKEN_MISMATCH);
         }
 
+        return savedToken;
+    }
+
+    private Authentication createAuthentication(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(UserErrorCode.USER_NOT_FOUND));
 
@@ -53,17 +64,20 @@ public class AuthService {
                 List.of(new SimpleGrantedAuthority("ROLE_USER"))
         );
 
-        Authentication authentication = new UsernamePasswordAuthenticationToken(
+        return new UsernamePasswordAuthenticationToken(
                 userDetails, null, userDetails.getAuthorities()
         );
+    }
 
-        refreshTokenRepository.delete(savedToken);
+    private TokenResponse rotateTokens(RefreshToken oldToken, Authentication authentication) {
+        Long userId = oldToken.getUserId();
+
+        refreshTokenRepository.delete(oldToken);
 
         String newAccessToken = jwtProvider.createAccessToken(authentication, userId);
+        String newRefreshToken = jwtProvider.createRefreshToken(userId);
 
-        String newJti = UUID.randomUUID().toString();
-        String newRefreshToken = jwtProvider.createRefreshToken(userId, newJti);
-
+        String newJti = jwtProvider.getJti(newRefreshToken);
         refreshTokenRepository.save(new RefreshToken(newJti, userId));
 
         return new TokenResponse(newAccessToken, newRefreshToken);

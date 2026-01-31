@@ -21,15 +21,15 @@ public class AuthController {
     private final RedisTemplate<String, String> redisTemplate;
     private final CookieUtil cookieUtil;
 
-    @PostMapping("/access-tokens")
-    public ResponseEntity<AccessTokenResponse> reissueAccessToken(
+    @PostMapping("/tokens")
+    public ResponseEntity<AccessTokenResponse> reissueTokens(
             @CookieValue(name = AuthConstant.REFRESH_TOKEN_COOKIE_NAME, required = false) String refreshToken, HttpServletResponse response) {
 
         if (refreshToken == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        TokenResponse tokenResponse = authService.refreshAccessToken(refreshToken);
+        TokenResponse tokenResponse = authService.reissueTokens(refreshToken);
 
         response.setHeader("Authorization", "Bearer " + tokenResponse.accessToken());
 

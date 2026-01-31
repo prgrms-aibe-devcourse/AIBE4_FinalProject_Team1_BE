@@ -21,6 +21,7 @@ import javax.crypto.SecretKey;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -59,7 +60,9 @@ public class JwtProvider {
                 .compact();
     }
 
-    public String createRefreshToken(Long userId, String jti) {
+    public String createRefreshToken(Long userId) {
+        String jti = UUID.randomUUID().toString();
+
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
                 .setId(jti)
