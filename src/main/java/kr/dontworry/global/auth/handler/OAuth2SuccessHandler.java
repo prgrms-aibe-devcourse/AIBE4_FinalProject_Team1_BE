@@ -6,11 +6,10 @@ import kr.dontworry.domain.auth.dto.CustomOAuth2User;
 import kr.dontworry.domain.auth.entity.RefreshToken;
 import kr.dontworry.domain.auth.repository.RefreshTokenRepository;
 import kr.dontworry.global.auth.jwt.JwtProvider;
+import kr.dontworry.global.util.CookieUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -27,6 +26,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final JwtProvider jwtProvider;
     private final RefreshTokenRepository refreshTokenRepository;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final CookieUtil cookieUtil;
 
     @Value("${app.frontend-url:http://localhost}")
     private String frontendUrl;
@@ -46,13 +46,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         refreshTokenRepository.save(new RefreshToken(jti, userId));
 
-        ResponseCookie cookie = ResponseCookie.from("refresh_token", refreshToken)
-                .httpOnly(true)
-                .secure(false)
-                .path("/")
-                .maxAge(7 * 24 * 60 * 60)
-                .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        cookieUtil.addRefreshTokenCookie(response, refreshToken);
 
         String temporaryCode = UUID.randomUUID().toString();
         redisTemplate.opsForValue().set(temporaryCode, accessToken, Duration.ofMinutes(1));

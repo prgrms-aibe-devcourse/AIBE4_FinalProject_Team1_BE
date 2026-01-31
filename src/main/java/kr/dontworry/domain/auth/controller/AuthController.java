@@ -1,7 +1,11 @@
 package kr.dontworry.domain.auth.controller;
 
+import jakarta.servlet.http.HttpServletResponse;
 import kr.dontworry.domain.auth.dto.AccessTokenResponse;
+import kr.dontworry.domain.auth.dto.TokenResponse;
 import kr.dontworry.domain.auth.service.AuthService;
+import kr.dontworry.global.auth.constant.AuthConstant;
+import kr.dontworry.global.util.CookieUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpHeaders;
@@ -15,17 +19,23 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     private final AuthService authService;
     private final RedisTemplate<String, String> redisTemplate;
+    private final CookieUtil cookieUtil;
 
     @PostMapping("/access-tokens")
     public ResponseEntity<AccessTokenResponse> reissueAccessToken(
-            @CookieValue(name = "refresh_token", required = false) String refreshToken) {
+            @CookieValue(name = AuthConstant.REFRESH_TOKEN_COOKIE_NAME, required = false) String refreshToken, HttpServletResponse response) {
 
         if (refreshToken == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        String newAccessToken = authService.refreshAccessToken(refreshToken);
-        return ResponseEntity.ok(new AccessTokenResponse(newAccessToken));
+        TokenResponse tokenResponse = authService.refreshAccessToken(refreshToken);
+
+        response.setHeader("Authorization", "Bearer " + tokenResponse.accessToken());
+
+        cookieUtil.addRefreshTokenCookie(response, tokenResponse.accessToken());
+
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/exchange")
