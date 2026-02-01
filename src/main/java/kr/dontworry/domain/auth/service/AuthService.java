@@ -99,7 +99,7 @@ public class AuthService {
 
         Long expiration = jwtProvider.getExpiration(accessToken);
         redisTemplate.opsForValue().set(
-                "BL:" + accessToken,
+                "BL:" + jti,
                 "logout",
                 expiration,
                 TimeUnit.MILLISECONDS
