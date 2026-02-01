@@ -21,7 +21,6 @@ import javax.crypto.SecretKey;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -46,13 +45,14 @@ public class JwtProvider {
         this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String createAccessToken(Authentication auth, Long userId) {
+    public String createAccessToken(Authentication auth, Long userId, String jti) {
         String authorities = auth.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
 
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
+                .setId(jti)
                 .claim("auth", authorities)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpTime))
@@ -60,9 +60,7 @@ public class JwtProvider {
                 .compact();
     }
 
-    public String createRefreshToken(Long userId) {
-        String jti = UUID.randomUUID().toString();
-
+    public String createRefreshToken(Long userId, String jti) {
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
                 .setId(jti)

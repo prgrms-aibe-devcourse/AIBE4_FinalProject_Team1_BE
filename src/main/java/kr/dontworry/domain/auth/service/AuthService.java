@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -77,11 +78,12 @@ public class AuthService {
 
         refreshTokenRepository.delete(oldToken);
 
-        String newAccessToken = jwtProvider.createAccessToken(authentication, userId);
-        String newRefreshToken = jwtProvider.createRefreshToken(userId);
+        String jti = UUID.randomUUID().toString();
 
-        String newJti = jwtProvider.getJti(newRefreshToken);
-        refreshTokenRepository.save(new RefreshToken(newJti, userId));
+        String newAccessToken = jwtProvider.createAccessToken(authentication, userId, jti);
+        String newRefreshToken = jwtProvider.createRefreshToken(userId, jti);
+
+        refreshTokenRepository.save(new RefreshToken(jti, userId));
 
         return new TokenResponse(newAccessToken, newRefreshToken);
     }
@@ -92,9 +94,8 @@ public class AuthService {
             throw new IllegalArgumentException("유효하지 않은 토큰입니다.");
         }
 
-        Long userId = jwtProvider.getUserId(accessToken);
-        refreshTokenRepository.findByUserId(userId)
-                .ifPresent(token -> refreshTokenRepository.delete(token));
+        String jti = jwtProvider.getJti(accessToken);
+        refreshTokenRepository.deleteById(jti);
 
         Long expiration = jwtProvider.getExpiration(accessToken);
         redisTemplate.opsForValue().set(
