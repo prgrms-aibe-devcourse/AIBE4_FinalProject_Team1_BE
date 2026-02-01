@@ -11,6 +11,7 @@ import kr.dontworry.domain.user.exception.UserErrorCode;
 import kr.dontworry.domain.user.repository.UserRepository;
 import kr.dontworry.global.auth.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +28,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRepository userRepository;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Transactional
     public TokenResponse reissueTokens(String refreshToken) {
@@ -81,5 +84,24 @@ public class AuthService {
         refreshTokenRepository.save(new RefreshToken(newJti, userId));
 
         return new TokenResponse(newAccessToken, newRefreshToken);
+    }
+
+    @Transactional
+    public void logout(String accessToken){
+        if(!jwtProvider.validateToken(accessToken)) {
+            throw new IllegalArgumentException("유효하지 않은 토큰입니다.");
+        }
+
+        Long userId = jwtProvider.getUserId(accessToken);
+        refreshTokenRepository.findByUserId(userId)
+                .ifPresent(token -> refreshTokenRepository.delete(token));
+
+        Long expiration = jwtProvider.getExpiration(accessToken);
+        redisTemplate.opsForValue().set(
+                "BL:" + accessToken,
+                "logout",
+                expiration,
+                TimeUnit.MILLISECONDS
+        );
     }
 }

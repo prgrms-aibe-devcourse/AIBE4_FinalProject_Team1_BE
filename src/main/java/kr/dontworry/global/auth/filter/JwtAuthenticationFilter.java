@@ -4,10 +4,13 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import kr.dontworry.domain.auth.exception.AuthErrorCode;
 import kr.dontworry.global.auth.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -19,6 +22,7 @@ import static kr.dontworry.global.auth.constant.AuthConstant.*;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
+    private final RedisTemplate<String, String> redisTemplate;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -26,9 +30,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String accessToken = resolveToken(request);
 
-        if (StringUtils.hasText(accessToken) && jwtProvider.validateToken(accessToken)) {
-            Authentication authentication = jwtProvider.getAuthentication(accessToken);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+        if (accessToken != null && jwtProvider.validateToken(accessToken)) {
+            String isLogout = redisTemplate.opsForValue().get("BL:" + accessToken);
+
+            if (ObjectUtils.isEmpty(isLogout)) {
+                Authentication auth = jwtProvider.getAuthentication(accessToken);
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            }else{
+                setErrorResponse(response, AuthErrorCode.LOGOUT_TOKEN);
+                return;
+            }
         }
 
         filterChain.doFilter(request, response);
@@ -40,5 +51,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return bearerToken.substring(BEARER_PREFIX_LENGTH);
         }
         return null;
+    }
+
+    private void setErrorResponse(HttpServletResponse response, AuthErrorCode errorCode) throws IOException {
+        response.setStatus(errorCode.getStatus().value());
+        response.setContentType("application/json;charset=UTF-8");
+
+        String json = String.format(
+                "{\"status\": %d, \"code\": \"%s\", \"message\": \"%s\"}",
+                errorCode.getStatus().value(),
+                errorCode.getCode(),
+                errorCode.getMessage()
+        );
+
+        response.getWriter().write(json);
     }
 }

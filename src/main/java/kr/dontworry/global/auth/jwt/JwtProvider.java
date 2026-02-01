@@ -119,4 +119,16 @@ public class JwtProvider {
             return e.getClaims();
         }
     }
+
+    public Long getExpiration(String accessToken) {
+        Date expiration = Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(accessToken)
+                .getPayload()
+                .getExpiration();
+
+        long now = new Date().getTime();
+        return (expiration.getTime() - now);
+    }
 }

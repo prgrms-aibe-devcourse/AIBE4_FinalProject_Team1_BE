@@ -59,4 +59,17 @@ public class AuthController {
                 .headers(headers)
                 .body("Login Success");
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @RequestHeader(AuthConstant.AUTHORIZATION_HEADER) String bearerToken,
+            HttpServletResponse response) {
+
+        String accessToken = bearerToken.substring(AuthConstant.BEARER_PREFIX_LENGTH);
+        authService.logout(accessToken);
+
+        cookieUtil.deleteRefreshTokenCookie(response);
+
+        return ResponseEntity.ok().build();
+    }
 }
