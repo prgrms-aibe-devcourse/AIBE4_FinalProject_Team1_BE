@@ -2,7 +2,7 @@ package kr.dontworry.global.auth.handler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import kr.dontworry.domain.auth.dto.CustomOAuth2User;
+import kr.dontworry.domain.auth.dto.CustomUserDetails;
 import kr.dontworry.domain.auth.entity.RefreshToken;
 import kr.dontworry.domain.auth.repository.RefreshTokenRepository;
 import kr.dontworry.global.auth.jwt.JwtProvider;
@@ -35,8 +35,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException {
 
-        CustomOAuth2User principal =
-                (CustomOAuth2User) authentication.getPrincipal();
+        CustomUserDetails principal =
+                (CustomUserDetails) authentication.getPrincipal();
 
         Long userId = principal.getUserId();
 

@@ -1,6 +1,6 @@
 package kr.dontworry.domain.auth.service;
 
-import kr.dontworry.domain.auth.dto.CustomOAuth2User;
+import kr.dontworry.domain.auth.dto.CustomUserDetails;
 import kr.dontworry.domain.auth.dto.GoogleUserInfo;
 import kr.dontworry.domain.auth.dto.KakaoUserInfo;
 import kr.dontworry.domain.auth.dto.OAuth2UserInfo;
@@ -11,6 +11,7 @@ import kr.dontworry.domain.user.entity.User;
 import kr.dontworry.domain.user.repository.SocialAccountRepository;
 import kr.dontworry.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
@@ -18,6 +19,7 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -39,7 +41,7 @@ public class CustomOAuth2UserService
         OAuth2UserInfo userInfo = createOAuth2UserInfo(registrationId, oauth2User.getAttributes());
         User user = getOrSaveUser(registrationId, userInfo);
 
-        return new CustomOAuth2User(user.getId(), oauth2User.getAttributes());
+        return new CustomUserDetails(user.getId(), List.of(new SimpleGrantedAuthority("ROLE_USER")), oauth2User.getAttributes());
     }
 
     private OAuth2UserInfo createOAuth2UserInfo(String registrationId, Map<String, Object> attributes) {
