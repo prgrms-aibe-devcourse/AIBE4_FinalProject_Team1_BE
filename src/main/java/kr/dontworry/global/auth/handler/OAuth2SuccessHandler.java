@@ -41,11 +41,12 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         Long userId = principal.getUserId();
 
         String sid = UUID.randomUUID().toString();
+        String jti = UUID.randomUUID().toString();
 
-        String accessToken = jwtProvider.createAccessToken(authentication, userId, sid);
-        String refreshToken = jwtProvider.createRefreshToken(userId, sid);
+        String accessToken = jwtProvider.createAccessToken(authentication, userId);
+        String refreshToken = jwtProvider.createRefreshToken(userId, jti, sid);
 
-        refreshTokenRepository.save(new RefreshToken(sid, userId));
+        refreshTokenRepository.save(new RefreshToken(sid, jti, userId));
 
         cookieUtil.addRefreshTokenCookie(response, refreshToken);
 

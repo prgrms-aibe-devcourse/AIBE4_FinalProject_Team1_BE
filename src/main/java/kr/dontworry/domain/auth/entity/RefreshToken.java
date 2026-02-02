@@ -13,9 +13,12 @@ import org.springframework.data.redis.core.RedisHash;
 @NoArgsConstructor
 @RedisHash(value = "refreshToken", timeToLive = 604800)
 public class RefreshToken {
-
     @Id
     private String sid;
-
+    private String jti;
     private Long userId;
+
+    public void updateJti(String newJti) {
+        this.jti = newJti;
+    }
 }

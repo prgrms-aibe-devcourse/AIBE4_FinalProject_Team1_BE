@@ -46,7 +46,7 @@ public class JwtProvider {
         this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String createAccessToken(Authentication auth, Long userId, String sid) {
+    public String createAccessToken(Authentication auth, Long userId) {
         String authorities = auth.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
@@ -56,7 +56,6 @@ public class JwtProvider {
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
                 .setId(jti)
-                .claim("sid", sid)
                 .claim("auth", authorities)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpTime))
@@ -64,8 +63,7 @@ public class JwtProvider {
                 .compact();
     }
 
-    public String createRefreshToken(Long userId, String sid) {
-        String jti = UUID.randomUUID().toString();
+    public String createRefreshToken(Long userId, String jti, String sid) {
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
                 .setId(jti)

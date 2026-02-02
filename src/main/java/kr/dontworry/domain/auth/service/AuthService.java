@@ -17,6 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -35,6 +36,12 @@ public class AuthService {
     public TokenResponse reissueTokens(String refreshToken) {
         RefreshToken savedToken = validateAndGetStoredRefreshToken(refreshToken);
 
+        String currentJti = jwtProvider.getJti(refreshToken);
+        if (!savedToken.getJti().equals(currentJti)) {
+            refreshTokenRepository.delete(savedToken);
+            throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
+        }
+
         Authentication authentication = createAuthentication(savedToken.getUserId());
 
         return rotateTokens(savedToken, authentication);
@@ -46,17 +53,8 @@ public class AuthService {
         }
 
         String sid = jwtProvider.getSid(refreshToken);
-        Long userId = jwtProvider.getUserId(refreshToken);
-
-        RefreshToken savedToken = refreshTokenRepository.findById(sid)
+        return refreshTokenRepository.findById(sid)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND));
-
-        if (!savedToken.getUserId().equals(userId)) {
-            refreshTokenRepository.delete(savedToken);
-            throw new AuthException(AuthErrorCode.REFRESH_TOKEN_MISMATCH);
-        }
-
-        return savedToken;
     }
 
     private Authentication createAuthentication(Long userId) {
@@ -73,38 +71,32 @@ public class AuthService {
         );
     }
 
-    private TokenResponse rotateTokens(RefreshToken oldToken, Authentication authentication) {
-        Long userId = oldToken.getUserId();
+    private TokenResponse rotateTokens(RefreshToken savedToken, Authentication authentication) {
+        String sid = savedToken.getSid();
+        Long userId = savedToken.getUserId();
 
-        refreshTokenRepository.delete(oldToken);
+        String newJti = UUID.randomUUID().toString();
 
-        String sid = UUID.randomUUID().toString();
+        String newAccessToken = jwtProvider.createAccessToken(authentication, userId);
+        String newRefreshToken = jwtProvider.createRefreshToken(userId, newJti, sid);
 
-        String newAccessToken = jwtProvider.createAccessToken(authentication, userId, sid);
-        String newRefreshToken = jwtProvider.createRefreshToken(userId, sid);
+        savedToken.updateJti(newJti);
 
-        refreshTokenRepository.save(new RefreshToken(sid, userId));
+        refreshTokenRepository.save(savedToken);
 
         return new TokenResponse(newAccessToken, newRefreshToken);
     }
 
     @Transactional
-    public void logout(String accessToken){
-        if(!jwtProvider.validateToken(accessToken)) {
-            throw new AuthException(AuthErrorCode.INVALID_TOKEN);
+    public void logout(String accessToken, String refreshToken) {
+        if (StringUtils.hasText(refreshToken) && jwtProvider.validateToken(refreshToken)) {
+            String sid = jwtProvider.getSid(refreshToken);
+            refreshTokenRepository.deleteById(sid);
         }
-
-        String sid = jwtProvider.getSid(accessToken);
-        refreshTokenRepository.deleteById(sid);
 
         String jti = jwtProvider.getJti(accessToken);
         Long expiration = jwtProvider.getExpiration(accessToken);
-        redisTemplate.opsForValue().set(
-                "BL:" + jti,
-                "logout",
-                expiration,
-                TimeUnit.MILLISECONDS
-        );
+        redisTemplate.opsForValue().set("BL:" + jti, "logout", expiration, TimeUnit.MILLISECONDS);
     }
 
     public String loginWithCode(String code) {

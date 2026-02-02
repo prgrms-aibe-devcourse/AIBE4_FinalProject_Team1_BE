@@ -42,9 +42,10 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
             @RequestHeader(AuthConstant.AUTHORIZATION_HEADER) String bearerToken,
+            @CookieValue(name = AuthConstant.REFRESH_TOKEN_COOKIE_NAME) String refreshToken,
             HttpServletResponse response) {
 
-        authService.logout(headerUtil.extractToken(bearerToken));
+        authService.logout(headerUtil.extractToken(bearerToken), refreshToken);
 
         cookieUtil.deleteRefreshTokenCookie(response);
 
