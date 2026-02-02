@@ -45,10 +45,10 @@ public class AuthService {
             throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
         }
 
-        String jti = jwtProvider.getJti(refreshToken);
+        String sid = jwtProvider.getSid(refreshToken);
         Long userId = jwtProvider.getUserId(refreshToken);
 
-        RefreshToken savedToken = refreshTokenRepository.findById(jti)
+        RefreshToken savedToken = refreshTokenRepository.findById(sid)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND));
 
         if (!savedToken.getUserId().equals(userId)) {
@@ -78,12 +78,12 @@ public class AuthService {
 
         refreshTokenRepository.delete(oldToken);
 
-        String jti = UUID.randomUUID().toString();
+        String sid = UUID.randomUUID().toString();
 
-        String newAccessToken = jwtProvider.createAccessToken(authentication, userId, jti);
-        String newRefreshToken = jwtProvider.createRefreshToken(userId, jti);
+        String newAccessToken = jwtProvider.createAccessToken(authentication, userId, sid);
+        String newRefreshToken = jwtProvider.createRefreshToken(userId, sid);
 
-        refreshTokenRepository.save(new RefreshToken(jti, userId));
+        refreshTokenRepository.save(new RefreshToken(sid, userId));
 
         return new TokenResponse(newAccessToken, newRefreshToken);
     }
@@ -94,9 +94,10 @@ public class AuthService {
             throw new AuthException(AuthErrorCode.INVALID_TOKEN);
         }
 
-        String jti = jwtProvider.getJti(accessToken);
-        refreshTokenRepository.deleteById(jti);
+        String sid = jwtProvider.getSid(accessToken);
+        refreshTokenRepository.deleteById(sid);
 
+        String jti = jwtProvider.getJti(accessToken);
         Long expiration = jwtProvider.getExpiration(accessToken);
         redisTemplate.opsForValue().set(
                 "BL:" + jti,

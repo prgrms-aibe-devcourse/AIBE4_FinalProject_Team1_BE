@@ -15,7 +15,7 @@ import org.springframework.data.redis.core.RedisHash;
 public class RefreshToken {
 
     @Id
-    private String jti;
+    private String sid;
 
     private Long userId;
 }

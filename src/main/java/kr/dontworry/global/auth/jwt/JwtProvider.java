@@ -21,6 +21,7 @@ import javax.crypto.SecretKey;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -45,14 +46,17 @@ public class JwtProvider {
         this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String createAccessToken(Authentication auth, Long userId, String jti) {
+    public String createAccessToken(Authentication auth, Long userId, String sid) {
         String authorities = auth.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
 
+        String jti = UUID.randomUUID().toString();
+
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
                 .setId(jti)
+                .claim("sid", sid)
                 .claim("auth", authorities)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpTime))
@@ -60,10 +64,12 @@ public class JwtProvider {
                 .compact();
     }
 
-    public String createRefreshToken(Long userId, String jti) {
+    public String createRefreshToken(Long userId, String sid) {
+        String jti = UUID.randomUUID().toString();
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
                 .setId(jti)
+                .claim("sid", sid)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + refreshTokenExpTime))
                 .signWith(key, SignatureAlgorithm.HS256)
@@ -72,6 +78,10 @@ public class JwtProvider {
 
     public String getJti(String token) {
         return parseClaims(token).getId();
+    }
+
+    public String getSid(String token) {
+        return parseClaims(token).get("sid", String.class);
     }
 
     public Long getUserId(String token) {
