@@ -29,7 +29,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRepository userRepository;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final RedisTemplate<String, String> redisTemplate;
 
     @Transactional
     public TokenResponse reissueTokens(String refreshToken) {
@@ -91,7 +91,7 @@ public class AuthService {
     @Transactional
     public void logout(String accessToken){
         if(!jwtProvider.validateToken(accessToken)) {
-            throw new IllegalArgumentException("유효하지 않은 토큰입니다.");
+            throw new AuthException(AuthErrorCode.INVALID_TOKEN);
         }
 
         String jti = jwtProvider.getJti(accessToken);
@@ -104,5 +104,17 @@ public class AuthService {
                 expiration,
                 TimeUnit.MILLISECONDS
         );
+    }
+
+    public String loginWithCode(String code) {
+        String accessToken = redisTemplate.opsForValue().get(code);
+
+        if (accessToken == null) {
+            throw new AuthException(AuthErrorCode.INVALID_AUTH_CODE);
+        }
+
+        redisTemplate.delete(code);
+
+        return accessToken;
     }
 }

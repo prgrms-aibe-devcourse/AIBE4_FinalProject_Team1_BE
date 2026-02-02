@@ -7,9 +7,6 @@ import kr.dontworry.global.auth.constant.AuthConstant;
 import kr.dontworry.global.util.CookieUtil;
 import kr.dontworry.global.util.HeaderUtil;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,45 +15,27 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
-    private final RedisTemplate<String, String> redisTemplate;
     private final CookieUtil cookieUtil;
     private final HeaderUtil headerUtil;
 
     @PostMapping("/tokens")
     public ResponseEntity<Void> reissueTokens(
-            @CookieValue(name = AuthConstant.REFRESH_TOKEN_COOKIE_NAME, required = false) String refreshToken, HttpServletResponse response) {
-
-        if (refreshToken == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
+            @CookieValue(name = AuthConstant.REFRESH_TOKEN_COOKIE_NAME) String refreshToken, HttpServletResponse response) {
         TokenResponse tokenResponse = authService.reissueTokens(refreshToken);
 
         cookieUtil.addRefreshTokenCookie(response, tokenResponse.refreshToken());
 
-        HttpHeaders headers = new HttpHeaders();
-        headerUtil.setAccessTokenHeader(headers, tokenResponse.accessToken());
-
         return ResponseEntity.noContent()
-                .headers(headers)
+                .headers(headerUtil.createAccessTokenHeaders(tokenResponse.accessToken()))
                 .build();
     }
 
     @GetMapping("/login")
     public ResponseEntity<String> login(@RequestParam String code) {
-        String accessToken = redisTemplate.opsForValue().get(code);
-
-        if (accessToken == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid Code");
-        }
-
-        redisTemplate.delete(code);
-
-        HttpHeaders headers = new HttpHeaders();
-        headerUtil.setAccessTokenHeader(headers, accessToken);
+        String accessToken = authService.loginWithCode(code);
 
         return ResponseEntity.ok()
-                .headers(headers)
+                .headers(headerUtil.createAccessTokenHeaders(accessToken))
                 .body("Login Success");
     }
 
@@ -65,8 +44,7 @@ public class AuthController {
             @RequestHeader(AuthConstant.AUTHORIZATION_HEADER) String bearerToken,
             HttpServletResponse response) {
 
-        String accessToken = bearerToken.substring(AuthConstant.BEARER_PREFIX_LENGTH);
-        authService.logout(accessToken);
+        authService.logout(headerUtil.extractToken(bearerToken));
 
         cookieUtil.deleteRefreshTokenCookie(response);
 
