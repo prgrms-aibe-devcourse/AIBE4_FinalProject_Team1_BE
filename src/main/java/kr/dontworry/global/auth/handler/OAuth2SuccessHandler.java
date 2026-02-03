@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import kr.dontworry.domain.auth.dto.CustomUserDetails;
 import kr.dontworry.domain.auth.entity.RefreshToken;
 import kr.dontworry.domain.auth.repository.RefreshTokenRepository;
+import kr.dontworry.global.auth.constant.AuthConstant;
 import kr.dontworry.global.auth.jwt.JwtProvider;
 import kr.dontworry.global.util.CookieUtil;
 import lombok.RequiredArgsConstructor;
@@ -34,10 +35,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException {
-
         CustomUserDetails principal =
                 (CustomUserDetails) authentication.getPrincipal();
-
         Long userId = principal.getUserId();
 
         String sid = UUID.randomUUID().toString();
@@ -47,15 +46,14 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String refreshToken = jwtProvider.createRefreshToken(userId, jti, sid);
 
         refreshTokenRepository.save(new RefreshToken(sid, jti, userId));
-
         cookieUtil.addRefreshTokenCookie(response, refreshToken);
 
         String temporaryCode = UUID.randomUUID().toString();
         redisTemplate.opsForValue().set(temporaryCode, accessToken, Duration.ofMinutes(1));
 
         String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl)
-                .path("/oauth/redirect")
-                .queryParam("code", temporaryCode)
+                .path(AuthConstant.OAUTH_REDIRECT_PATH)
+                .queryParam(AuthConstant.REDIRECT_PARAM_CODE, temporaryCode)
                 .build().toUriString();
 
         clearAuthenticationAttributes(request);

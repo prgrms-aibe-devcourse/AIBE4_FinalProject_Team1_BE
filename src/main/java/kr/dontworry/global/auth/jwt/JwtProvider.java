@@ -8,6 +8,7 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import kr.dontworry.domain.auth.dto.CustomUserDetails;
+import kr.dontworry.global.auth.constant.AuthConstant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -56,7 +57,7 @@ public class JwtProvider {
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
                 .setId(jti)
-                .claim("auth", authorities)
+                .claim(AuthConstant.AUTH_CLAIM_KEY, authorities)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpTime))
                 .signWith(key, SignatureAlgorithm.HS256)
@@ -67,7 +68,7 @@ public class JwtProvider {
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
                 .setId(jti)
-                .claim("sid", sid)
+                .claim(AuthConstant.SID_CLAIM_KEY, sid)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + refreshTokenExpTime))
                 .signWith(key, SignatureAlgorithm.HS256)
@@ -79,7 +80,7 @@ public class JwtProvider {
     }
 
     public String getSid(String token) {
-        return parseClaims(token).get("sid", String.class);
+        return parseClaims(token).get(AuthConstant.SID_CLAIM_KEY, String.class);
     }
 
     public Long getUserId(String token) {
@@ -90,7 +91,7 @@ public class JwtProvider {
         Claims claims = parseClaims(token);
 
         Collection<? extends GrantedAuthority> authorities =
-                Arrays.stream(claims.get("auth").toString().split(","))
+                Arrays.stream(claims.get(AuthConstant.AUTH_CLAIM_KEY).toString().split(","))
                         .map(SimpleGrantedAuthority::new)
                         .toList();
 

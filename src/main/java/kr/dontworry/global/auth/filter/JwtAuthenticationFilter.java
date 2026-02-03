@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import kr.dontworry.domain.auth.constant.AuthConstant;
 import kr.dontworry.domain.auth.exception.AuthErrorCode;
 import kr.dontworry.global.auth.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +34,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (accessToken != null && jwtProvider.validateToken(accessToken)) {
             String jti = jwtProvider.getJti(accessToken);
 
-            String isLogout = redisTemplate.opsForValue().get("BL:" + jti);
+            String isLogout = redisTemplate.opsForValue().get(AuthConstant.BLACKLIST_PREFIX + jti);
 
             if (ObjectUtils.isEmpty(isLogout)) {
                 Authentication auth = jwtProvider.getAuthentication(accessToken);

@@ -1,11 +1,10 @@
 package kr.dontworry.domain.auth.service;
 
+import kr.dontworry.domain.auth.constant.OAuthProvider;
 import kr.dontworry.domain.auth.dto.CustomUserDetails;
 import kr.dontworry.domain.auth.dto.GoogleUserInfo;
 import kr.dontworry.domain.auth.dto.KakaoUserInfo;
 import kr.dontworry.domain.auth.dto.OAuth2UserInfo;
-import kr.dontworry.domain.auth.exception.AuthErrorCode;
-import kr.dontworry.domain.auth.exception.AuthException;
 import kr.dontworry.domain.user.entity.SocialAccount;
 import kr.dontworry.domain.user.entity.User;
 import kr.dontworry.domain.user.entity.UserRole;
@@ -35,7 +34,6 @@ public class CustomOAuth2UserService
     @Transactional
     public OAuth2User loadUser(OAuth2UserRequest userRequest)
             throws OAuth2AuthenticationException {
-
         OAuth2User oauth2User = super.loadUser(userRequest);
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
 
@@ -46,20 +44,21 @@ public class CustomOAuth2UserService
     }
 
     private OAuth2UserInfo createOAuth2UserInfo(String registrationId, Map<String, Object> attributes) {
-        return switch (registrationId) {
-            case "google" -> new GoogleUserInfo(attributes);
-            case "kakao" -> new KakaoUserInfo(attributes);
-            default -> throw new AuthException(AuthErrorCode.UNSUPPORTED_PROVIDER);
+        OAuthProvider provider = OAuthProvider.from(registrationId);
+
+        return switch (provider) {
+            case GOOGLE -> new GoogleUserInfo(attributes);
+            case KAKAO -> new KakaoUserInfo(attributes);
         };
     }
 
     private User getOrSaveUser(String registrationId, OAuth2UserInfo userInfo) {
         return socialAccountRepository.findByProviderAndProviderId(registrationId, userInfo.getProviderId())
                 .map(SocialAccount::getUser)
-                .orElseGet(() -> registerNewUser(registrationId, userInfo));
+                .orElseGet(() -> createNewSocialUser(registrationId, userInfo));
     }
 
-    private User registerNewUser(String registrationId, OAuth2UserInfo userInfo) {
+    private User createNewSocialUser(String registrationId, OAuth2UserInfo userInfo) {
         User user = userRepository.findByEmail(userInfo.getEmail())
                 .orElseGet(() -> userRepository.save(new User(userInfo.getEmail(), userInfo.getName())));
 
