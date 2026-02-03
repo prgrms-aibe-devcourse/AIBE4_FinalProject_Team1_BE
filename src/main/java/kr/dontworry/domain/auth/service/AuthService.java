@@ -1,5 +1,6 @@
 package kr.dontworry.domain.auth.service;
 
+import kr.dontworry.domain.auth.constant.AuthConstant;
 import kr.dontworry.domain.auth.dto.CustomUserDetails;
 import kr.dontworry.domain.auth.dto.TokenResponse;
 import kr.dontworry.domain.auth.entity.RefreshToken;
@@ -37,14 +38,9 @@ public class AuthService {
     public TokenResponse reissueTokens(String refreshToken) {
         RefreshToken savedToken = validateAndGetStoredRefreshToken(refreshToken);
 
-        String currentJti = jwtProvider.getJti(refreshToken);
-        if (!savedToken.getJti().equals(currentJti)) {
-            refreshTokenRepository.delete(savedToken);
-            throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
-        }
+        validateTokenReuse(savedToken, refreshToken);
 
         Authentication authentication = createAuthentication(savedToken.getUserId());
-
         return rotateTokens(savedToken, authentication);
     }
 
@@ -56,6 +52,14 @@ public class AuthService {
         String sid = jwtProvider.getSid(refreshToken);
         return refreshTokenRepository.findById(sid)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND));
+    }
+
+    private void validateTokenReuse(RefreshToken savedToken, String refreshToken) {
+        String currentJti = jwtProvider.getJti(refreshToken);
+        if (!savedToken.getJti().equals(currentJti)) {
+            refreshTokenRepository.delete(savedToken);
+            throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
+        }
     }
 
     private Authentication createAuthentication(Long userId) {
@@ -75,14 +79,12 @@ public class AuthService {
     private TokenResponse rotateTokens(RefreshToken savedToken, Authentication authentication) {
         String sid = savedToken.getSid();
         Long userId = savedToken.getUserId();
-
         String newJti = UUID.randomUUID().toString();
 
         String newAccessToken = jwtProvider.createAccessToken(authentication, userId);
         String newRefreshToken = jwtProvider.createRefreshToken(userId, newJti, sid);
 
         savedToken.updateJti(newJti);
-
         refreshTokenRepository.save(savedToken);
 
         return new TokenResponse(newAccessToken, newRefreshToken);
@@ -97,7 +99,7 @@ public class AuthService {
 
         String jti = jwtProvider.getJti(accessToken);
         Long expiration = jwtProvider.getExpiration(accessToken);
-        redisTemplate.opsForValue().set("BL:" + jti, "logout", expiration, TimeUnit.MILLISECONDS);
+        redisTemplate.opsForValue().set(AuthConstant.BLACKLIST_PREFIX + jti, "logout", expiration, TimeUnit.MILLISECONDS);
     }
 
     public String loginWithCode(String code) {
