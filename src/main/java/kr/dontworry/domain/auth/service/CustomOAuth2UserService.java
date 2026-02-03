@@ -8,6 +8,7 @@ import kr.dontworry.domain.auth.exception.AuthErrorCode;
 import kr.dontworry.domain.auth.exception.AuthException;
 import kr.dontworry.domain.user.entity.SocialAccount;
 import kr.dontworry.domain.user.entity.User;
+import kr.dontworry.domain.user.entity.UserRole;
 import kr.dontworry.domain.user.repository.SocialAccountRepository;
 import kr.dontworry.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +42,7 @@ public class CustomOAuth2UserService
         OAuth2UserInfo userInfo = createOAuth2UserInfo(registrationId, oauth2User.getAttributes());
         User user = getOrSaveUser(registrationId, userInfo);
 
-        return new CustomUserDetails(user.getId(), List.of(new SimpleGrantedAuthority("ROLE_USER")), oauth2User.getAttributes());
+        return new CustomUserDetails(user.getId(), List.of(new SimpleGrantedAuthority(UserRole.USER.getKey())), oauth2User.getAttributes());
     }
 
     private OAuth2UserInfo createOAuth2UserInfo(String registrationId, Map<String, Object> attributes) {

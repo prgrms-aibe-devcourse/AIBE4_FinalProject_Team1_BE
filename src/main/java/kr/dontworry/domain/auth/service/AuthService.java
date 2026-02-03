@@ -7,6 +7,7 @@ import kr.dontworry.domain.auth.exception.AuthErrorCode;
 import kr.dontworry.domain.auth.exception.AuthException;
 import kr.dontworry.domain.auth.repository.RefreshTokenRepository;
 import kr.dontworry.domain.user.entity.User;
+import kr.dontworry.domain.user.entity.UserRole;
 import kr.dontworry.domain.user.exception.UserErrorCode;
 import kr.dontworry.domain.user.repository.UserRepository;
 import kr.dontworry.global.auth.jwt.JwtProvider;
@@ -63,7 +64,7 @@ public class AuthService {
 
         CustomUserDetails userDetails = new CustomUserDetails(
                 user.getId(),
-                List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                List.of(new SimpleGrantedAuthority(UserRole.USER.getKey()))
         );
 
         return new UsernamePasswordAuthenticationToken(

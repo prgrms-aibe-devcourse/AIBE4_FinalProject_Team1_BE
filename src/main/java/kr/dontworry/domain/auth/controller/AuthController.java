@@ -11,14 +11,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/auths")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
     private final CookieUtil cookieUtil;
     private final HeaderUtil headerUtil;
 
-    @PostMapping("/tokens")
+    @PostMapping("/reissue")
     public ResponseEntity<Void> reissueTokens(
             @CookieValue(name = AuthConstant.REFRESH_TOKEN_COOKIE_NAME) String refreshToken, HttpServletResponse response) {
         TokenResponse tokenResponse = authService.reissueTokens(refreshToken);
@@ -36,7 +36,7 @@ public class AuthController {
 
         return ResponseEntity.ok()
                 .headers(headerUtil.createAccessTokenHeaders(accessToken))
-                .body("Login Success");
+                .body("로그인에 성공했습니다.");
     }
 
     @PostMapping("/logout")
