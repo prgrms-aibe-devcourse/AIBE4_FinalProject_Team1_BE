@@ -1,7 +1,7 @@
 package kr.dontworry.domain.auth.controller;
 
 import jakarta.servlet.http.HttpServletResponse;
-import kr.dontworry.domain.auth.dto.TokenResponse;
+import kr.dontworry.domain.auth.controller.dto.TokenResponse;
 import kr.dontworry.domain.auth.service.AuthService;
 import kr.dontworry.global.auth.constant.AuthConstant;
 import kr.dontworry.global.util.CookieUtil;

@@ -2,8 +2,8 @@ package kr.dontworry.global.auth.handler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import kr.dontworry.domain.auth.dto.CustomUserDetails;
-import kr.dontworry.domain.auth.entity.RefreshToken;
+import kr.dontworry.domain.auth.security.CustomUserDetails;
+import kr.dontworry.domain.auth.model.RefreshToken;
 import kr.dontworry.domain.auth.repository.RefreshTokenRepository;
 import kr.dontworry.global.auth.constant.AuthConstant;
 import kr.dontworry.global.auth.jwt.JwtProvider;
