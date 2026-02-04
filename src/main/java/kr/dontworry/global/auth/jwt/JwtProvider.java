@@ -7,7 +7,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
-import kr.dontworry.domain.auth.dto.CustomUserDetails;
+import kr.dontworry.domain.auth.security.CustomUserDetails;
 import kr.dontworry.global.auth.constant.AuthConstant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

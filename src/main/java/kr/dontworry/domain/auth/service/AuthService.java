@@ -1,14 +1,13 @@
 package kr.dontworry.domain.auth.service;
 
 import kr.dontworry.domain.auth.constant.AuthConstant;
-import kr.dontworry.domain.auth.dto.CustomUserDetails;
-import kr.dontworry.domain.auth.dto.TokenResponse;
-import kr.dontworry.domain.auth.entity.RefreshToken;
+import kr.dontworry.domain.auth.security.CustomUserDetails;
+import kr.dontworry.domain.auth.controller.dto.TokenResponse;
+import kr.dontworry.domain.auth.model.RefreshToken;
 import kr.dontworry.domain.auth.exception.AuthErrorCode;
 import kr.dontworry.domain.auth.exception.AuthException;
 import kr.dontworry.domain.auth.repository.RefreshTokenRepository;
 import kr.dontworry.domain.user.entity.User;
-import kr.dontworry.domain.user.entity.UserRole;
 import kr.dontworry.domain.user.exception.UserErrorCode;
 import kr.dontworry.domain.user.repository.UserRepository;
 import kr.dontworry.global.auth.jwt.JwtProvider;
@@ -67,8 +66,8 @@ public class AuthService {
                 .orElseThrow(() -> new AuthException(UserErrorCode.USER_NOT_FOUND));
 
         CustomUserDetails userDetails = new CustomUserDetails(
-                user.getId(),
-                List.of(new SimpleGrantedAuthority(UserRole.USER.getKey()))
+                user.getUserId(),
+                List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
         );
 
         return new UsernamePasswordAuthenticationToken(

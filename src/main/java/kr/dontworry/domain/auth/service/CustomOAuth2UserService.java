@@ -1,14 +1,13 @@
 package kr.dontworry.domain.auth.service;
 
 import kr.dontworry.domain.auth.constant.OAuthProvider;
-import kr.dontworry.domain.auth.dto.CustomUserDetails;
-import kr.dontworry.domain.auth.dto.GoogleUserInfo;
-import kr.dontworry.domain.auth.dto.KakaoUserInfo;
-import kr.dontworry.domain.auth.dto.OAuth2UserInfo;
-import kr.dontworry.domain.user.entity.SocialAccount;
+import kr.dontworry.domain.auth.security.CustomUserDetails;
+import kr.dontworry.domain.auth.security.GoogleUserInfo;
+import kr.dontworry.domain.auth.security.KakaoUserInfo;
+import kr.dontworry.domain.auth.security.OAuth2UserInfo;
+import kr.dontworry.domain.user.entity.SocialLogin;
 import kr.dontworry.domain.user.entity.User;
-import kr.dontworry.domain.user.entity.UserRole;
-import kr.dontworry.domain.user.repository.SocialAccountRepository;
+import kr.dontworry.domain.user.repository.SocialLoginRepository;
 import kr.dontworry.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -28,7 +27,7 @@ public class CustomOAuth2UserService
         extends DefaultOAuth2UserService {
 
     private final UserRepository userRepository;
-    private final SocialAccountRepository socialAccountRepository;
+    private final SocialLoginRepository socialLoginRepository;
 
     @Override
     @Transactional
@@ -36,33 +35,36 @@ public class CustomOAuth2UserService
             throws OAuth2AuthenticationException {
         OAuth2User oauth2User = super.loadUser(userRequest);
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
+        OAuthProvider oAuthProvider = OAuthProvider.from(registrationId);
 
-        OAuth2UserInfo userInfo = createOAuth2UserInfo(registrationId, oauth2User.getAttributes());
-        User user = getOrSaveUser(registrationId, userInfo);
+        OAuth2UserInfo userInfo = createOAuth2UserInfo(oAuthProvider, oauth2User.getAttributes());
+        User user = getOrSaveUser(oAuthProvider, userInfo);
 
-        return new CustomUserDetails(user.getId(), List.of(new SimpleGrantedAuthority(UserRole.USER.getKey())), oauth2User.getAttributes());
+        return new CustomUserDetails(
+                user.getUserId(),
+                List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())),
+                oauth2User.getAttributes()
+        );
     }
 
-    private OAuth2UserInfo createOAuth2UserInfo(String registrationId, Map<String, Object> attributes) {
-        OAuthProvider provider = OAuthProvider.from(registrationId);
-
+    private OAuth2UserInfo createOAuth2UserInfo(OAuthProvider provider, Map<String, Object> attributes) {
         return switch (provider) {
             case GOOGLE -> new GoogleUserInfo(attributes);
             case KAKAO -> new KakaoUserInfo(attributes);
         };
     }
 
-    private User getOrSaveUser(String registrationId, OAuth2UserInfo userInfo) {
-        return socialAccountRepository.findByProviderAndProviderId(registrationId, userInfo.getProviderId())
-                .map(SocialAccount::getUser)
-                .orElseGet(() -> createNewSocialUser(registrationId, userInfo));
+    private User getOrSaveUser(OAuthProvider oAuthProvider, OAuth2UserInfo userInfo) {
+        return socialLoginRepository.findByProviderAndProviderId(oAuthProvider.getSocialProvider(), userInfo.getProviderId())
+                .map(SocialLogin::getUser)
+                .orElseGet(() -> createNewSocialUser(oAuthProvider, userInfo));
     }
 
-    private User createNewSocialUser(String registrationId, OAuth2UserInfo userInfo) {
+    private User createNewSocialUser(OAuthProvider oAuthProvider, OAuth2UserInfo userInfo) {
         User user = userRepository.findByEmail(userInfo.getEmail())
-                .orElseGet(() -> userRepository.save(new User(userInfo.getEmail(), userInfo.getName())));
+                .orElseGet(() -> userRepository.save(User.create(userInfo.getName(), userInfo.getEmail())));
 
-        socialAccountRepository.save(new SocialAccount(registrationId, userInfo.getProviderId(), user));
+        socialLoginRepository.save(SocialLogin.create(user, oAuthProvider.getSocialProvider(), userInfo.getProviderId()));
 
         return user;
     }

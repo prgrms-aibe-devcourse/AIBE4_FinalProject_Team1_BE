@@ -1,53 +1,49 @@
 package kr.dontworry.domain.user.entity;
 
 import jakarta.persistence.*;
-import kr.dontworry.domain.common.BaseTimeEntity;
+import kr.dontworry.domain.common.AuditableEntity;
+import kr.dontworry.domain.user.entity.enums.UserRole;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.SQLRestriction;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "users")
+@Table(
+        name = "users",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_users_public_id", columnNames = "public_id"),
+                @UniqueConstraint(name = "uk_users_email", columnNames = "email")
+        }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SQLRestriction("deleted_at IS NULL")
-public class User extends BaseTimeEntity {
+public class User extends AuditableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long userId;
 
-    @Column(nullable = false, unique = true)
-    private String email;
-
-    @Column(nullable = false, unique = true, updatable = false)
+    @Column(nullable = false, updatable = false)
     private UUID publicId;
 
+    @Column(nullable = false, length = 20)
+    private String name;
+
     @Column(nullable = false)
-    private String nickname;
+    private String email;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<SocialAccount> socialAccounts = new ArrayList<>();
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private UserRole role;
 
-    private LocalDateTime deletedAt;
-
-    @PrePersist
-    public void generatePublicId() {
-        this.publicId = UUID.randomUUID();
-    }
-
-    public User(String email, String nickname) {
-        this.email = email;
-        this.nickname = nickname;
-    }
-
-    public void withdraw() {
-        this.deletedAt = LocalDateTime.now();
+    public static User create(String name, String email) {
+        User user = new User();
+        user.name = name;
+        user.email = email;
+        user.publicId = UUID.randomUUID();
+        user.role = UserRole.USER;
+        return user;
     }
 }
