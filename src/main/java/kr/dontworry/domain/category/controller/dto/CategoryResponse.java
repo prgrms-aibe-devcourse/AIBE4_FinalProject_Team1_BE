@@ -1,4 +1,4 @@
-package kr.dontworry.domain.category.dto;
+package kr.dontworry.domain.category.controller.dto;
 
 import kr.dontworry.domain.category.entity.Category;
 import kr.dontworry.domain.category.entity.enums.CategoryStatus;
