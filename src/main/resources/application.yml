@@ -18,3 +18,7 @@ management:
       probes:
         enabled: true
       show-details: never
+
+springdoc:
+  swagger-ui:
+    url: /v3/api-docs

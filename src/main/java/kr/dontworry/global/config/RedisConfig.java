@@ -10,7 +10,7 @@ import org.springframework.data.redis.repository.configuration.EnableRedisReposi
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
-@EnableRedisRepositories(basePackages = "kr.dontworry.auth.repository")
+@EnableRedisRepositories(basePackages = "kr.dontworry.domain.auth.repository")
 public class RedisConfig {
 
     @Value("${spring.data.redis.host}")

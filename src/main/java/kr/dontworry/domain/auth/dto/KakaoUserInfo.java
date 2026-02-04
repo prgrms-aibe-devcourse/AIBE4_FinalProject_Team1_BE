@@ -1,9 +1,11 @@
 package kr.dontworry.domain.auth.dto;
 
+import kr.dontworry.domain.auth.constant.OAuthProvider;
+
 import java.util.Map;
 
 public record KakaoUserInfo(Map<String, Object> attributes) implements OAuth2UserInfo {
-    @Override public String getProvider() { return "kakao"; }
+    @Override public String getProvider() { return OAuthProvider.KAKAO.getRegistrationId(); }
     @Override public String getProviderId() { return attributes.get("id").toString(); }
     @Override public String getEmail() {
         Map<String, Object> account = (Map<String, Object>) attributes.get("kakao_account");

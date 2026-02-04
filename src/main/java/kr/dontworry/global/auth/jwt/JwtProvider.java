@@ -8,6 +8,7 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import kr.dontworry.domain.auth.dto.CustomUserDetails;
+import kr.dontworry.global.auth.constant.AuthConstant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,6 +22,7 @@ import javax.crypto.SecretKey;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -46,36 +48,54 @@ public class JwtProvider {
     }
 
     public String createAccessToken(Authentication auth, Long userId) {
-        return createToken(auth, userId, accessTokenExpTime);
-    }
-
-    public String createRefreshToken(Authentication auth, Long userId) {
-        return createToken(auth, userId, refreshTokenExpTime);
-    }
-
-    private String createToken(Authentication auth, Long userId, long expireTime) {
         String authorities = auth.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
 
+        String jti = UUID.randomUUID().toString();
+
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
-                .claim("auth", authorities)
+                .setId(jti)
+                .claim(AuthConstant.AUTH_CLAIM_KEY, authorities)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expireTime))
+                .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpTime))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
+    }
+
+    public String createRefreshToken(Long userId, String jti, String sid) {
+        return Jwts.builder()
+                .setSubject(String.valueOf(userId))
+                .setId(jti)
+                .claim(AuthConstant.SID_CLAIM_KEY, sid)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + refreshTokenExpTime))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String getJti(String token) {
+        return parseClaims(token).getId();
+    }
+
+    public String getSid(String token) {
+        return parseClaims(token).get(AuthConstant.SID_CLAIM_KEY, String.class);
+    }
+
+    public Long getUserId(String token) {
+        return Long.valueOf(parseClaims(token).getSubject());
     }
 
     public Authentication getAuthentication(String token) {
         Claims claims = parseClaims(token);
 
         Collection<? extends GrantedAuthority> authorities =
-                Arrays.stream(claims.get("auth").toString().split(","))
+                Arrays.stream(claims.get(AuthConstant.AUTH_CLAIM_KEY).toString().split(","))
                         .map(SimpleGrantedAuthority::new)
                         .toList();
 
-        Long userId = Long.valueOf(claims.getSubject());
+        Long userId = getUserId(token);
 
         CustomUserDetails principal =
                 new CustomUserDetails(userId, authorities);
@@ -105,5 +125,17 @@ public class JwtProvider {
         } catch (ExpiredJwtException e) {
             return e.getClaims();
         }
+    }
+
+    public Long getExpiration(String accessToken) {
+        Date expiration = Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(accessToken)
+                .getPayload()
+                .getExpiration();
+
+        long now = new Date().getTime();
+        return (expiration.getTime() - now);
     }
 }
