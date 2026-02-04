@@ -37,8 +37,7 @@ public class CategoryService {
                 dto.sortOrder()
         );
 
-        Category savedCategory = categoryRepository.save(newCategory);
-        return CategoryResponse.from(savedCategory);
+        return CategoryResponse.from(categoryRepository.save(newCategory));
     }
 
     public List<CategoryResponse> getCategoriesByLedger(Long ledgerId) {
@@ -56,11 +55,15 @@ public class CategoryService {
     }
 
     @Transactional
-    public CategoryResponse updateCategory(Long categoryId, CategoryUpdateRequest request) {
+    public CategoryResponse updateCategory(Long categoryId, CategoryUpdateRequest dto) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new CategoryException(CategoryErrorCode.CATEGORY_NOT_FOUND));
 
-        category.update(request.name(), request.icon(), request.color(), request.sortOrder());
+        if (category.isDefault() && !category.getName().equals(dto.name())) {
+            throw new CategoryException(CategoryErrorCode.CANNOT_EDIT_DEFAULT_CATEGORY_NAME);
+        }
+
+        category.update(dto.name(), dto.icon(), dto.color(), dto.sortOrder());
         
         Category updatedCategory = categoryRepository.save(category);
         return CategoryResponse.from(updatedCategory);
@@ -68,11 +71,10 @@ public class CategoryService {
 
     @Transactional
     public void deleteCategory(Long categoryId) {
-        // TODO: 카테고리 삭제 방법은 토의 후 결정
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new CategoryException(CategoryErrorCode.CATEGORY_NOT_FOUND));
         
-        categoryRepository.delete(category);
+        category.remove();
     }
 
     @Transactional
