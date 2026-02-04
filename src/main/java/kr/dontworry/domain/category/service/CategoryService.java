@@ -68,6 +68,7 @@ public class CategoryService {
 
     @Transactional
     public void deleteCategory(Long categoryId) {
+        // TODO: 카테고리 삭제 방법은 토의 후 결정
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new CategoryException(CategoryErrorCode.CATEGORY_NOT_FOUND));
         
