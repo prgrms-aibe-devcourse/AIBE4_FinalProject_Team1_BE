@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -41,17 +40,17 @@ public class CategoryService {
     }
 
     public List<CategoryResponse> getCategoriesByLedger(Long ledgerId) {
-        List<Category> categories = categoryRepository.findByLedger_LedgerId(ledgerId);
+        List<Category> categories = categoryRepository.findByLedger_LedgerIdOrderBySortOrderAsc(ledgerId);
         return categories.stream()
                 .map(CategoryResponse::from)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<CategoryResponse> getActiveCategoriesByLedger(Long ledgerId) {
-        List<Category> categories = categoryRepository.findByLedger_LedgerIdAndStatus(ledgerId, CategoryStatus.ACTIVE);
+        List<Category> categories = categoryRepository.findByLedger_LedgerIdAndStatusOrderBySortOrderAsc(ledgerId, CategoryStatus.ACTIVE);
         return categories.stream()
                 .map(CategoryResponse::from)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional

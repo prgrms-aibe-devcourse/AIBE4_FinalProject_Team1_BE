@@ -9,6 +9,6 @@ import java.util.List;
 
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
-    List<Category> findByLedger_LedgerId(Long ledgerId);
-    List<Category> findByLedger_LedgerIdAndStatus(Long ledgerId, CategoryStatus status);
+    List<Category> findByLedger_LedgerIdOrderBySortOrderAsc(Long ledgerId);
+    List<Category> findByLedger_LedgerIdAndStatusOrderBySortOrderAsc(Long ledgerId, CategoryStatus status);
 }
