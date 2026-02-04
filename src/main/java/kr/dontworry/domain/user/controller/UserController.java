@@ -1,7 +1,7 @@
 package kr.dontworry.domain.user.controller;
 
-import kr.dontworry.domain.auth.dto.CustomUserDetails;
-import kr.dontworry.domain.user.dto.UserProfileResponse;
+import kr.dontworry.domain.auth.security.CustomUserDetails;
+import kr.dontworry.domain.user.controller.dto.UserProfileResponse;
 import kr.dontworry.domain.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
