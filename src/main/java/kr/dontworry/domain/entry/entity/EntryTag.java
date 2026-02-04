@@ -28,33 +28,19 @@ public class EntryTag extends CreatedAtEntity {
     @Column(name = "ledger_id", nullable = false)
     private UUID ledgerId;
 
-    @Column(name = "entry_id", nullable = false)
-    private Long entryId;
-
-    @Column(name = "tag_id", nullable = false)
-    private Long tagId;
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumns({
-            @JoinColumn(name = "ledger_id", referencedColumnName = "ledger_id", insertable = false, updatable = false),
-            @JoinColumn(name = "entry_id", referencedColumnName = "entry_id", insertable = false, updatable = false)
-    })
+    @JoinColumn(name = "entry_id", nullable = false)
     private Entry entry;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumns({
-            @JoinColumn(name = "ledger_id", referencedColumnName = "ledger_id", insertable = false, updatable = false),
-            @JoinColumn(name = "tag_id", referencedColumnName = "tag_id", insertable = false, updatable = false)
-    })
+    @JoinColumn(name = "tag_id", nullable = false)
     private Tag tag;
 
     public static EntryTag create(Entry entry, Tag tag) {
         EntryTag entity = new EntryTag();
-        entity.ledgerId = entry.getLedger().getLedgerId();
-        entity.entryId = entry.getEntryId();
-        entity.tagId = tag.getTagId();
         entity.entry = entry;
         entity.tag = tag;
+        entity.ledgerId = entry.getLedger().getLedgerId(); // entry의 ledgerId와 동일 강제
         return entity;
     }
 }
