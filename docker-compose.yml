@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:16.11
     environment:
-      POSTGRES_DB: app
+      POSTGRES_DB: dontworry
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
@@ -10,7 +10,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d app"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d dontworry"]
       interval: 10s
       timeout: 5s
       retries: 5
