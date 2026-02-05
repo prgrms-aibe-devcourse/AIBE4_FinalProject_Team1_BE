@@ -1,14 +1,15 @@
 package kr.dontworry.domain.challenge.entity;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
+import kr.dontworry.domain.challenge.entity.enums.Tier;
+import kr.dontworry.domain.challenge.entity.enums.TierSub;
 import kr.dontworry.domain.common.AuditableEntity;
 import kr.dontworry.domain.user.entity.User;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "user_game_stats")
@@ -25,37 +26,95 @@ public class UserGameStats extends AuditableEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false)
-    private Integer level;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Tier tier;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 5)
+    private TierSub tierSub;
 
     @Column(nullable = false)
-    private Integer totalExperience;
+    private Long totalXp;
 
     @Column(nullable = false)
-    private Integer currentLevelExp;
+    private Long recoveryTickets;
 
     @Column(nullable = false)
-    private Integer completedChallenges;
+    private Long recoveryUsedCount;
+
+    private OffsetDateTime lastRecoveryUsedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "representative_badge_id")
+    private Badge representativeBadge;
 
     @Column(nullable = false)
-    private Integer currentStreak;
+    private Long totalBadgesCount;
 
     @Column(nullable = false)
-    private Integer maxStreak;
+    private Long completedChallengesCount;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(nullable = false, columnDefinition = "jsonb")
-    private JsonNode badges;
+    @Column(nullable = false)
+    private Long totalStreakDays;
+
+    @Column(nullable = false)
+    private Long maxStreakDays;
+
+    private OffsetDateTime lastTierUpAt;
+
 
     public static UserGameStats create(User user) {
         UserGameStats stats = new UserGameStats();
         stats.user = user;
-        stats.level = 1;
-        stats.totalExperience = 0;
-        stats.currentLevelExp = 0;
-        stats.completedChallenges = 0;
-        stats.currentStreak = 0;
-        stats.maxStreak = 0;
+        stats.tier = Tier.BRONZE;
+        stats.tierSub = TierSub.V;
+        stats.totalXp = 0L;
+        stats.recoveryTickets = 0L;
+        stats.recoveryUsedCount = 0L;
+        stats.totalBadgesCount = 0L;
+        stats.completedChallengesCount = 0L;
+        stats.totalStreakDays = 0L;
+        stats.maxStreakDays = 0L;
         return stats;
+    }
+
+    public void addXp(Long xp) {
+        this.totalXp += xp;
+    }
+
+    public void addRecoveryTicket(Long count) {
+        this.recoveryTickets = Math.min(this.recoveryTickets + count, 3L);
+    }
+
+    public void useRecoveryTicket() {
+        this.recoveryTickets--;
+        this.recoveryUsedCount++;
+        this.lastRecoveryUsedAt = OffsetDateTime.now();
+    }
+
+    public void upgradeTier(Tier newTier, TierSub newTierSub) {
+        this.tier = newTier;
+        this.tierSub = newTierSub;
+        this.lastTierUpAt = OffsetDateTime.now();
+    }
+
+    public void earnBadge() {
+        this.totalBadgesCount++;
+    }
+
+    public void completeChallenge() {
+        this.completedChallengesCount++;
+    }
+
+    public void updateStreak(Long currentStreak) {
+        this.totalStreakDays = currentStreak;
+        if (currentStreak > this.maxStreakDays) {
+            this.maxStreakDays = currentStreak;
+        }
+    }
+
+    public void updateRepresentativeBadge(Badge badge) {
+        this.representativeBadge = badge;
     }
 }
