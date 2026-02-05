@@ -1,90 +1,109 @@
 package kr.dontworry.domain.challenge.entity;
 
+import co.elastic.clients.elasticsearch.watcher.ConditionType;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
-import kr.dontworry.domain.challenge.entity.enums.ChallengeStatus;
-import kr.dontworry.domain.challenge.entity.enums.ChallengeType;
-import kr.dontworry.domain.challenge.entity.enums.EvaluationPeriod;
-import kr.dontworry.domain.common.AuditableEntity;
+import kr.dontworry.domain.challenge.entity.enums.ChallengeCategory;
+import kr.dontworry.domain.challenge.entity.enums.ChallengeDifficulty;
+import kr.dontworry.domain.challenge.entity.enums.Tier;
+import kr.dontworry.domain.challenge.entity.enums.TierSub;
+import kr.dontworry.domain.common.CreatedAtEntity;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.LocalDate;
-
 @Entity
 @Table(name = "challenges")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Challenge extends AuditableEntity {
-
+public class Challenge extends CreatedAtEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long challengeId;
 
-    @Column(nullable = false, length = 100)
-    private String title;
+    @Column(nullable = false, unique = true, length = 10)
+    private String code;
 
-    @Column(columnDefinition = "text")
+    @Column(nullable = false, length = 100)
+    private String name;
+
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private ChallengeType type;
-
-    @Column(nullable = false, length = 50)
-    private String challengeCategory;
-
-    @Column(nullable = false)
-    private LocalDate startDate;
-
-    @Column(nullable = false)
-    private LocalDate endDate;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
-    private ChallengeStatus status;
+    private ChallengeCategory category;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private EvaluationPeriod evaluationPeriod;
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(nullable = false, columnDefinition = "jsonb")
-    private JsonNode ruleJson;
+    private ChallengeDifficulty difficulty;
 
     @Column(nullable = false)
-    private Integer rewardExperience;
+    private Long rewardXp;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Tier unlockTier;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 5)
+    private TierSub unlockTierSub;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    private ConditionType conditionType;
+
+    private Long conditionTarget;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(nullable = false, columnDefinition = "jsonb")
-    private JsonNode rewardBadges;
+    @Column(columnDefinition = "jsonb")
+    private JsonNode conditionParams;
 
     @Column(nullable = false)
-    private Integer maxParticipants;
+    private Boolean isStreak;
+
+    @Column(nullable = false)
+    private Boolean isHidden;
 
     public static Challenge create(
-        String title,
-        ChallengeType type,
-        String challengeCategory,
-        LocalDate startDate,
-        LocalDate endDate,
-        EvaluationPeriod evaluationPeriod,
-        JsonNode ruleJson
+            String code,
+            String name,
+            String description,
+            ChallengeCategory category,
+            ChallengeDifficulty difficulty,
+            Long rewardXp,
+            Tier unlockTier,
+            TierSub unlockTierSub,
+            ConditionType conditionType,
+            Boolean isStreak,
+            Boolean isHidden
     ) {
         Challenge challenge = new Challenge();
-        challenge.title = title;
-        challenge.type = type;
-        challenge.challengeCategory = challengeCategory;
-        challenge.startDate = startDate;
-        challenge.endDate = endDate;
-        challenge.evaluationPeriod = evaluationPeriod;
-        challenge.ruleJson = ruleJson;
-        challenge.status = ChallengeStatus.UPCOMING;
-        challenge.rewardExperience = 0;
-        challenge.maxParticipants = 0;
+        challenge.code = code;
+        challenge.name = name;
+        challenge.description = description;
+        challenge.category = category;
+        challenge.difficulty = difficulty;
+        challenge.rewardXp = rewardXp;
+        challenge.unlockTier = unlockTier;
+        challenge.unlockTierSub = unlockTierSub;
+        challenge.conditionType = conditionType;
+        challenge.isStreak = isStreak;
+        challenge.isHidden = isHidden;
         return challenge;
+    }
+
+    public void updateConditionTarget(Long target) {
+        this.conditionTarget = target;
+    }
+
+    public void updateConditionParams(JsonNode params) {
+        this.conditionParams = params;
+    }
+
+    public void updateRewardXp(Long xp) {
+        this.rewardXp = xp;
     }
 }

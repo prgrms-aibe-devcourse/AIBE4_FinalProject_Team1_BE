@@ -39,11 +39,10 @@ out/
 ### Claude Code ###
 .claude/
 
-# Ignore dev profile only
-src/main/resources/application-dev.yml
-
 # QueryDSL이 생성하는 Q클래스 경로
 src/main/generated/
 
 # env
 .env
+AGENTS.md
+mnt/
