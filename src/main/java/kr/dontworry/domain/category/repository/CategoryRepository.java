@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface CategoryRepository extends JpaRepository<Category, Long> {
+public interface CategoryRepository extends JpaRepository<Category, Long>, CategoryRepositoryCustom {
     List<Category> findByLedger_LedgerIdOrderBySortOrderAsc(Long ledgerId);
     List<Category> findByLedger_LedgerIdAndStatusOrderBySortOrderAsc(Long ledgerId, CategoryStatus status);
 }

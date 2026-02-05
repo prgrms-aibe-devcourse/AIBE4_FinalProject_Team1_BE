@@ -11,6 +11,7 @@ import org.hibernate.annotations.SQLRestriction;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.UUID;
 
 @Entity
 @Table(name = "category")
@@ -22,6 +23,9 @@ public class Category extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long categoryId;
+
+    @Column(nullable = false, unique = true)
+    private UUID publicId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ledger_id", nullable = false)
@@ -51,6 +55,7 @@ public class Category extends AuditableEntity {
 
     public static Category createDefault(Ledger ledger, String name, String icon, String color, Integer sortOrder) {
         Category category = new Category();
+        category.publicId = UUID.randomUUID();
         category.ledger = ledger;
         category.name = name;
         category.icon = icon;
@@ -63,6 +68,7 @@ public class Category extends AuditableEntity {
 
     public static Category createCustom(Ledger ledger, String name, String icon, String color, Integer lastSortOrder) {
         Category category = new Category();
+        category.publicId = UUID.randomUUID();
         category.ledger = ledger;
         category.name = name;
         category.icon = icon;
