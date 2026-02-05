@@ -20,7 +20,10 @@ public class Ledger extends AuditableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID ledgerId;
+    private Long ledgerId;
+
+    @Column(nullable = false, updatable = false)
+    private UUID publicId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "owner_user_id", nullable = false)

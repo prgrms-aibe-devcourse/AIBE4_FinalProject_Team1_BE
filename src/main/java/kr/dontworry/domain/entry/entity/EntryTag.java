@@ -6,8 +6,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.util.UUID;
-
 @Entity
 @Table(
         name = "entry_tags",
@@ -26,7 +24,7 @@ public class EntryTag extends CreatedAtEntity {
     private Long entryTagId;
 
     @Column(name = "ledger_id", nullable = false)
-    private UUID ledgerId;
+    private Long ledgerId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "entry_id", nullable = false)
@@ -40,7 +38,7 @@ public class EntryTag extends CreatedAtEntity {
         EntryTag entity = new EntryTag();
         entity.entry = entry;
         entity.tag = tag;
-        entity.ledgerId = entry.getLedger().getLedgerId(); // entry의 ledgerId와 동일 강제
+        entity.ledgerId = entry.getLedger().getLedgerId();
         return entity;
     }
 }
