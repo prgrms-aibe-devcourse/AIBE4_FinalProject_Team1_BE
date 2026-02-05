@@ -19,7 +19,7 @@ import java.util.UUID;
 public class Ledger extends AuditableEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long ledgerId;
 
     @Column(nullable = false, updatable = false)
@@ -51,6 +51,7 @@ public class Ledger extends AuditableEntity {
     public static Ledger create(User ownerUser, LedgerType type, String name) {
         Ledger ledger = new Ledger();
         ledger.ownerUser = ownerUser;
+        ledger.publicId = UUID.randomUUID();
         ledger.type = type;
         ledger.name = name;
         ledger.status = LedgerStatus.ACTIVE;
