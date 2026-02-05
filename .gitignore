@@ -45,3 +45,4 @@ src/main/generated/
 # env
 .env
 AGENTS.md
+mnt/

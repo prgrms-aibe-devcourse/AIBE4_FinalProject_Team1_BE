@@ -1,8 +1,9 @@
 package kr.dontworry.domain.challenge.entity.enums;
 
-public enum EvaluationPeriod {
+public enum ChallengeCategory {
     DAILY,
     WEEKLY,
     MONTHLY,
-    ONCE
+    CUMULATIVE,
+    HIDDEN
 }
