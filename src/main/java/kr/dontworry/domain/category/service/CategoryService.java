@@ -26,6 +26,7 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final LedgerRepository ledgerRepository;
 
+    @Transactional
     public CategoryResponse createCategory(CategoryCreateRequest dto, Long userId) {
         Ledger ledger = ledgerRepository.findById(dto.ledgerId())
                 .orElseThrow(() -> new LedgerException(LedgerErrorCode.LEDGER_NOT_FOUND));
@@ -95,7 +96,7 @@ public class CategoryService {
     @Transactional
     public CategoryResponse deactivateCategory(Long categoryId, Long userId) {
         Category category = getCategoryWithOwnership(categoryId, userId);
-        category.activate();
+        category.deactivate();
         
         Category updatedCategory = categoryRepository.save(category);
         return CategoryResponse.from(updatedCategory);
