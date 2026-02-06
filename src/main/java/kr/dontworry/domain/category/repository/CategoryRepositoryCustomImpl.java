@@ -1,6 +1,7 @@
 package kr.dontworry.domain.category.repository;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.EntityManager;
 import kr.dontworry.domain.category.entity.Category;
 import kr.dontworry.domain.category.entity.enums.CategoryStatus;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import static kr.dontworry.domain.ledger.entity.QLedger.ledger;
 @RequiredArgsConstructor
 public class CategoryRepositoryCustomImpl implements CategoryRepositoryCustom {
     private final JPAQueryFactory queryFactory;
+    private final EntityManager em;
 
     @Override
     public Optional<Long> findCategoryIdByPublicId(UUID publicId) {
@@ -50,7 +52,7 @@ public class CategoryRepositoryCustomImpl implements CategoryRepositoryCustom {
     @Override
     public Integer findMaxSortOrderByLedgerId(Long ledgerId) {
         return queryFactory
-                .select(category.sortOrder.max())
+                .select(category.sortOrder.max().coalesce(-1))
                 .from(category)
                 .where(category.ledger.ledgerId.eq(ledgerId))
                 .fetchOne();
@@ -58,7 +60,7 @@ public class CategoryRepositoryCustomImpl implements CategoryRepositoryCustom {
 
     @Override
     public void shiftOrdersForward(Long ledgerId, Integer startOrder) {
-        queryFactory
+        long affectedRows = queryFactory
                 .update(category)
                 .set(category.sortOrder, category.sortOrder.subtract(1))
                 .where(
@@ -67,5 +69,10 @@ public class CategoryRepositoryCustomImpl implements CategoryRepositoryCustom {
                         category.status.ne(CategoryStatus.DELETED)
                 )
                 .execute();
+
+        if (affectedRows > 0) {
+            em.flush();
+            em.clear();
+        }
     }
 }
