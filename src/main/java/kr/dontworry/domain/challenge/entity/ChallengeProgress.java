@@ -33,7 +33,7 @@ public class ChallengeProgress extends AuditableEntity {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "challenge_id2", nullable = false)
+    @JoinColumn(name = "challenge_id", nullable = false)
     private Challenge challenge;
 
     @Column(nullable = false)
@@ -56,10 +56,6 @@ public class ChallengeProgress extends AuditableEntity {
 
     @Column(nullable = false)
     private Boolean recoveryUsedToday;
-
-    // ================================
-    // 정적 팩토리 메서드
-    // ================================
 
     public static ChallengeProgress create(User user, Challenge challenge) {
         ChallengeProgress progress = new ChallengeProgress();
