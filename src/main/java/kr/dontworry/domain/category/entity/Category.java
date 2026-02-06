@@ -104,4 +104,11 @@ public class Category extends AuditableEntity {
           this.sortOrder = -1;
         }
     }
+
+    public void validateOwnership(Long userId) {
+        if (this.ledger == null) {
+            throw new IllegalStateException("카테고리에 연결된 가계부가 없습니다.");
+        }
+        this.ledger.validateOwner(userId);
+    }
 }

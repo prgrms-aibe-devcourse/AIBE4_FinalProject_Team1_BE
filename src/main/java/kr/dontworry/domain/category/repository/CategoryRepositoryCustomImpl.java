@@ -1,6 +1,7 @@
 package kr.dontworry.domain.category.repository;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import kr.dontworry.domain.category.entity.Category;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Optional;
@@ -19,6 +20,17 @@ public class CategoryRepositoryCustomImpl implements CategoryRepositoryCustom {
                         .select(category.categoryId)
                         .from(category)
                         .where(category.publicId.eq(publicId))
+                        .fetchOne()
+        );
+    }
+
+    @Override
+    public Optional<Category> findByIdWithLedger(Long categoryId) {
+        return Optional.ofNullable(
+                queryFactory
+                        .selectFrom(category)
+                        .join(category.ledger, ledger).fetchJoin()
+                        .where(category.categoryId.eq(categoryId))
                         .fetchOne()
         );
     }

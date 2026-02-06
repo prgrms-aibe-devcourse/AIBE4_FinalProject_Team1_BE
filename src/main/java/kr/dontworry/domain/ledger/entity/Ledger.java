@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import kr.dontworry.domain.common.AuditableEntity;
 import kr.dontworry.domain.ledger.entity.enums.LedgerStatus;
 import kr.dontworry.domain.ledger.entity.enums.LedgerType;
+import kr.dontworry.domain.ledger.exception.LedgerErrorCode;
+import kr.dontworry.domain.ledger.exception.LedgerException;
 import kr.dontworry.domain.user.entity.User;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -56,5 +58,19 @@ public class Ledger extends AuditableEntity {
         ledger.name = name;
         ledger.status = LedgerStatus.ACTIVE;
         return ledger;
+    }
+
+    public boolean isOwner(Long userId) {
+        if(userId == null || this.ownerUser == null) {
+            return false;
+        }
+
+        return this.ownerUser.getUserId().equals(userId);
+    }
+
+    public void validateOwner(Long userId) {
+        if (!isOwner(userId)) {
+            throw new LedgerException(LedgerErrorCode.ACCESS_DENIED);
+        }
     }
 }
