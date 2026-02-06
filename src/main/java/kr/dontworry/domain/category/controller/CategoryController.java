@@ -34,62 +34,62 @@ public class CategoryController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/ledger/{publicId}")
+    @GetMapping("/ledger/{ledgerPublicId}")
     public ResponseEntity<List<CategoryResponse>> getCategoriesByLedger(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable UUID publicId) {
-        Long ledgerId = ledgerReadService.resolveInternalId(publicId);
+            @PathVariable UUID ledgerPublicId) {
+        Long ledgerId = ledgerReadService.resolveInternalId(ledgerPublicId);
 
         List<CategoryResponse> responses = categoryService.getCategoriesByLedger(ledgerId, principal.getUserId());
         return ResponseEntity.ok(responses);
     }
 
-    @GetMapping("/ledger/{publicId}/active")
+    @GetMapping("/ledger/{ledgerPublicId}/active")
     public ResponseEntity<List<CategoryResponse>> getActiveCategoriesByLedger(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable UUID publicId) {
-        Long ledgerId = ledgerReadService.resolveInternalId(publicId);
+            @PathVariable UUID ledgerPublicId) {
+        Long ledgerId = ledgerReadService.resolveInternalId(ledgerPublicId);
 
         List<CategoryResponse> responses = categoryService.getActiveCategoriesByLedger(ledgerId, principal.getUserId());
         return ResponseEntity.ok(responses);
     }
 
-    @PutMapping("/{publicId}")
+    @PutMapping("/{categoryPublicId}")
     public ResponseEntity<CategoryResponse> updateCategory(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable UUID publicId,
+            @PathVariable UUID categoryPublicId,
             @Valid @RequestBody CategoryUpdateRequest request) {
-        Long categoryId = categoryReadService.resolveInternalId(publicId);
+        Long categoryId = categoryReadService.resolveInternalId(categoryPublicId);
 
         CategoryResponse response = categoryService.updateCategory(categoryId, request, principal.getUserId());
         return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/{publicId}")
+    @DeleteMapping("/{categoryPublicId}")
     public ResponseEntity<Void> deleteCategory(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable UUID publicId) {
-        Long categoryId = categoryReadService.resolveInternalId(publicId);
+            @PathVariable UUID categoryPublicId) {
+        Long categoryId = categoryReadService.resolveInternalId(categoryPublicId);
 
         categoryService.deleteCategory(categoryId, principal.getUserId());
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/{publicId}/activate")
+    @PatchMapping("/{categoryPublicId}/activate")
     public ResponseEntity<CategoryResponse> activateCategory(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable UUID publicId) {
-        Long categoryId = categoryReadService.resolveInternalId(publicId);
+            @PathVariable UUID categoryPublicId) {
+        Long categoryId = categoryReadService.resolveInternalId(categoryPublicId);
 
         CategoryResponse response = categoryService.activateCategory(categoryId, principal.getUserId());
         return ResponseEntity.ok(response);
     }
 
-    @PatchMapping("/{publicId}/deactivate")
+    @PatchMapping("/{categoryPublicId}/deactivate")
     public ResponseEntity<CategoryResponse> deactivateCategory(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable UUID publicId) {
-        Long categoryId = categoryReadService.resolveInternalId(publicId);
+            @PathVariable UUID categoryPublicId) {
+        Long categoryId = categoryReadService.resolveInternalId(categoryPublicId);
 
         CategoryResponse response = categoryService.deactivateCategory(categoryId, principal.getUserId());
         return ResponseEntity.ok(response);
