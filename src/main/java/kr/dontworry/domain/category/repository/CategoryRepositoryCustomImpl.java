@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static kr.dontworry.domain.category.entity.QCategory.category;
+import static kr.dontworry.domain.ledger.entity.QLedger.ledger;
 
 @RequiredArgsConstructor
 public class CategoryRepositoryCustomImpl implements CategoryRepositoryCustom {
