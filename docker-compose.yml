@@ -55,6 +55,8 @@ services:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy
