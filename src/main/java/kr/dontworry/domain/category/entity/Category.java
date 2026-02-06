@@ -2,6 +2,8 @@ package kr.dontworry.domain.category.entity;
 
 import jakarta.persistence.*;
 import kr.dontworry.domain.category.entity.enums.CategoryStatus;
+import kr.dontworry.domain.category.exception.CategoryErrorCode;
+import kr.dontworry.domain.category.exception.CategoryException;
 import kr.dontworry.domain.common.AuditableEntity;
 import kr.dontworry.domain.ledger.entity.Ledger;
 import lombok.AccessLevel;
@@ -66,7 +68,7 @@ public class Category extends AuditableEntity {
         return category;
     }
 
-    public static Category createCustom(Ledger ledger, String name, String icon, String color, Integer lastSortOrder) {
+    public static Category createCustom(Ledger ledger, String name, String icon, String color, Integer nextSortOrder) {
         Category category = new Category();
         category.publicId = UUID.randomUUID();
         category.ledger = ledger;
@@ -74,16 +76,15 @@ public class Category extends AuditableEntity {
         category.icon = icon;
         category.color = color;
         category.isDefault = false;
-        category.sortOrder = lastSortOrder + 1;
+        category.sortOrder = nextSortOrder;
         category.status = CategoryStatus.ACTIVE;
         return category;
     }
 
-    public void update(String name, String icon, String color, Integer sortOrder) {
+    public void update(String name, String icon, String color) {
         this.name = name;
         this.icon = icon;
         this.color = color;
-        this.sortOrder = sortOrder;
     }
 
     public void activate() {
@@ -110,5 +111,17 @@ public class Category extends AuditableEntity {
             throw new IllegalStateException("카테고리에 연결된 가계부가 없습니다.");
         }
         this.ledger.validateOwner(userId);
+    }
+
+    public void changeSortOrder(Integer newSortOrder) {
+        if (this.isDefault) {
+            throw new CategoryException(CategoryErrorCode.CANNOT_MODIFY_DEFAULT_SORT_ORDER);
+        }
+
+        if (newSortOrder == null || newSortOrder < 0) {
+            throw new CategoryException(CategoryErrorCode.INVALID_SORT_ORDER);
+        }
+
+        this.sortOrder = newSortOrder;
     }
 }

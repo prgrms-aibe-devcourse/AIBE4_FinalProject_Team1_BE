@@ -13,8 +13,6 @@ public record CategoryUpdateRequest(
     String icon,
 
     @Size(max = 30, message = "색상은 30자 이하여야 합니다.")
-    String color,
-
-    Integer sortOrder
+    String color
 ) {
 }

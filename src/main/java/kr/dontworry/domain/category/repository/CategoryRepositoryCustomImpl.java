@@ -2,8 +2,10 @@ package kr.dontworry.domain.category.repository;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import kr.dontworry.domain.category.entity.Category;
+import kr.dontworry.domain.category.entity.enums.CategoryStatus;
 import lombok.RequiredArgsConstructor;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,5 +36,36 @@ public class CategoryRepositoryCustomImpl implements CategoryRepositoryCustom {
                         .where(category.categoryId.eq(categoryId))
                         .fetchOne()
         );
+    }
+
+    @Override
+    public List<Category> findAllByPublicIdInWithLedger(List<UUID> publicIds) {
+        return queryFactory
+                .selectFrom(category)
+                .join(category.ledger, ledger).fetchJoin()
+                .where(category.publicId.in(publicIds))
+                .fetch();
+    }
+
+    @Override
+    public Integer findMaxSortOrderByLedgerId(Long ledgerId) {
+        return queryFactory
+                .select(category.sortOrder.max())
+                .from(category)
+                .where(category.ledger.ledgerId.eq(ledgerId))
+                .fetchOne();
+    }
+
+    @Override
+    public void shiftOrdersForward(Long ledgerId, Integer startOrder) {
+        queryFactory
+                .update(category)
+                .set(category.sortOrder, category.sortOrder.subtract(1))
+                .where(
+                        category.ledger.ledgerId.eq(ledgerId),
+                        category.sortOrder.gt(startOrder),
+                        category.status.ne(CategoryStatus.DELETED)
+                )
+                .execute();
     }
 }

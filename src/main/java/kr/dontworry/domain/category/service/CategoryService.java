@@ -1,6 +1,7 @@
 package kr.dontworry.domain.category.service;
 
 import kr.dontworry.domain.category.controller.dto.CategoryCreateRequest;
+import kr.dontworry.domain.category.controller.dto.CategoryOrderRequest;
 import kr.dontworry.domain.category.controller.dto.CategoryResponse;
 import kr.dontworry.domain.category.controller.dto.CategoryUpdateRequest;
 import kr.dontworry.domain.category.entity.Category;
@@ -17,6 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,13 +37,10 @@ public class CategoryService {
 
         ledger.validateOwner(userId);
 
-        Category newCategory = Category.createCustom(
-                ledger,
-                dto.name(),
-                dto.icon(),
-                dto.color(),
-                dto.sortOrder()
-        );
+        Integer maxOrder = categoryRepository.findMaxSortOrderByLedgerId(dto.ledgerId());
+        int nextOrder = (maxOrder == null) ? 0 : maxOrder + 1;
+
+        Category newCategory = Category.createCustom(ledger, dto.name(), dto.icon(), dto.color(), nextOrder);
 
         return CategoryResponse.from(categoryRepository.save(newCategory));
     }
@@ -72,7 +73,7 @@ public class CategoryService {
             throw new CategoryException(CategoryErrorCode.CANNOT_EDIT_DEFAULT_CATEGORY_NAME);
         }
 
-        category.update(dto.name(), dto.icon(), dto.color(), dto.sortOrder());
+        category.update(dto.name(), dto.icon(), dto.color());
         
         Category updatedCategory = categoryRepository.save(category);
         return CategoryResponse.from(updatedCategory);
@@ -81,7 +82,14 @@ public class CategoryService {
     @Transactional
     public void deleteCategory(Long categoryId, Long userId) {
         Category category = getCategoryWithOwnership(categoryId, userId);
+        Integer deletedOrder = category.getSortOrder();
+        Long ledgerId = category.getLedger().getLedgerId();
+
         category.remove();
+
+        if (!category.isDefault() && deletedOrder != -1) {
+            categoryRepository.shiftOrdersForward(ledgerId, deletedOrder);
+        }
     }
 
     @Transactional
@@ -100,6 +108,23 @@ public class CategoryService {
         
         Category updatedCategory = categoryRepository.save(category);
         return CategoryResponse.from(updatedCategory);
+    }
+
+    public void reorderCategories(Long userId, List<CategoryOrderRequest> dto){
+        List<UUID> publicIds = dto.stream()
+                .map(CategoryOrderRequest::publicId)
+                .toList();
+
+        List<Category> categories = categoryRepository.findAllByPublicIdInWithLedger(publicIds);
+
+        categories.forEach(category -> category.validateOwnership(userId));
+
+        Map<UUID, Integer> orderMap = dto.stream()
+                .collect(Collectors.toMap(CategoryOrderRequest::publicId, CategoryOrderRequest::sortOrder));
+
+        for (Category category : categories) {
+            category.changeSortOrder(orderMap.get(category.getPublicId()));
+        }
     }
 
     private void validateLedgerAccess(Long ledgerId, Long userId) {

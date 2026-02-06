@@ -1,10 +1,9 @@
 package kr.dontworry.domain.category.controller;
 
-import kr.dontworry.domain.auth.security.CustomUserDetails;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-
 import jakarta.validation.Valid;
+import kr.dontworry.domain.auth.security.CustomUserDetails;
 import kr.dontworry.domain.category.controller.dto.CategoryCreateRequest;
+import kr.dontworry.domain.category.controller.dto.CategoryOrderRequest;
 import kr.dontworry.domain.category.controller.dto.CategoryResponse;
 import kr.dontworry.domain.category.controller.dto.CategoryUpdateRequest;
 import kr.dontworry.domain.category.service.CategoryReadService;
@@ -12,6 +11,7 @@ import kr.dontworry.domain.category.service.CategoryService;
 import kr.dontworry.domain.ledger.service.LedgerReadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -63,6 +63,19 @@ public class CategoryController {
 
         CategoryResponse response = categoryService.updateCategory(categoryId, request, principal.getUserId());
         return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/reorder")
+    public ResponseEntity<Void> reorderCategories(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @RequestBody @Valid List<CategoryOrderRequest> requests
+    ) {
+        if (requests.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        categoryService.reorderCategories(principal.getUserId(), requests);
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{categoryPublicId}")

@@ -16,9 +16,6 @@ public record CategoryCreateRequest(
         String icon,
 
         @Size(max = 30, message = "색상은 30자 이하여야 합니다.")
-        String color,
-
-        @NotNull(message = "정렬 순서는 필수입니다.")
-        Integer sortOrder
+        String color
 ) {
 }
