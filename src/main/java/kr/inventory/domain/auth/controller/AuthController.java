@@ -1,0 +1,54 @@
+package kr.inventory.domain.auth.controller;
+
+import jakarta.servlet.http.HttpServletResponse;
+import kr.inventory.domain.auth.controller.dto.TokenResponse;
+import kr.inventory.domain.auth.service.AuthService;
+import kr.inventory.global.auth.constant.AuthConstant;
+import kr.inventory.global.util.CookieUtil;
+import kr.inventory.global.util.HeaderUtil;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/auth")
+@RequiredArgsConstructor
+public class AuthController {
+    private final AuthService authService;
+    private final CookieUtil cookieUtil;
+    private final HeaderUtil headerUtil;
+
+    @PostMapping("/reissue")
+    public ResponseEntity<Void> reissueTokens(
+            @CookieValue(name = AuthConstant.REFRESH_TOKEN_COOKIE_NAME) String refreshToken, HttpServletResponse response) {
+        TokenResponse tokenResponse = authService.reissueTokens(refreshToken);
+
+        cookieUtil.addRefreshTokenCookie(response, tokenResponse.refreshToken());
+
+        return ResponseEntity.noContent()
+                .headers(headerUtil.createAccessTokenHeaders(tokenResponse.accessToken()))
+                .build();
+    }
+
+    @GetMapping("/login")
+    public ResponseEntity<String> login(@RequestParam String code) {
+        String accessToken = authService.loginWithCode(code);
+
+        return ResponseEntity.ok()
+                .headers(headerUtil.createAccessTokenHeaders(accessToken))
+                .body("로그인에 성공했습니다.");
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @RequestHeader(AuthConstant.AUTHORIZATION_HEADER) String bearerToken,
+            @CookieValue(name = AuthConstant.REFRESH_TOKEN_COOKIE_NAME) String refreshToken,
+            HttpServletResponse response) {
+
+        authService.logout(headerUtil.extractToken(bearerToken), refreshToken);
+
+        cookieUtil.deleteRefreshTokenCookie(response);
+
+        return ResponseEntity.ok().build();
+    }
+}
