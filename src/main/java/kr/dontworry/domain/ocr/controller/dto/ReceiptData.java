@@ -4,6 +4,7 @@ public record ReceiptData(
         String storeName,
         String date,
         String amount,
-        String paymentMethod
+        String paymentMethod,
+        String category
 ) {
 }
