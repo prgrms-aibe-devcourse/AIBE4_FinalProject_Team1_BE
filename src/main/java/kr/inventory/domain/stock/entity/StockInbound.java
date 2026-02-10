@@ -1,0 +1,60 @@
+package kr.inventory.domain.stock.entity;
+
+import jakarta.persistence.*;
+import kr.inventory.domain.common.AuditableEntity;
+import kr.inventory.domain.document.entity.Document;
+import kr.inventory.domain.stock.entity.enums.InboundSourceType;
+import kr.inventory.domain.stock.entity.enums.InboundStatus;
+import kr.inventory.domain.purchase.entity.PurchaseOrder;
+import kr.inventory.domain.store.entity.Store;
+import kr.inventory.domain.user.entity.User;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.time.OffsetDateTime;
+
+@Entity
+@Table(name = "stock_inbounds")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class StockInbound extends AuditableEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long inboundId;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "store_id", nullable = false)
+    private Store store;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private InboundSourceType sourceType;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_document_id")
+    private Document sourceDocument;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_purchase_order_id")
+    private PurchaseOrder sourcePurchaseOrder;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private InboundStatus status;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "confirmed_by_user_id")
+    private User confirmedByUser;
+
+    private OffsetDateTime confirmedAt;
+
+    public static StockInbound create(Store store, InboundSourceType sourceType) {
+        StockInbound inbound = new StockInbound();
+        inbound.store = store;
+        inbound.sourceType = sourceType;
+        inbound.status = InboundStatus.DRAFT;
+        return inbound;
+    }
+}

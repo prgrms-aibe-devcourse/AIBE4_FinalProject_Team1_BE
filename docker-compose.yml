@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:16.11
     environment:
-      POSTGRES_DB: dontworry
+      POSTGRES_DB: inventory
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
@@ -10,7 +10,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d dontworry"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d inventory"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -55,6 +55,8 @@ services:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,12 +65,26 @@ services:
       elasticsearch:
         condition: service_healthy
 
+  mcp-server:
+    build:
+      context: ../AIBE4_FinalProject_Team1_MCP_SERVER
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - SPRING_BOOT_URL=http://backend:8080
+    depends_on:
+      backend:
+        condition: service_started
+
   web:
     build:
       context: ../AIBE4_FinalProject_Team1_FE
       dockerfile: Dockerfile
     depends_on:
       backend:
+        condition: service_started
+      mcp-server:
         condition: service_started
     ports:
       - "80:80"
