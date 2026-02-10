@@ -20,14 +20,36 @@ public class Store extends AuditableEntity {
     @Column(nullable = false, length = 100)
     private String name;
 
+    @Column(unique = true, nullable = false, length = 10)
+    private String businessRegistrationNumber;
+
+    @Column(length = 200)
+    private String address;
+
+    @Column(length = 20)
+    private String phoneNumber;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private StoreStatus status;
 
-    public static Store create(String name) {
+    public static Store create(String name, String businessRegistrationNumber, String address, String phoneNumber) {
         Store store = new Store();
         store.name = name;
+        store.businessRegistrationNumber = businessRegistrationNumber;
+        store.address = address;
+        store.phoneNumber = phoneNumber;
         store.status = StoreStatus.ACTIVE;
         return store;
+    }
+
+    public void updateInfo(String name, String address, String phoneNumber) {
+        this.name = name;
+        this.address = address;
+        this.phoneNumber = phoneNumber;
+    }
+
+    public void updateStatus(StoreStatus newStatus) {
+        this.status = newStatus;
     }
 }
