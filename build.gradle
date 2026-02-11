@@ -121,7 +121,7 @@ def applyJacocoClassDirectoriesExcludes = { task ->
     )
 }
 
-sonarqube {
+sonar {
     properties {
         property('sonar.projectKey', 'prgrms-aibe-devcourse_AIBE4_FinalProject_Team1_BE')
         property('sonar.organization', 'prgrms-aibe-devcourse')
