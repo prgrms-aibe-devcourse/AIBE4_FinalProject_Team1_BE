@@ -5,7 +5,8 @@ import java.util.regex.Pattern;
 
 public class UnitConverter {
 
-	private static final Pattern UNIT_PATTERN = Pattern.compile("([0-9.]+)\\s*([a-zA-Z가-힣]+)");
+	private static final Pattern UNIT_PATTERN =
+		Pattern.compile("([0-9.]++)\\s*+([a-zA-Z가-힣]++)");
 
 	public static String convertToStandardUnit(String raw) {
 		if (raw == null || raw.isBlank())
