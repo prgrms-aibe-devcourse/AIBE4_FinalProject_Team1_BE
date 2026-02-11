@@ -78,6 +78,13 @@ dependencies {
 
     // Env
     implementation 'me.paulschwarz:springboot3-dotenv:5.1.0'
+
+    // PDFBox
+    implementation 'org.apache.pdfbox:pdfbox:3.0.1'
+
+    // Apache POI
+    // Source: https://mvnrepository.com/artifact/org.apache.poi/poi
+    implementation("org.apache.poi:poi:5.5.1")
 }
 
 jacoco {
@@ -140,7 +147,7 @@ tasks.withType(JavaCompile).configureEach {
 
 // java source set 에 Querydsl QClass 위치 추가
 sourceSets {
-    main.java.srcDirs += [ generated ]
+    main.java.srcDirs += [generated]
 }
 
 // gradle clean 시에 QClass 디렉토리 삭제
