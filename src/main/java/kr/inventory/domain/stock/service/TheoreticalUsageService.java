@@ -2,6 +2,7 @@ package kr.inventory.domain.stock.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import kr.inventory.domain.catalog.entity.Menu;
 import kr.inventory.domain.sales.entity.SalesOrder;
 import kr.inventory.domain.sales.entity.SalesOrderItem;
 import kr.inventory.domain.sales.repository.SalesOrderItemRepository;
@@ -15,6 +16,7 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -39,11 +41,7 @@ public class TheoreticalUsageService {
         Map<Long, BigDecimal> totalUsageMap = new HashMap<>();
 
         for(SalesOrderItem item : items){
-            if (item.getMenu() == null) {
-                throw new StockException(StockErrorCode.RECIPE_NOT_FOUND);
-            }
-
-            List<RecipeItem> recipes = parseRecipe(item.getMenu().getIngredientsJson());
+            List<RecipeItem> recipes = getRecipes(item);
             BigDecimal orderQuantity = BigDecimal.valueOf(item.getQuantity());
 
             for (RecipeItem recipe : recipes) {
@@ -54,11 +52,14 @@ public class TheoreticalUsageService {
         return totalUsageMap;
     }
 
-    private List<RecipeItem> parseRecipe(Object jsonSource){
-        if (jsonSource == null) {
-            throw new StockException(StockErrorCode.RECIPE_NOT_FOUND);
-        }
+    private List<RecipeItem> getRecipes(SalesOrderItem item){
+        return Optional.ofNullable(item.getMenu())
+                .map(Menu::getIngredientsJson)
+                .map(this::parseRecipe)
+                .orElseThrow(() -> new StockException(StockErrorCode.RECIPE_NOT_FOUND));
+    }
 
+    private List<RecipeItem> parseRecipe(Object jsonSource){
         try {
             return objectMapper.convertValue(jsonSource, new TypeReference<List<RecipeItem>>() {});
         } catch(Exception e){
