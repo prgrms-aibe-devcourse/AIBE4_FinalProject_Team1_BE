@@ -49,7 +49,7 @@ class StockServiceTest {
         Map<Long, BigDecimal> shortageMap = stockService.deductStockWithFEFO(Map.of(ingredientId, usageAmount));
 
         // then
-        assertThat(shortageMap).isEmpty(); // 재고가 충분하므로 부족분 없음
+        assertThat(shortageMap).isEmpty();
         assertThat(batch1.getRemainingQuantity()).isEqualByComparingTo("0");
         assertThat(batch1.getStatus()).isEqualTo(StockBatchStatus.CLOSED);
         assertThat(batch2.getRemainingQuantity()).isEqualByComparingTo("50");
@@ -63,7 +63,6 @@ class StockServiceTest {
         Long ingredientId = 200L;
         BigDecimal usageAmount = new BigDecimal("300");
 
-        // 총 재고가 250뿐인 상황
         IngredientStockBatch batch1 = createBatch(1L, 100, LocalDate.now().plusDays(1));
         IngredientStockBatch batch2 = createBatch(2L, 150, LocalDate.now().plusDays(2));
 
@@ -76,7 +75,7 @@ class StockServiceTest {
 
         // then
         assertThat(shortageMap).containsKey(ingredientId);
-        assertThat(shortageMap.get(ingredientId)).isEqualByComparingTo("50"); // 300 - 250 = 50 부족
+        assertThat(shortageMap.get(ingredientId)).isEqualByComparingTo("50");
 
         assertThat(batch1.getRemainingQuantity()).isEqualByComparingTo("0");
         assertThat(batch2.getRemainingQuantity()).isEqualByComparingTo("0");
