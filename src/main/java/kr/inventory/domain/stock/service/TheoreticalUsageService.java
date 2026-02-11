@@ -5,12 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inventory.domain.sales.entity.SalesOrder;
 import kr.inventory.domain.sales.entity.SalesOrderItem;
 import kr.inventory.domain.sales.repository.SalesOrderItemRepository;
+import kr.inventory.domain.stock.exception.StockErrorCode;
+import kr.inventory.domain.stock.exception.StockException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,8 +32,7 @@ public class TheoreticalUsageService {
     public Map<Long, BigDecimal> calculateOrderUsage(SalesOrder salesOrder) {
         List<SalesOrderItem> items = salesOrderItemRepository.findBySalesOrderId(salesOrder.getSalesOrderId());
 
-        Map<Long, BigDecimal> totalUsageMap = getTotalUsage(items);
-        return totalUsageMap;
+        return getTotalUsage(items);
     }
 
     private Map<Long, BigDecimal> getTotalUsage(List<SalesOrderItem> items){
@@ -56,10 +56,14 @@ public class TheoreticalUsageService {
     }
 
     private List<RecipeItem> parseRecipe(Object jsonSource){
+        if (jsonSource == null) {
+            throw new StockException(StockErrorCode.RECIPE_NOT_FOUND);
+        }
+
         try {
             return objectMapper.convertValue(jsonSource, new TypeReference<List<RecipeItem>>() {});
         } catch(Exception e){
-            return Collections.emptyList();
+            throw new StockException(StockErrorCode.RECIPE_PARSE_ERROR);
         }
     }
 }
