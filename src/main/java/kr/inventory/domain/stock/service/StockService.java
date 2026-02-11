@@ -28,7 +28,6 @@ public class StockService {
 
             if (remainingShortage.signum() > 0) {
                 shortageMap.put(ingredientId, remainingShortage);
-                // TODO: 재고가 0 이하로 떨어질 경우 알림 발송 기능 구현 필요
             }
         }
         return shortageMap;
