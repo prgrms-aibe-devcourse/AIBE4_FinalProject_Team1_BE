@@ -32,9 +32,6 @@ public class StockInbound extends AuditableEntity {
 	@JoinColumn(name = "vendor_id")
 	private Vendor vendor;
 
-	@Column(length = 120)
-	private String vendorName;
-
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "source_document_id")
 	private Document sourceDocument;
@@ -57,9 +54,6 @@ public class StockInbound extends AuditableEntity {
 		StockInbound inbound = new StockInbound();
 		inbound.store = store;
 		inbound.vendor = vendor;
-		if (vendor != null) {
-			inbound.vendorName = vendor.getName();
-		}
 		inbound.status = InboundStatus.DRAFT;
 		return inbound;
 	}
