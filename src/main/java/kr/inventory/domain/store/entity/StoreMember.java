@@ -53,4 +53,12 @@ public class StoreMember extends AuditableEntity {
         member.joinedAt = OffsetDateTime.now(ZoneOffset.UTC);
         return member;
     }
+
+    public void updateRole(StoreMemberRole newRole) {
+        this.role = newRole;
+    }
+
+    public void updateStatus(StoreMemberStatus newStatus) {
+        this.status = newStatus;
+    }
 }
