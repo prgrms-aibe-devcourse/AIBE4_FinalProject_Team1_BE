@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -41,8 +40,7 @@ class StockServiceTest {
         IngredientStockBatch batch1 = createBatch(1L, 100, LocalDate.now().plusDays(5));
         IngredientStockBatch batch2 = createBatch(2L, 100, LocalDate.now().plusDays(10));
 
-        when(batchRepository.findByIngredient_IngredientIdAndStatusAndRemainingQuantityGreaterThanOrderByExpirationDateAscCreatedAtAsc(
-                eq(ingredientId), eq(StockBatchStatus.OPEN), eq(BigDecimal.ZERO)))
+        when(batchRepository.findAvailableBatchesWithLock(eq(ingredientId)))
                 .thenReturn(List.of(batch1, batch2));
 
         // when
@@ -66,8 +64,7 @@ class StockServiceTest {
         IngredientStockBatch batch1 = createBatch(1L, 100, LocalDate.now().plusDays(1));
         IngredientStockBatch batch2 = createBatch(2L, 150, LocalDate.now().plusDays(2));
 
-        when(batchRepository.findByIngredient_IngredientIdAndStatusAndRemainingQuantityGreaterThanOrderByExpirationDateAscCreatedAtAsc(
-                any(), any(), any()))
+        when(batchRepository.findAvailableBatchesWithLock(eq(ingredientId)))
                 .thenReturn(List.of(batch1, batch2));
 
         // when

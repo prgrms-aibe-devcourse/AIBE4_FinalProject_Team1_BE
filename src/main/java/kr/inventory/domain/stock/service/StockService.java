@@ -1,7 +1,6 @@
 package kr.inventory.domain.stock.service;
 
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
-import kr.inventory.domain.stock.entity.enums.StockBatchStatus;
 import kr.inventory.domain.stock.repository.IngredientStockBatchRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,14 +28,14 @@ public class StockService {
 
             if (remainingShortage.signum() > 0) {
                 shortageMap.put(ingredientId, remainingShortage);
-                // TODO: 모든 재고 소진 알림
+                // TODO: 재고가 0 이하로 떨어질 경우 알림 발송 기능 구현 필요
             }
         }
         return shortageMap;
     }
 
     private BigDecimal deductSingleIngredient(Long ingredientId, BigDecimal needAmount) {
-        List<IngredientStockBatch> batches = findAvailableBatches(ingredientId);
+        List<IngredientStockBatch> batches = ingredientStockBatchRepository.findAvailableBatchesWithLock(ingredientId);
 
         for (IngredientStockBatch batch : batches) {
             if (needAmount.signum() <= 0) break;
@@ -46,13 +45,5 @@ public class StockService {
         }
 
         return needAmount;
-    }
-
-    private List<IngredientStockBatch> findAvailableBatches(Long ingredientId){
-        return ingredientStockBatchRepository.findByIngredient_IngredientIdAndStatusAndRemainingQuantityGreaterThanOrderByExpirationDateAscCreatedAtAsc(
-                ingredientId,
-                StockBatchStatus.OPEN,
-                BigDecimal.ZERO
-        );
     }
 }
