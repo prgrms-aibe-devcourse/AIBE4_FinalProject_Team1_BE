@@ -21,7 +21,7 @@ jobs:
           cache: 'gradle'
 
       - name: Test (with coverage)
-        run: ./gradlew test jacocoTestReport jacocoTestCoverageVerification
+        run: ./gradlew test jacocoTestReport
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
@@ -35,3 +35,6 @@ jobs:
             -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.java.binaries=build/classes/java/main
             -Dsonar.coverage.jacoco.xmlReportPaths=build/reports/jacoco/test/jacocoTestReport.xml
+
+      - name: Enforce coverage gate (min 60%)
+        run: ./gradlew jacocoTestCoverageVerification
