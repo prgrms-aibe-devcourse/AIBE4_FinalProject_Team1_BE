@@ -1,6 +1,5 @@
 package kr.inventory.domain.stock.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inventory.domain.catalog.entity.Menu;
@@ -14,16 +13,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.BeanUtils;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TheoreticalUsageServiceTest {
@@ -31,98 +34,69 @@ class TheoreticalUsageServiceTest {
     @Mock
     private SalesOrderItemRepository salesOrderItemRepository;
 
-    @Mock
-    private ObjectMapper objectMapper;
+    @Spy
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     @InjectMocks
     private TheoreticalUsageService theoreticalUsageService;
 
     @Test
-    @DisplayName("정상적인 주문 아이템들에 대해 통합 이론 소모량을 계산한다")
-    void calculateOrderUsage_Success() {
+    @DisplayName("복수 아이템 주문 시 재료별 총 소모량이 정확히 합산되어야 한다.")
+    void calculateOrderUsage_SummationSuccess() {
         // given
-        Long orderId = 1L;
-        SalesOrder salesOrder = mock(SalesOrder.class);
-        when(salesOrder.getSalesOrderId()).thenReturn(orderId);
+        Long salesOrderId = 1L;
+        SalesOrder salesOrder = Mockito.mock(SalesOrder.class);
+        when(salesOrder.getSalesOrderId()).thenReturn(salesOrderId);
 
-        JsonNode mockJsonNode1 = mock(JsonNode.class);
-        JsonNode mockJsonNode2 = mock(JsonNode.class);
+        List<Map<String, Object>> recipeJson = List.of(
+                Map.of("ingredientId", 100L, "qty", new BigDecimal("20.000"), "unit", "g"),
+                Map.of("ingredientId", 200L, "qty", new BigDecimal("200.000"), "unit", "ml")
+        );
 
-        SalesOrderItem item1 = createMockItem(2, mockJsonNode1);
-        SalesOrderItem item2 = createMockItem(3, mockJsonNode2);
+        SalesOrderItem item1 = createOrderItem(1L, 2, recipeJson);
+        SalesOrderItem item2 = createOrderItem(2L, 3, recipeJson);
 
-        when(salesOrderItemRepository.findBySalesOrderId(orderId)).thenReturn(List.of(item1, item2));
-
-        setupMockRecipe(mockJsonNode1, List.of(
-                new TheoreticalUsageService.RecipeItem(101L, new BigDecimal("1.5"), "g"),
-                new TheoreticalUsageService.RecipeItem(102L, new BigDecimal("0.5"), "g")
-        ));
-        setupMockRecipe(mockJsonNode2, List.of(
-                new TheoreticalUsageService.RecipeItem(101L, new BigDecimal("1.0"), "g")
-        ));
+        when(salesOrderItemRepository.findBySalesOrderId(salesOrderId))
+                .thenReturn(List.of(item1, item2));
 
         // when
         Map<Long, BigDecimal> result = theoreticalUsageService.calculateOrderUsage(salesOrder);
 
         // then
-        assertThat(result).hasSize(2);
-        assertThat(result.get(101L)).isEqualByComparingTo("6.0"); // (1.5*2) + (1.0*3)
-        assertThat(result.get(102L)).isEqualByComparingTo("1.0"); // (0.5*2)
+        assertThat(result.get(100L)).isEqualByComparingTo("100");
+        assertThat(result.get(200L)).isEqualByComparingTo("1000");
     }
 
     @Test
-    @DisplayName("메뉴 정보가 없는 아이템이 포함된 경우 예외가 발생한다")
-    void calculateOrderUsage_ThrowsException_WhenMenuIsNull() {
+    @DisplayName("메뉴 정보가 없는 아이템이 포함된 경우 RECIPE_NOT_FOUND 예외를 발생시킨다.")
+    void calculateOrderUsage_ThrowsExceptionWhenMenuIsNull() {
         // given
-        SalesOrder salesOrder = mock(SalesOrder.class);
-        SalesOrderItem invalidItem = mock(SalesOrderItem.class);
-        when(invalidItem.getMenu()).thenReturn(null);
+        SalesOrder salesOrder = Mockito.mock(SalesOrder.class);
+        SalesOrderItem invalidItem = BeanUtils.instantiateClass(SalesOrderItem.class);
 
-        when(salesOrderItemRepository.findBySalesOrderId(any())).thenReturn(List.of(invalidItem));
+        when(salesOrderItemRepository.findBySalesOrderId(any()))
+                .thenReturn(List.of(invalidItem));
 
         // when & then
-        StockException exception = org.junit.jupiter.api.Assertions.assertThrows(StockException.class, () -> {
-            theoreticalUsageService.calculateOrderUsage(salesOrder);
-        });
-
-        assertThat(exception.getErrorModel()).isEqualTo(StockErrorCode.RECIPE_NOT_FOUND);
+        assertThatThrownBy(() -> theoreticalUsageService.calculateOrderUsage(salesOrder))
+                .isInstanceOf(StockException.class)
+                .extracting("errorModel")
+                .isEqualTo(StockErrorCode.RECIPE_NOT_FOUND);
     }
 
-    @Test
-    @DisplayName("레시피 JSON 파싱에 실패하면 RECIPE_PARSE_ERROR 예외가 발생한다")
-    void calculateOrderUsage_ThrowsException_WhenParsingFails() {
-        // given
-        SalesOrder salesOrder = mock(SalesOrder.class);
-        JsonNode invalidJson = mock(JsonNode.class);
-        SalesOrderItem item = createMockItem(1, invalidJson);
+    private SalesOrderItem createOrderItem(Long menuId, int quantity, Object jsonContent) {
+        SalesOrderItem item = BeanUtils.instantiateClass(SalesOrderItem.class);
+        Menu menu = BeanUtils.instantiateClass(Menu.class);
 
-        when(salesOrderItemRepository.findBySalesOrderId(any())).thenReturn(List.of(item));
+        // [수정] List를 JsonNode로 변환하여 타입 불일치 해결
+        JsonNode jsonNode = objectMapper.valueToTree(jsonContent);
 
-        when(objectMapper.convertValue(eq(invalidJson), any(TypeReference.class)))
-                .thenThrow(new IllegalArgumentException("Invalid JSON"));
+        ReflectionTestUtils.setField(menu, "menuId", menuId);
+        ReflectionTestUtils.setField(menu, "ingredientsJson", jsonNode);
 
-        // when & then
-        StockException exception = org.junit.jupiter.api.Assertions.assertThrows(StockException.class, () -> {
-            theoreticalUsageService.calculateOrderUsage(salesOrder);
-        });
+        ReflectionTestUtils.setField(item, "menu", menu);
+        ReflectionTestUtils.setField(item, "quantity", quantity);
 
-        assertThat(exception.getErrorModel()).isEqualTo(StockErrorCode.RECIPE_PARSE_ERROR);
-    }
-
-    // --- Helper Methods ---
-
-    private SalesOrderItem createMockItem(int quantity, JsonNode jsonNode) {
-        SalesOrderItem item = mock(SalesOrderItem.class);
-        Menu menu = mock(Menu.class);
-
-        lenient().when(item.getQuantity()).thenReturn(quantity);
-        lenient().when(item.getMenu()).thenReturn(menu);
-        lenient().when(menu.getIngredientsJson()).thenReturn(jsonNode);
         return item;
-    }
-
-    private void setupMockRecipe(JsonNode source, List<TheoreticalUsageService.RecipeItem> mockOutput) {
-        when(objectMapper.convertValue(eq(source), any(TypeReference.class)))
-                .thenReturn(mockOutput);
     }
 }

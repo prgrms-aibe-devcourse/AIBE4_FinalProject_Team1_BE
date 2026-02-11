@@ -1,5 +1,6 @@
 package kr.inventory.domain.stock.service;
 
+import kr.inventory.domain.catalog.entity.Ingredient;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.enums.StockBatchStatus;
 import kr.inventory.domain.stock.repository.IngredientStockBatchRepository;
@@ -18,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,10 +38,10 @@ class StockServiceTest {
         Long ingredientId = 100L;
         BigDecimal usageAmount = new BigDecimal("150");
 
-        IngredientStockBatch batch1 = createBatch(1L, 100, LocalDate.now().plusDays(5));
-        IngredientStockBatch batch2 = createBatch(2L, 100, LocalDate.now().plusDays(10));
+        IngredientStockBatch batch1 = createBatch(1L, ingredientId, 100, LocalDate.now().plusDays(5));
+        IngredientStockBatch batch2 = createBatch(2L, ingredientId, 100, LocalDate.now().plusDays(10));
 
-        when(batchRepository.findAvailableBatchesWithLock(eq(ingredientId)))
+        when(batchRepository.findAllAvailableBatchesWithLock(anyList()))
                 .thenReturn(List.of(batch1, batch2));
 
         // when
@@ -61,10 +62,10 @@ class StockServiceTest {
         Long ingredientId = 200L;
         BigDecimal usageAmount = new BigDecimal("300");
 
-        IngredientStockBatch batch1 = createBatch(1L, 100, LocalDate.now().plusDays(1));
-        IngredientStockBatch batch2 = createBatch(2L, 150, LocalDate.now().plusDays(2));
+        IngredientStockBatch batch1 = createBatch(1L, ingredientId, 100, LocalDate.now().plusDays(1));
+        IngredientStockBatch batch2 = createBatch(2L, ingredientId, 150, LocalDate.now().plusDays(2));
 
-        when(batchRepository.findAvailableBatchesWithLock(eq(ingredientId)))
+        when(batchRepository.findAllAvailableBatchesWithLock(anyList()))
                 .thenReturn(List.of(batch1, batch2));
 
         // when
@@ -80,10 +81,14 @@ class StockServiceTest {
         assertThat(batch2.getStatus()).isEqualTo(StockBatchStatus.CLOSED);
     }
 
-    private IngredientStockBatch createBatch(Long id, int qty, LocalDate expiry) {
+    private IngredientStockBatch createBatch(Long batchId, Long ingredientId, int qty, LocalDate expiry) {
+        Ingredient ingredient = BeanUtils.instantiateClass(Ingredient.class);
+        ReflectionTestUtils.setField(ingredient, "ingredientId", ingredientId);
+
         IngredientStockBatch batch = BeanUtils.instantiateClass(IngredientStockBatch.class);
 
-        ReflectionTestUtils.setField(batch, "batchId", id);
+        ReflectionTestUtils.setField(batch, "batchId", batchId);
+        ReflectionTestUtils.setField(batch, "ingredient", ingredient);
         ReflectionTestUtils.setField(batch, "remainingQuantity", new BigDecimal(qty));
         ReflectionTestUtils.setField(batch, "initialQuantity", new BigDecimal(qty));
         ReflectionTestUtils.setField(batch, "expirationDate", expiry);
