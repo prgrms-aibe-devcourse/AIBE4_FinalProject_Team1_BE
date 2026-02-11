@@ -176,7 +176,7 @@ jacocoTestReport {
         applyJacocoClassDirectoriesExcludes(reportTask)
     }
 
-    finalizedBy jacocoTestCoverageVerification
+    // Coverage gate is run explicitly in CI so Sonar scan still runs
 }
 
 jacocoTestCoverageVerification {
