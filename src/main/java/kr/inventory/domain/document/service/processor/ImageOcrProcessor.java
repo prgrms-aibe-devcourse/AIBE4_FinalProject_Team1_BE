@@ -10,8 +10,17 @@ import javax.imageio.ImageIO;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import kr.inventory.domain.document.service.GeminiService;
+
 @Component
 public class ImageOcrProcessor extends AbstractGeminiOcrProcessor {
+
+	public ImageOcrProcessor(GeminiService geminiService,
+		ObjectMapper objectMapper) {
+		super(geminiService, objectMapper);
+	}
 
 	@Override
 	public boolean supports(MultipartFile file) {

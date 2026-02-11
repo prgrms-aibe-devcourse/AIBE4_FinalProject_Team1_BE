@@ -29,13 +29,11 @@ public class OcrValidator {
 	}
 
 	public static ReceiptData.Field<String> validateTotal(String qtyStr, String costStr, String totalStr) {
-		// null 체크 추가
 		if (qtyStr == null || costStr == null || totalStr == null) {
 			return ReceiptData.Field.warning(totalStr, "계산에 필요한 정보 부족");
 		}
 
 		try {
-			// 숫자가 아닌 문자 제거 후 BigDecimal 변환
 			BigDecimal qty = new BigDecimal(qtyStr.replaceAll("[^0-9.]", ""));
 			BigDecimal cost = new BigDecimal(costStr.replaceAll("[^0-9.]", ""));
 			BigDecimal total = new BigDecimal(totalStr.replaceAll("[^0-9.]", ""));

@@ -6,6 +6,7 @@ import kr.inventory.domain.document.controller.dto.ocr.RawReceiptData;
 import kr.inventory.domain.document.controller.dto.ocr.ReceiptData;
 import kr.inventory.domain.document.exception.OcrException;
 import kr.inventory.domain.document.service.GeminiService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,14 +15,13 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 
+@RequiredArgsConstructor
 @Slf4j
 public abstract class AbstractGeminiOcrProcessor implements OcrProcessor {
 
-	@Autowired
-	private GeminiService geminiService;
+	private final GeminiService geminiService;
 
-	@Autowired
-	private ObjectMapper objectMapper;
+	private final ObjectMapper objectMapper;
 
 	private static final String PROMPT_TEMPLATE = """
 		Return ONLY JSON. No markdown tags.

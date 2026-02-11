@@ -11,8 +11,17 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import kr.inventory.domain.document.service.GeminiService;
+
 @Component
 public class ExcelOcrProcessor extends AbstractGeminiOcrProcessor {
+
+	public ExcelOcrProcessor(GeminiService geminiService,
+		ObjectMapper objectMapper) {
+		super(geminiService, objectMapper);
+	}
 
 	@Override
 	public boolean supports(MultipartFile file) {
@@ -40,6 +49,6 @@ public class ExcelOcrProcessor extends AbstractGeminiOcrProcessor {
 
 	@Override
 	protected String getTargetContentType(MultipartFile file) {
-		return "test/plain";
+		return "text/plain";
 	}
 }

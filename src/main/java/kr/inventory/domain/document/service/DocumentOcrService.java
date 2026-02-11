@@ -7,7 +7,10 @@ import kr.inventory.domain.document.service.processor.OcrProcessor;
 import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.repository.StoreRepository;
 import kr.inventory.domain.user.entity.User;
+import kr.inventory.domain.user.exception.UserErrorCode;
+import kr.inventory.domain.user.exception.UserException;
 import kr.inventory.domain.user.repository.UserRepository;
+import kr.inventory.global.exception.ErrorModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -35,7 +38,7 @@ public class DocumentOcrService {
 		Store store = storeRepository.findById(storeId)
 			.orElseThrow(() -> new IllegalArgumentException("Store not found"));
 		User user = userRepository.findById(userId)
-			.orElseThrow(() -> new IllegalArgumentException("User not found"));
+			.orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
 		List<ReceiptData> results = new ArrayList<>();
 
