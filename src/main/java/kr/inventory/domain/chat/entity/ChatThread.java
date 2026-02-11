@@ -1,7 +1,7 @@
-package kr.inventory.domain.ai.chatbot.entity;
+package kr.inventory.domain.chat.entity;
 
 import jakarta.persistence.*;
-import kr.inventory.domain.ai.chatbot.entity.enums.ChatThreadStatus;
+import kr.inventory.domain.chat.entity.enums.ChatThreadStatus;
 import kr.inventory.domain.common.AuditableEntity;
 import kr.inventory.domain.user.entity.User;
 import lombok.AccessLevel;

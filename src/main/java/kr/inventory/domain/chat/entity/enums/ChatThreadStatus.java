@@ -1,4 +1,4 @@
-package kr.inventory.domain.ai.chatbot.entity.enums;
+package kr.inventory.domain.chat.entity.enums;
 
 public enum ChatThreadStatus {
     ACTIVE,
