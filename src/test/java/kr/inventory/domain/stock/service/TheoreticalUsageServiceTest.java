@@ -7,6 +7,8 @@ import kr.inventory.domain.catalog.entity.Menu;
 import kr.inventory.domain.sales.entity.SalesOrder;
 import kr.inventory.domain.sales.entity.SalesOrderItem;
 import kr.inventory.domain.sales.repository.SalesOrderItemRepository;
+import kr.inventory.domain.stock.exception.StockErrorCode;
+import kr.inventory.domain.stock.exception.StockException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -69,8 +71,8 @@ class TheoreticalUsageServiceTest {
     }
 
     @Test
-    @DisplayName("메뉴 정보가 없는 아이템은 계산에서 제외한다")
-    void calculateOrderUsage_SkipInvalidItems() {
+    @DisplayName("메뉴 정보가 없는 아이템이 포함된 경우 예외가 발생한다")
+    void calculateOrderUsage_ThrowsException_WhenMenuIsNull() {
         // given
         SalesOrder salesOrder = mock(SalesOrder.class);
         SalesOrderItem invalidItem = mock(SalesOrderItem.class);
@@ -78,12 +80,33 @@ class TheoreticalUsageServiceTest {
 
         when(salesOrderItemRepository.findBySalesOrderId(any())).thenReturn(List.of(invalidItem));
 
-        // when
-        Map<Long, BigDecimal> result = theoreticalUsageService.calculateOrderUsage(salesOrder);
+        // when & then
+        StockException exception = org.junit.jupiter.api.Assertions.assertThrows(StockException.class, () -> {
+            theoreticalUsageService.calculateOrderUsage(salesOrder);
+        });
 
-        // then
-        assertThat(result).isEmpty();
-        verifyNoInteractions(objectMapper);
+        assertThat(exception.getErrorModel()).isEqualTo(StockErrorCode.RECIPE_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("레시피 JSON 파싱에 실패하면 RECIPE_PARSE_ERROR 예외가 발생한다")
+    void calculateOrderUsage_ThrowsException_WhenParsingFails() {
+        // given
+        SalesOrder salesOrder = mock(SalesOrder.class);
+        JsonNode invalidJson = mock(JsonNode.class);
+        SalesOrderItem item = createMockItem(1, invalidJson);
+
+        when(salesOrderItemRepository.findBySalesOrderId(any())).thenReturn(List.of(item));
+
+        when(objectMapper.convertValue(eq(invalidJson), any(TypeReference.class)))
+                .thenThrow(new IllegalArgumentException("Invalid JSON"));
+
+        // when & then
+        StockException exception = org.junit.jupiter.api.Assertions.assertThrows(StockException.class, () -> {
+            theoreticalUsageService.calculateOrderUsage(salesOrder);
+        });
+
+        assertThat(exception.getErrorModel()).isEqualTo(StockErrorCode.RECIPE_PARSE_ERROR);
     }
 
     // --- Helper Methods ---
@@ -92,9 +115,9 @@ class TheoreticalUsageServiceTest {
         SalesOrderItem item = mock(SalesOrderItem.class);
         Menu menu = mock(Menu.class);
 
-        when(item.getQuantity()).thenReturn(quantity);
-        when(item.getMenu()).thenReturn(menu);
-        when(menu.getIngredientsJson()).thenReturn(jsonNode);
+        lenient().when(item.getQuantity()).thenReturn(quantity);
+        lenient().when(item.getMenu()).thenReturn(menu);
+        lenient().when(menu.getIngredientsJson()).thenReturn(jsonNode);
         return item;
     }
 

@@ -39,8 +39,8 @@ public class TheoreticalUsageService {
         Map<Long, BigDecimal> totalUsageMap = new HashMap<>();
 
         for(SalesOrderItem item : items){
-            if(item.getMenu() == null || item.getMenu().getIngredientsJson() == null){
-                continue;
+            if (item.getMenu() == null) {
+                throw new StockException(StockErrorCode.RECIPE_NOT_FOUND);
             }
 
             List<RecipeItem> recipes = parseRecipe(item.getMenu().getIngredientsJson());
@@ -48,7 +48,6 @@ public class TheoreticalUsageService {
 
             for (RecipeItem recipe : recipes) {
                 BigDecimal usageAmount = recipe.qty().multiply(orderQuantity);
-
                 totalUsageMap.merge(recipe.ingredientId(), usageAmount, BigDecimal::add);
             }
         }
