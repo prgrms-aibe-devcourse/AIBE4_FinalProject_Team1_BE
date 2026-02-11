@@ -27,6 +27,10 @@ public class PurchaseOrder extends AuditableEntity {
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vendor_id")
+    private Vendor vendor;
+
     @Column(length = 120)
     private String vendorName;
 
@@ -53,9 +57,13 @@ public class PurchaseOrder extends AuditableEntity {
 
     private OffsetDateTime approvedAt;
 
-    public static PurchaseOrder create(Store store, User createdByUser) {
+    public static PurchaseOrder create(Store store, Vendor vendor, User createdByUser) {
         PurchaseOrder order = new PurchaseOrder();
         order.store = store;
+        order.vendor = vendor;
+        if (vendor != null) {
+            order.vendorName = vendor.getName();
+        }
         order.createdByUser = createdByUser;
         order.orderDate = LocalDate.now();
         order.status = PurchaseOrderStatus.DRAFT;
