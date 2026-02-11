@@ -57,4 +57,21 @@ public class IngredientStockBatch extends AuditableEntity {
         batch.status = StockBatchStatus.OPEN;
         return batch;
     }
+
+    public BigDecimal deductWithClamp(BigDecimal needAmount) {
+        if (needAmount.compareTo(BigDecimal.ZERO) <= 0){
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal actualDeduct = this.remainingQuantity.min(needAmount);
+
+        this.remainingQuantity = this.remainingQuantity.subtract(actualDeduct);
+
+        if (this.remainingQuantity.signum() <= 0) {
+            this.remainingQuantity = BigDecimal.ZERO;
+            this.status = StockBatchStatus.CLOSED;
+        }
+
+        return actualDeduct;
+    }
 }

@@ -7,6 +7,7 @@ import kr.inventory.domain.sales.entity.SalesOrderItem;
 import kr.inventory.domain.sales.repository.SalesOrderItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -16,6 +17,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class TheoreticalUsageService {
     private record RecipeItem(
             Long ingredientId,
