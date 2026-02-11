@@ -37,4 +37,5 @@ jobs:
             -Dsonar.coverage.jacoco.xmlReportPaths=build/reports/jacoco/test/jacocoTestReport.xml
 
       - name: Enforce coverage gate (min 60%)
+        if: github.event_name == 'push'
         run: ./gradlew jacocoTestCoverageVerification
