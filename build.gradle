@@ -106,6 +106,14 @@ def jacocoExcludePatterns = [
         '**/Q*'
 ]
 
+def applyJacocoClassDirectoriesExcludes = { task ->
+    task.classDirectories.setFrom(
+            files(task.classDirectories.files.collect {
+                fileTree(dir: it, excludes: jacocoExcludePatterns + qDomains)
+            })
+    )
+}
+
 sonarqube {
     properties {
         property('sonar.projectKey', 'prgrms-aibe-devcourse_AIBE4_FinalProject_Team1_BE')
@@ -148,6 +156,8 @@ tasks.named('test') {
 jacocoTestReport {
     dependsOn test
 
+    def reportTask = delegate
+
     reports {
         html.required.set(true)
         xml.required.set(true)
@@ -156,11 +166,7 @@ jacocoTestReport {
     }
 
     afterEvaluate {
-        classDirectories.setFrom(
-                files(classDirectories.files.collect {
-                    fileTree(dir: it, excludes: jacocoExcludePatterns + qDomains)
-                })
-        )
+        applyJacocoClassDirectoriesExcludes(reportTask)
     }
 
     finalizedBy jacocoTestCoverageVerification
@@ -168,6 +174,8 @@ jacocoTestReport {
 
 jacocoTestCoverageVerification {
     dependsOn test
+
+    def verificationTask = delegate
 
     violationRules {
         rule {
@@ -193,11 +201,7 @@ jacocoTestCoverageVerification {
     }
 
     afterEvaluate {
-        classDirectories.setFrom(
-                files(classDirectories.files.collect {
-                    fileTree(dir: it, excludes: jacocoExcludePatterns + qDomains)
-                })
-        )
+        applyJacocoClassDirectoriesExcludes(verificationTask)
     }
 }
 
