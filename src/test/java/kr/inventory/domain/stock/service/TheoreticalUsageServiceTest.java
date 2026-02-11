@@ -56,7 +56,7 @@ class TheoreticalUsageServiceTest {
         SalesOrderItem item1 = createOrderItem(1L, 2, recipeJson);
         SalesOrderItem item2 = createOrderItem(2L, 3, recipeJson);
 
-        when(salesOrderItemRepository.findBySalesOrderId(salesOrderId))
+        when(salesOrderItemRepository.findBySalesOrderSalesOrderId(salesOrderId))
                 .thenReturn(List.of(item1, item2));
 
         // when
@@ -74,7 +74,7 @@ class TheoreticalUsageServiceTest {
         SalesOrder salesOrder = Mockito.mock(SalesOrder.class);
         SalesOrderItem invalidItem = BeanUtils.instantiateClass(SalesOrderItem.class);
 
-        when(salesOrderItemRepository.findBySalesOrderId(any()))
+        when(salesOrderItemRepository.findBySalesOrderSalesOrderId(any()))
                 .thenReturn(List.of(invalidItem));
 
         // when & then
