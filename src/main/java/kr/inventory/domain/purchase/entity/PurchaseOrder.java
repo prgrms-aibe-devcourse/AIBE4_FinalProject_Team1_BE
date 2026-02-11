@@ -27,8 +27,9 @@ public class PurchaseOrder extends AuditableEntity {
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
 
-    @Column(length = 120)
-    private String vendorName;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vendor_id")
+    private Vendor vendor;
 
     @Column(nullable = false)
     private LocalDate orderDate;
