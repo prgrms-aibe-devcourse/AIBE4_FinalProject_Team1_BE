@@ -19,7 +19,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class TheoreticalUsageService {
-    private record RecipeItem(
+    record RecipeItem(
             Long ingredientId,
             BigDecimal qty,
             String unit
