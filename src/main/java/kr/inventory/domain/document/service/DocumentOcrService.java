@@ -28,7 +28,6 @@ public class DocumentOcrService {
 	private final StoreRepository storeRepository;
 	private final UserRepository userRepository;
 
-	@Transactional
 	public OcrResultResponse processOcr(
 		Long storeId,
 		Long userId,
