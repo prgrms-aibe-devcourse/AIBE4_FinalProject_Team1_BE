@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -18,13 +19,17 @@ public class StockService {
     private final IngredientStockBatchRepository ingredientStockBatchRepository;
 
     public Map<Long, BigDecimal> deductStockWithFEFO(Map<Long, BigDecimal> usageMap){
+        List<Long> sortedIds = getSortedIngredientIds(usageMap);
+
+        Map<Long, List<IngredientStockBatch>> batchGroup = fetchBatchesGroupedById(sortedIds);
+
         Map<Long,BigDecimal> shortageMap = new HashMap<>();
 
-        for(Map.Entry<Long,BigDecimal> entry : usageMap.entrySet()){
-            Long ingredientId = entry.getKey();
-            BigDecimal needAmount = entry.getValue();
+        for(Long ingredientId : sortedIds){
+            BigDecimal needAmount = usageMap.get(ingredientId);
+            List<IngredientStockBatch> batches = batchGroup.getOrDefault(ingredientId, List.of());
 
-            BigDecimal remainingShortage = deductSingleIngredient(ingredientId, needAmount);
+            BigDecimal remainingShortage = deductIngredientStock(batches, needAmount);
 
             if (remainingShortage.signum() > 0) {
                 shortageMap.put(ingredientId, remainingShortage);
@@ -33,16 +38,29 @@ public class StockService {
         return shortageMap;
     }
 
-    private BigDecimal deductSingleIngredient(Long ingredientId, BigDecimal needAmount) {
-        List<IngredientStockBatch> batches = ingredientStockBatchRepository.findAvailableBatchesWithLock(ingredientId);
+    private List<Long> getSortedIngredientIds(Map<Long, BigDecimal> usageMap){
+        return usageMap.keySet().stream()
+                .sorted()
+                .toList();
+    }
+
+    private Map<Long, List<IngredientStockBatch>> fetchBatchesGroupedById(List<Long> ingredientIds) {
+        List<IngredientStockBatch> allBatches = ingredientStockBatchRepository.findAllAvailableBatchesWithLock(ingredientIds);
+
+        return allBatches.stream()
+                .collect(Collectors.groupingBy(IngredientStockBatch::getIngredientId));
+    }
+
+    private BigDecimal deductIngredientStock(List<IngredientStockBatch> batches, BigDecimal needAmount) {
+        BigDecimal remaining = needAmount;
 
         for (IngredientStockBatch batch : batches) {
-            if (needAmount.signum() <= 0) break;
+            if (remaining.signum() <= 0) break;
 
-            BigDecimal actualDeducted = batch.deductWithClamp(needAmount);
-            needAmount = needAmount.subtract(actualDeducted);
+            BigDecimal actualDeducted = batch.deductWithClamp(remaining);
+            remaining = remaining.subtract(actualDeducted);
         }
 
-        return needAmount;
+        return remaining;
     }
 }

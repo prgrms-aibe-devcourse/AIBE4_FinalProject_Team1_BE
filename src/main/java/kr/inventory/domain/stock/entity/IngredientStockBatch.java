@@ -74,4 +74,8 @@ public class IngredientStockBatch extends AuditableEntity {
 
         return actualDeduct;
     }
+
+    public Long getIngredientId() {
+        return this.ingredient.getIngredientId();
+    }
 }

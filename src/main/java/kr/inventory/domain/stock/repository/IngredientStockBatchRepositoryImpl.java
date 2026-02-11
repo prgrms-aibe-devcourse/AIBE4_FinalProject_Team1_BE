@@ -7,6 +7,8 @@ import kr.inventory.domain.stock.entity.enums.StockBatchStatus;
 import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import static kr.inventory.domain.stock.entity.QIngredientStockBatch.ingredientStockBatch;
@@ -17,15 +19,21 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public List<IngredientStockBatch> findAvailableBatchesWithLock(Long ingredientId) {
+    public List<IngredientStockBatch> findAllAvailableBatchesWithLock(Collection<Long> ingredientIds) {
+        if (ingredientIds == null || ingredientIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         return queryFactory
                 .selectFrom(ingredientStockBatch)
+                .join(ingredientStockBatch.ingredient).fetchJoin()
                 .where(
-                        ingredientStockBatch.ingredient.ingredientId.eq(ingredientId),
+                        ingredientStockBatch.ingredient.ingredientId.in(ingredientIds),
                         ingredientStockBatch.status.eq(StockBatchStatus.OPEN),
                         ingredientStockBatch.remainingQuantity.gt(BigDecimal.ZERO)
                 )
                 .orderBy(
+                        ingredientStockBatch.ingredient.ingredientId.asc(),
                         ingredientStockBatch.expirationDate.asc(),
                         ingredientStockBatch.createdAt.asc()
                 )
