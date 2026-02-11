@@ -44,7 +44,8 @@ public class GeminiService {
 
 		try {
 			GeminiResponse response = restClient.post()
-				.uri(geminiApiUrl + "?key=" + geminiApiKey)
+.uri(geminiApiUrl)
+.header("x-goog-api-key", geminiApiKey)
 				.contentType(MediaType.APPLICATION_JSON)
 				.body(request)
 				.retrieve()
