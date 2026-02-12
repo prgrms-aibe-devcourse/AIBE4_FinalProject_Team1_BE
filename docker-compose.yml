@@ -1,5 +1,6 @@
 services:
   postgres:
+    container_name: postgres
     image: postgres:16.11
     environment:
       POSTGRES_DB: inventory
@@ -17,6 +18,7 @@ services:
       start_period: 10s
 
   redis:
+    container_name: redis
     image: redis:7.4.7
     command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
     volumes:
@@ -31,6 +33,7 @@ services:
       start_period: 5s
 
   elasticsearch:
+    container_name: elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:8.19.10
     environment:
       - discovery.type=single-node
@@ -48,6 +51,7 @@ services:
       start_period: 30s
 
   backend:
+    container_name: backend
     build:
       context: .
       dockerfile: Dockerfile
@@ -66,6 +70,7 @@ services:
         condition: service_healthy
 
   mcp-server:
+    container_name: mcp-server
     build:
       context: ../AIBE4_FinalProject_Team1_MCP_SERVER
       dockerfile: Dockerfile
@@ -78,6 +83,7 @@ services:
         condition: service_started
 
   web:
+    container_name: web
     build:
       context: ../AIBE4_FinalProject_Team1_FE
       dockerfile: Dockerfile
@@ -127,9 +133,49 @@ services:
     depends_on:
       - prometheus
 
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki-config.yml:/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/config.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/config.yml
+
+  postgres-exporter:
+    container_name: postgres-exporter
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres@postgres:5432/inventory?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "9187:9187"
+
+  redis-exporter:
+    container_name: redis-exporter
+    image: oliver006/redis_exporter:v1.58.0
+    command: [ "--redis.addr=redis:6379" ]
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "9121:9121"
+
 volumes:
   postgres-data:
   es-data:
   redis-data:
   prometheus_data:
   grafana_data:
+  loki_data:
