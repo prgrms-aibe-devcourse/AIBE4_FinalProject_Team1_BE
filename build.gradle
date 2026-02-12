@@ -30,8 +30,9 @@ dependencies {
     // Web
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
-    // 모니터링 - Prometheus/Grafana는 이후에 붙일 예정
+    // 모니터링 - Prometheus/Grafana
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
 
     // Security / OAuth
     implementation 'org.springframework.boot:spring-boot-starter-security'
