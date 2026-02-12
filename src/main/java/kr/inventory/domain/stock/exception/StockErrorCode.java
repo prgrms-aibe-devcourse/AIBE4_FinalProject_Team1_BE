@@ -9,7 +9,9 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum StockErrorCode implements ErrorModel {
     RECIPE_NOT_FOUND(HttpStatus.NOT_FOUND, "S001", "레시피 정보가 등록되지 않았습니다."),
-    RECIPE_PARSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "S002", "레시피 데이터 파싱 중 오류가 발생했습니다.");
+    RECIPE_PARSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "S002", "레시피 데이터 파싱 중 오류가 발생했습니다."),
+    DRAFT_STOCK_TAKE_NOT_FOUND(HttpStatus.NOT_FOUND, "S003", "대기 중인 실사가 없습니다."),
+    STOCK_TAKE_ALREADY_CONFIRMED(HttpStatus.CONFLICT, "S004", "이미 확정된 실사입니다.");
 
     private final HttpStatus status;
     private final String code;

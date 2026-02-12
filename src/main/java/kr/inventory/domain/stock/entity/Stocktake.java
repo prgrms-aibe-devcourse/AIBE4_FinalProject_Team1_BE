@@ -1,31 +1,40 @@
 package kr.inventory.domain.stock.entity;
 
 import jakarta.persistence.*;
+import kr.inventory.domain.common.AuditableEntity;
 import kr.inventory.domain.stock.entity.enums.StocktakeStatus;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Entity
 @Getter
 @NoArgsConstructor
-public class Stocktake {
+public class Stocktake extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long stocktakeId;
 
+    @Column(nullable = false)
     private Long ingredientId;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private StocktakeStatus status;
 
+    @Column(nullable = false, precision = 14, scale = 3)
     private BigDecimal stocktakeQty;
-    private BigDecimal bookQty;
-    private BigDecimal adjustmentQty;
 
-    private LocalDateTime confirmedAt;
+    @Column(precision = 14, scale = 3)
+    private BigDecimal theoreticalQty;
+
+    @Column(precision = 14, scale = 3)
+    private BigDecimal varianceQty;
+
+    private OffsetDateTime confirmedAt;
 
     public static Stocktake createDraft(Long ingredientId, BigDecimal qty){
         Stocktake stocktake = new Stocktake();
@@ -35,10 +44,10 @@ public class Stocktake {
         return stocktake;
     }
 
-    public void confirm(BigDecimal bookQty, BigDecimal adjustmentQty) {
-        this.bookQty = bookQty;
-        this.adjustmentQty = adjustmentQty;
+    public void confirm(BigDecimal theoreticalQty, BigDecimal varianceQty) {
+        this.theoreticalQty = theoreticalQty;
+        this.varianceQty = varianceQty;
         this.status = StocktakeStatus.CONFIRMED;
-        this.confirmedAt = LocalDateTime.now();
+        this.confirmedAt = OffsetDateTime.now(ZoneOffset.UTC);
     }
 }

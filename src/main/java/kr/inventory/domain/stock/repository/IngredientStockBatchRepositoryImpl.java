@@ -40,4 +40,19 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
                 .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                 .fetch();
     }
+
+    @Override
+    public List<IngredientStockBatch> findAllForAdjustmentWithLock(Long ingredientId) {
+        return queryFactory
+                .selectFrom(ingredientStockBatch)
+                .join(ingredientStockBatch.ingredient).fetchJoin()
+                .where(ingredientStockBatch.ingredient.ingredientId.eq(ingredientId))
+                .orderBy(
+                        ingredientStockBatch.expirationDate.desc().nullsFirst(),
+                        ingredientStockBatch.createdAt.desc(),
+                        ingredientStockBatch.batchId.desc()
+                )
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+                .fetch();
+    }
 }

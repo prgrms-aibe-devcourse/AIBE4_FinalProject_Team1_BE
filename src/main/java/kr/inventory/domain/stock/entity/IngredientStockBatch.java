@@ -78,4 +78,9 @@ public class IngredientStockBatch extends AuditableEntity {
     public Long getIngredientId() {
         return this.ingredient.getIngredientId();
     }
+
+    public void updateRemaining(BigDecimal newAmount){
+        this.remainingQuantity = newAmount;
+        this.status = (newAmount.signum() <= 0) ? StockBatchStatus.CLOSED : StockBatchStatus.OPEN;
+    }
 }
