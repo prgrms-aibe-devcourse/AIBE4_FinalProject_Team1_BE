@@ -2,6 +2,8 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.10'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
+    id 'org.sonarqube' version '4.2.1.3168'
 }
 
 group = 'kr.inventory'
@@ -76,6 +78,63 @@ dependencies {
 
     // Env
     implementation 'me.paulschwarz:springboot3-dotenv:5.1.0'
+
+    // PDFBox
+    implementation 'org.apache.pdfbox:pdfbox:3.0.1'
+
+    // Apache POI
+    // Source: https://mvnrepository.com/artifact/org.apache.poi/poi
+    implementation("org.apache.poi:poi:5.5.1")
+}
+
+jacoco {
+    toolVersion = '0.8.12'
+}
+
+def qDomains = []
+for (qPattern in '*.QA'..'*.QZ') {
+    qDomains.add(qPattern + '*')
+}
+
+def jacocoExcludePatterns = [
+        // 측정 안하고 싶은 패턴
+        '**/*Application*',
+        '**/*Config*',
+        '**/*Exception*',
+        '**/*Request*',
+        '**/*Response*',
+        '**/*Dto*',
+        '**/*Interceptor*',
+        '**/*Filter*',
+        '**/*Resolver*',
+
+        // QueryDSL generated
+        '**/generated/**',
+        '**/Q*'
+]
+
+def applyJacocoClassDirectoriesExcludes = { task ->
+    task.classDirectories.setFrom(
+            files(task.classDirectories.files.collect {
+                fileTree(dir: it, excludes: jacocoExcludePatterns + qDomains)
+            })
+    )
+}
+
+sonar {
+    properties {
+        property('sonar.projectKey', 'prgrms-aibe-devcourse_AIBE4_FinalProject_Team1_BE')
+        property('sonar.organization', 'prgrms-aibe-devcourse')
+        property('sonar.host.url', 'https://sonarcloud.io')
+
+        property('sonar.sources', 'src/main/java')
+        property('sonar.tests', 'src/test/java')
+        property('sonar.java.binaries', 'build/classes/java/main')
+        property('sonar.sourceEncoding', 'UTF-8')
+
+        property('sonar.coverage.jacoco.xmlReportPaths', 'build/reports/jacoco/test/jacocoTestReport.xml')
+        property('sonar.exclusions', (jacocoExcludePatterns + qDomains).join(','))
+    }
 }
 
 // Querydsl 빌드 옵션 설정
@@ -88,7 +147,7 @@ tasks.withType(JavaCompile).configureEach {
 
 // java source set 에 Querydsl QClass 위치 추가
 sourceSets {
-    main.java.srcDirs += [ generated ]
+    main.java.srcDirs += [generated]
 }
 
 // gradle clean 시에 QClass 디렉토리 삭제
@@ -98,4 +157,61 @@ clean {
 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy tasks.named('jacocoTestReport')
+}
+
+jacocoTestReport {
+    dependsOn test
+
+    def reportTask = delegate
+
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
+        xml.outputLocation.set(layout.buildDirectory.file('reports/jacoco/test/jacocoTestReport.xml'))
+        csv.required.set(false)
+    }
+
+    afterEvaluate {
+        applyJacocoClassDirectoriesExcludes(reportTask)
+    }
+
+    // Coverage gate is run explicitly in CI so Sonar scan still runs
+}
+
+jacocoTestCoverageVerification {
+    dependsOn test
+
+    def verificationTask = delegate
+
+    violationRules {
+        rule {
+            enabled = true
+
+            // 전체 번들 기준으로 커버리지 체크 (클래스별 0%로 과도하게 실패하는 것 방지)
+            element = 'BUNDLE'
+
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.60
+            }
+
+            limit {
+                counter = 'BRANCH'
+                value = 'COVEREDRATIO'
+                minimum = 0.60
+            }
+
+            excludes = jacocoExcludePatterns + qDomains
+        }
+    }
+
+    afterEvaluate {
+        applyJacocoClassDirectoriesExcludes(verificationTask)
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('jacocoTestCoverageVerification')
 }

@@ -28,7 +28,7 @@ spring:
             client-id: ${DEV_GOOGLE_CLIENT_ID}
             client-secret: ${DEV_GOOGLE_CLIENT_SECRET}
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
-            scope: [profile, email]
+            scope: [ profile, email ]
           kakao:
             client-id: ${DEV_KAKAO_CLIENT_ID}
             client-secret: ${DEV_KAKAO_CLIENT_SECRET}
@@ -55,3 +55,8 @@ jwt:
   secret: ${DEV_JWT_SECRET}
   access-exp: ${DEV_JWT_ACCESS_EXP}
   refresh-exp: ${DEV_JWT_REFRESH_EXP}
+
+gemini:
+  api:
+    key: ${GEMINI_API_KEY}
+    url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent
