@@ -96,4 +96,6 @@ nts:
     key: ${NTS_API_KEY}
 
 gemini:
-  api-key: ${GEMINI_API_KEY}
+  api:
+    key: ${GEMINI_API_KEY}
+    url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent
