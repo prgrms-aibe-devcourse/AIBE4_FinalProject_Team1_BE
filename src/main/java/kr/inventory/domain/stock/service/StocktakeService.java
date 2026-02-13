@@ -24,7 +24,10 @@ public class StocktakeService {
     private final IngredientRepository ingredientRepository;
 
     public Long inputStocktake(Long ingredientId, BigDecimal stocktakeQty){
-        Stocktake draft = Stocktake.createDraft(ingredientId, stocktakeQty);
+        Ingredient ingredient = ingredientRepository.findById(ingredientId)
+                .orElseThrow(() -> new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND));
+
+        Stocktake draft = Stocktake.createDraft(ingredient, stocktakeQty);
         return stocktakeRepository.save(draft).getStocktakeId();
     }
 
@@ -32,7 +35,9 @@ public class StocktakeService {
         Stocktake stocktake = stocktakeRepository.findById(stocktakeId)
                 .orElseThrow(() -> new StockException(StockErrorCode.DRAFT_STOCK_TAKE_NOT_FOUND));
 
-        List<IngredientStockBatch> batches = ingredientStockBatchRepository.findAllForAdjustmentWithLock(stocktake.getIngredientId());
+        Ingredient ingredient = stocktake.getIngredient();
+
+        List<IngredientStockBatch> batches = ingredientStockBatchRepository.findAllForAdjustmentWithLock(ingredient.getIngredientId());
 
         BigDecimal theoreticalQty = batches.stream()
                 .map(IngredientStockBatch::getRemainingQuantity)
@@ -42,10 +47,10 @@ public class StocktakeService {
 
         stocktake.confirm(theoreticalQty, varianceQty);
 
-        applyRedistribution(batches, stocktake.getStocktakeQty(), stocktake.getIngredientId());
+        applyRedistribution(batches, stocktake.getStocktakeQty(), ingredient);
     }
 
-    private void applyRedistribution(List<IngredientStockBatch> batches, BigDecimal stocktakeQty, Long ingredientId){
+    private void applyRedistribution(List<IngredientStockBatch> batches, BigDecimal stocktakeQty, Ingredient ingredient){
         BigDecimal remainingToDistribute = stocktakeQty;
 
         for(IngredientStockBatch batch : batches){
@@ -60,14 +65,11 @@ public class StocktakeService {
         }
 
         if(remainingToDistribute.signum() > 0){
-            createAdjustmentBatch(ingredientId, remainingToDistribute);
+            createAdjustmentBatch(ingredient, remainingToDistribute);
         }
     }
 
-    private void createAdjustmentBatch(Long ingredientId, BigDecimal amount) {
-        Ingredient ingredient = ingredientRepository.findById(ingredientId)
-                .orElseThrow(() -> new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND));
-
+    private void createAdjustmentBatch(Ingredient ingredient, BigDecimal amount) {
         BigDecimal adjustmentUnitCost = ingredientStockBatchRepository
                 .findFirstByIngredientOrderByCreatedAtDesc(ingredient)
                 .map(IngredientStockBatch::getUnitCost)

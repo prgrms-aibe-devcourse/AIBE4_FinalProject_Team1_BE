@@ -1,6 +1,7 @@
 package kr.inventory.domain.stock.entity;
 
 import jakarta.persistence.*;
+import kr.inventory.domain.catalog.entity.Ingredient;
 import kr.inventory.domain.common.AuditableEntity;
 import kr.inventory.domain.stock.entity.enums.StocktakeStatus;
 import lombok.Getter;
@@ -18,8 +19,9 @@ public class Stocktake extends AuditableEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long stocktakeId;
 
-    @Column(nullable = false)
-    private Long ingredientId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "ingredient_id", nullable = false)
+    private Ingredient ingredient;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -36,9 +38,9 @@ public class Stocktake extends AuditableEntity {
 
     private OffsetDateTime confirmedAt;
 
-    public static Stocktake createDraft(Long ingredientId, BigDecimal qty){
+    public static Stocktake createDraft(Ingredient ingredient, BigDecimal qty){
         Stocktake stocktake = new Stocktake();
-        stocktake.ingredientId = ingredientId;
+        stocktake.ingredient = ingredient;
         stocktake.stocktakeQty = qty;
         stocktake.status = StocktakeStatus.DRAFT;
         return stocktake;
