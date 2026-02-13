@@ -55,15 +55,21 @@ public class Document extends AuditableEntity {
             Store store,
             DocumentType docType,
             String fileName,
+            String contentType,
             User uploadedByUser
     ) {
         Document document = new Document();
         document.store = store;
         document.docType = docType;
         document.fileName = fileName;
+        document.contentType = contentType;
         document.uploadedByUser = uploadedByUser;
         document.status = DocumentStatus.UPLOADED;
         document.uploadedAt = OffsetDateTime.now(ZoneOffset.UTC);
         return document;
+    }
+
+    public void updateStatus(DocumentStatus status) {
+        this.status = status;
     }
 }
