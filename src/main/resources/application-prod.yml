@@ -23,8 +23,8 @@ logging:
     org.hibernate.SQL: WARN
 
 cors:
-  allowed-origins: >
-    http://localhost:5173,
-    http://localhost:3000,
-    https://inventorykitchen.cloud,
-    https://www.inventorykitchen.cloud
+  allowed-origins:
+    - http://localhost:5173
+    - http://localhost:3000
+    - https://inventorykitchen.cloud
+    - https://www.inventorykitchen.cloud
