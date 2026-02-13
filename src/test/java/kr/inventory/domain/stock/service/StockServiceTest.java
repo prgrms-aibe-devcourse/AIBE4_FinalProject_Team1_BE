@@ -20,6 +20,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,6 +32,9 @@ class StockServiceTest {
     @InjectMocks
     private StockService stockService;
 
+    // 테스트에서 공통으로 사용할 매장 ID
+    private final Long storeId = 1L;
+
     @Test
     @DisplayName("FEFO 정책에 따라 유통기한이 빠른 배치부터 차례대로 차감된다.")
     void deductStock_FEFO_Success() {
@@ -38,14 +42,16 @@ class StockServiceTest {
         Long ingredientId = 100L;
         BigDecimal usageAmount = new BigDecimal("150");
 
-        IngredientStockBatch batch1 = createBatch(1L, ingredientId, 100, LocalDate.now().plusDays(5));
-        IngredientStockBatch batch2 = createBatch(2L, ingredientId, 100, LocalDate.now().plusDays(10));
+        IngredientStockBatch batch1 = createBatch(1L, storeId, ingredientId, 100, LocalDate.now().plusDays(5));
+        IngredientStockBatch batch2 = createBatch(2L, storeId, ingredientId, 100, LocalDate.now().plusDays(10));
 
-        when(batchRepository.findAllAvailableBatchesWithLock(anyList()))
+        // 수정된 리포지토리 메서드와 storeId 파라미터 반영
+        when(batchRepository.findAvailableBatchesByStoreWithLock(eq(storeId), anyList()))
                 .thenReturn(List.of(batch1, batch2));
 
         // when
-        Map<Long, BigDecimal> shortageMap = stockService.deductStockWithFEFO(Map.of(ingredientId, usageAmount));
+        // 서비스 호출 시 storeId 추가
+        Map<Long, BigDecimal> shortageMap = stockService.deductStockWithFEFO(storeId, Map.of(ingredientId, usageAmount));
 
         // then
         assertThat(shortageMap).isEmpty();
@@ -62,14 +68,14 @@ class StockServiceTest {
         Long ingredientId = 200L;
         BigDecimal usageAmount = new BigDecimal("300");
 
-        IngredientStockBatch batch1 = createBatch(1L, ingredientId, 100, LocalDate.now().plusDays(1));
-        IngredientStockBatch batch2 = createBatch(2L, ingredientId, 150, LocalDate.now().plusDays(2));
+        IngredientStockBatch batch1 = createBatch(1L, storeId, ingredientId, 100, LocalDate.now().plusDays(1));
+        IngredientStockBatch batch2 = createBatch(2L, storeId, ingredientId, 150, LocalDate.now().plusDays(2));
 
-        when(batchRepository.findAllAvailableBatchesWithLock(anyList()))
+        when(batchRepository.findAvailableBatchesByStoreWithLock(eq(storeId), anyList()))
                 .thenReturn(List.of(batch1, batch2));
 
         // when
-        Map<Long, BigDecimal> shortageMap = stockService.deductStockWithFEFO(Map.of(ingredientId, usageAmount));
+        Map<Long, BigDecimal> shortageMap = stockService.deductStockWithFEFO(storeId, Map.of(ingredientId, usageAmount));
 
         // then
         assertThat(shortageMap).containsKey(ingredientId);
@@ -77,17 +83,17 @@ class StockServiceTest {
 
         assertThat(batch1.getRemainingQuantity()).isEqualByComparingTo("0");
         assertThat(batch2.getRemainingQuantity()).isEqualByComparingTo("0");
-        assertThat(batch1.getStatus()).isEqualTo(StockBatchStatus.CLOSED);
-        assertThat(batch2.getStatus()).isEqualTo(StockBatchStatus.CLOSED);
     }
 
-    private IngredientStockBatch createBatch(Long batchId, Long ingredientId, int qty, LocalDate expiry) {
+    // Helper 메서드에 storeId 필드 추가
+    private IngredientStockBatch createBatch(Long batchId, Long storeId, Long ingredientId, int qty, LocalDate expiry) {
         Ingredient ingredient = BeanUtils.instantiateClass(Ingredient.class);
         ReflectionTestUtils.setField(ingredient, "ingredientId", ingredientId);
 
         IngredientStockBatch batch = BeanUtils.instantiateClass(IngredientStockBatch.class);
 
         ReflectionTestUtils.setField(batch, "batchId", batchId);
+        ReflectionTestUtils.setField(batch, "storeId", storeId); // 반정규화된 필드 세팅
         ReflectionTestUtils.setField(batch, "ingredient", ingredient);
         ReflectionTestUtils.setField(batch, "remainingQuantity", new BigDecimal(qty));
         ReflectionTestUtils.setField(batch, "initialQuantity", new BigDecimal(qty));

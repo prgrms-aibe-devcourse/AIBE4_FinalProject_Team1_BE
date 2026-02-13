@@ -21,6 +21,9 @@ public class IngredientStockBatch extends AuditableEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long batchId;
 
+    @Column(nullable = false)
+    private Long storeId;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ingredient_id", nullable = false)
     private Ingredient ingredient;
@@ -51,6 +54,7 @@ public class IngredientStockBatch extends AuditableEntity {
     ) {
         IngredientStockBatch batch = new IngredientStockBatch();
         batch.ingredient = ingredient;
+        batch.storeId = ingredient.getStore().getStoreId();
         batch.inboundItem = inboundItem;
         batch.initialQuantity = initialQuantity;
         batch.remainingQuantity = initialQuantity;

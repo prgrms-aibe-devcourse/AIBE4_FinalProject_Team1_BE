@@ -26,6 +26,8 @@ public class StockManagerFacade {
         SalesOrder salesOrder = salesOrderRepository.findById(request.salesOrderId())
                 .orElseThrow(() -> new SalesException(SalesErrorCode.SALES_ORDER_NOT_FOUND));
 
+        Long storeId = salesOrder.getStore().getStoreId();
+
         if (salesOrder.isStockProcessed()) {
             log.info("이미 재고가 차감된 주문입니다. 주문 ID: {}", request.salesOrderId());
             return;
@@ -33,7 +35,7 @@ public class StockManagerFacade {
 
         Map<Long, BigDecimal> usageMap = theoreticalUsageService.calculateOrderUsage(salesOrder);
 
-        Map<Long, BigDecimal> shortageMap = stockService.deductStockWithFEFO(usageMap);
+        Map<Long, BigDecimal> shortageMap = stockService.deductStockWithFEFO(storeId, usageMap);
 
         if(!shortageMap.isEmpty()){
             handleStockShortage(salesOrder.getSalesOrderId(), shortageMap);

@@ -6,7 +6,7 @@ import java.util.Collection;
 import java.util.List;
 
 public interface IngredientStockBatchRepositoryCustom {
-    List<IngredientStockBatch> findAllAvailableBatchesWithLock(Collection<Long> ingredientIds);
+    List<IngredientStockBatch> findAvailableBatchesByStoreWithLock(Long storeId, Collection<Long> ingredientIds);
 
     List<IngredientStockBatch> findAllForAdjustmentWithLock(Long ingredientId);
 }

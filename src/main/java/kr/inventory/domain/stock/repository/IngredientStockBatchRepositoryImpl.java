@@ -19,8 +19,8 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public List<IngredientStockBatch> findAllAvailableBatchesWithLock(Collection<Long> ingredientIds) {
-        if (ingredientIds == null || ingredientIds.isEmpty()) {
+    public List<IngredientStockBatch> findAvailableBatchesByStoreWithLock(Long storeId, Collection<Long> ingredientIds) {
+        if (storeId == null || ingredientIds == null || ingredientIds.isEmpty()) {
             return Collections.emptyList();
         }
 
@@ -28,6 +28,7 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
                 .selectFrom(ingredientStockBatch)
                 .join(ingredientStockBatch.ingredient).fetchJoin()
                 .where(
+                        ingredientStockBatch.storeId.eq(storeId),
                         ingredientStockBatch.ingredient.ingredientId.in(ingredientIds),
                         ingredientStockBatch.status.eq(StockBatchStatus.OPEN),
                         ingredientStockBatch.remainingQuantity.gt(BigDecimal.ZERO)
