@@ -2,20 +2,26 @@ package kr.inventory.domain.stock.service;
 
 import jakarta.transaction.Transactional;
 import kr.inventory.domain.catalog.entity.Ingredient;
+import kr.inventory.domain.catalog.exception.IngredientErrorCode;
+import kr.inventory.domain.catalog.exception.IngredientException;
 import kr.inventory.domain.catalog.repository.IngredientRepository;
 import kr.inventory.domain.stock.controller.dto.StocktakeDto;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.Stocktake;
+import kr.inventory.domain.stock.entity.StocktakeSheet;
+import kr.inventory.domain.stock.entity.enums.StocktakeStatus;
 import kr.inventory.domain.stock.exception.StockErrorCode;
 import kr.inventory.domain.stock.exception.StockException;
 import kr.inventory.domain.stock.repository.IngredientStockBatchRepository;
 import kr.inventory.domain.stock.repository.StocktakeRepository;
+import kr.inventory.domain.stock.repository.StocktakeSheetRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -25,35 +31,47 @@ public class StocktakeService {
     private final StocktakeRepository stocktakeRepository;
     private final IngredientStockBatchRepository ingredientStockBatchRepository;
     private final IngredientRepository ingredientRepository;
+    private final StocktakeSheetRepository stocktakeSheetRepository;
 
-    @Transactional
-    public List<Long> inputStocktakeList(List<StocktakeDto.ItemRequest> requests){
-        List<Long> ingredientIds = requests.stream()
-                .map(StocktakeDto.ItemRequest::ingredientId)
-                .toList();
+    public Long createStocktakeSheet(StocktakeDto.CreateRequest request){
+        StocktakeSheet sheet = StocktakeSheet.create(request.title());
+        stocktakeSheetRepository.save(sheet);
 
-        List<Ingredient> ingredients = ingredientRepository.findAllById(ingredientIds);
+        List<Long> ingredientIds = request.items().stream().map(StocktakeDto.ItemRequest::ingredientId).toList();
+        Map<Long, Ingredient> ingredientMap = ingredientRepository.findAllById(ingredientIds).stream().collect(Collectors.toMap(Ingredient::getIngredientId, Function.identity()));
 
-        Map<Long, Ingredient> ingredientMap = ingredients.stream()
-                .collect(Collectors.toMap(Ingredient::getIngredientId, Function.identity()));
-
-        List<Stocktake> drafts = requests.stream()
-                .map(req ->{
-                    Ingredient ingredient = ingredientMap.get(req.ingredientId());
-                    return Stocktake.createDraft(ingredient, req.stocktakeQty());
+        List<Stocktake> items = request.items().stream()
+                .map(req -> {
+                    Ingredient ingredient = Optional.ofNullable(ingredientMap.get(req.ingredientId()))
+                            .orElseThrow(() -> new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND));
+                    return Stocktake.createDraft(sheet, ingredient, req.stocktakeQty());
                 })
                 .toList();
 
-        return stocktakeRepository.saveAll(drafts).stream()
-                .map(Stocktake::getStocktakeId)
-                .toList();
+        stocktakeRepository.saveAll(items);
+        return sheet.getSheetId();
     }
 
-    public void confirmStocktake(Long stocktakeId){
-        Stocktake stocktake = stocktakeRepository.findById(stocktakeId)
-                .orElseThrow(() -> new StockException(StockErrorCode.DRAFT_STOCK_TAKE_NOT_FOUND));
+    @Transactional
+    public void confirmSheet(Long sheetId) {
+        StocktakeSheet sheet = stocktakeSheetRepository.findById(sheetId)
+                .orElseThrow(() -> new StockException(StockErrorCode.SHEET_NOT_FOUND));
 
-        Ingredient ingredient = stocktake.getIngredient();
+        if (sheet.getStatus() == StocktakeStatus.CONFIRMED) {
+            throw new StockException(StockErrorCode.ALREADY_CONFIRMED);
+        }
+
+        List<Stocktake> items = stocktakeRepository.findBySheet(sheet);
+
+        for (Stocktake item : items) {
+            confirmIndividualItem(item);
+        }
+
+        sheet.confirm();
+    }
+
+    private void confirmIndividualItem(Stocktake item) {
+        Ingredient ingredient = item.getIngredient();
 
         List<IngredientStockBatch> batches = ingredientStockBatchRepository.findAllForAdjustmentWithLock(ingredient.getIngredientId());
 
@@ -61,11 +79,11 @@ public class StocktakeService {
                 .map(IngredientStockBatch::getRemainingQuantity)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal varianceQty = stocktake.getStocktakeQty().subtract(theoreticalQty);
+        BigDecimal varianceQty = item.getStocktakeQty().subtract(theoreticalQty);
 
-        stocktake.confirm(theoreticalQty, varianceQty);
+        item.updateQuantities(theoreticalQty, varianceQty);
 
-        applyRedistribution(batches, stocktake.getStocktakeQty(), ingredient);
+        applyRedistribution(batches, item.getStocktakeQty(), ingredient);
     }
 
     private void applyRedistribution(List<IngredientStockBatch> batches, BigDecimal stocktakeQty, Ingredient ingredient){
