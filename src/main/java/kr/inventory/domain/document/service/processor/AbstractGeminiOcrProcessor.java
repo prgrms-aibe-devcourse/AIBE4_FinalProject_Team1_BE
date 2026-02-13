@@ -3,7 +3,7 @@ package kr.inventory.domain.document.service.processor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import kr.inventory.domain.document.controller.dto.ocr.RawReceiptData;
-import kr.inventory.domain.document.controller.dto.ocr.ReceiptRequest;
+import kr.inventory.domain.document.controller.dto.ocr.ReceiptResponse;
 import kr.inventory.domain.document.exception.OcrException;
 import kr.inventory.domain.document.service.GeminiService;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,7 @@ public abstract class AbstractGeminiOcrProcessor implements OcrProcessor {
 	private final OcrPromptProvider ocrPromptProvider;
 
 	@Override
-	public ReceiptRequest process(MultipartFile file) {
+	public ReceiptResponse process(MultipartFile file) {
 		long start = System.currentTimeMillis();
 		long apiStart = System.currentTimeMillis();
 		log.info("Processing {} with Gemini: {}", file.getContentType(), file.getOriginalFilename());
@@ -47,19 +47,19 @@ public abstract class AbstractGeminiOcrProcessor implements OcrProcessor {
 			return convertToValidatedReceiptData(raw);
 		} catch (OcrException e) {
 			log.error("OCR Exception for file {}: {}", file.getOriginalFilename(), e.getErrorModel().getMessage());
-			return ReceiptRequest.empty("데이터를 불러오는 중 오류가 발생했습니다.");
+			return ReceiptResponse.empty("데이터를 불러오는 중 오류가 발생했습니다.");
 		} catch (Exception e) {
 			log.error("Unexpected error for file {}: {}", file.getOriginalFilename(), e.getMessage());
-			return ReceiptRequest.empty("데이터를 불러오는 중 오류가 발생했습니다.");
+			return ReceiptResponse.empty("데이터를 불러오는 중 오류가 발생했습니다.");
 		}
 	}
 
-	private ReceiptRequest convertToValidatedReceiptData(RawReceiptData raw) {
-		List<ReceiptRequest.Item> validatedItems = raw.items().stream()
+	private ReceiptResponse convertToValidatedReceiptData(RawReceiptData raw) {
+		List<ReceiptResponse.Item> validatedItems = raw.items().stream()
 			.map(this::mapToItem)
 			.toList();
 
-		return new ReceiptRequest(
+		return new ReceiptResponse(
 			OcrValidator.validate(raw.vendorName(), "공급처"),
 			OcrValidator.validate(raw.date(), "날짜"),
 			OcrValidator.validate(raw.amount(), "총액"),
@@ -67,19 +67,19 @@ public abstract class AbstractGeminiOcrProcessor implements OcrProcessor {
 		);
 	}
 
-	private ReceiptRequest.Item mapToItem(RawReceiptData.RawItem item) {
-		ReceiptRequest.Field<String> name = OcrValidator.validate(item.name(), "상품명");
-		ReceiptRequest.Field<String> qty = OcrValidator.validate(item.quantity(), "수량");
-		ReceiptRequest.Field<String> cost = OcrValidator.validate(item.costPrice(), "단가");
-		ReceiptRequest.Field<String> rawTotal = OcrValidator.validate(item.totalPrice(), "총액");
+	private ReceiptResponse.Item mapToItem(RawReceiptData.RawItem item) {
+		ReceiptResponse.Field<String> name = OcrValidator.validate(item.name(), "상품명");
+		ReceiptResponse.Field<String> qty = OcrValidator.validate(item.quantity(), "수량");
+		ReceiptResponse.Field<String> cost = OcrValidator.validate(item.costPrice(), "단가");
+		ReceiptResponse.Field<String> rawTotal = OcrValidator.validate(item.totalPrice(), "총액");
 
-		ReceiptRequest.Field<String> validatedTotal = OcrValidator.validateTotal(
+		ReceiptResponse.Field<String> validatedTotal = OcrValidator.validateTotal(
 			qty.value(),
 			cost.value(),
 			rawTotal.value()
 		);
 
-		return new ReceiptRequest.Item(
+		return new ReceiptResponse.Item(
 			name,
 			qty,
 			OcrValidator.validateCapacity(item.rawCapacity()),
