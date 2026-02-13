@@ -32,7 +32,6 @@ class StockServiceTest {
     @InjectMocks
     private StockService stockService;
 
-    // 테스트에서 공통으로 사용할 매장 ID
     private final Long storeId = 1L;
 
     @Test
@@ -45,12 +44,10 @@ class StockServiceTest {
         IngredientStockBatch batch1 = createBatch(1L, storeId, ingredientId, 100, LocalDate.now().plusDays(5));
         IngredientStockBatch batch2 = createBatch(2L, storeId, ingredientId, 100, LocalDate.now().plusDays(10));
 
-        // 수정된 리포지토리 메서드와 storeId 파라미터 반영
         when(batchRepository.findAvailableBatchesByStoreWithLock(eq(storeId), anyList()))
                 .thenReturn(List.of(batch1, batch2));
 
         // when
-        // 서비스 호출 시 storeId 추가
         Map<Long, BigDecimal> shortageMap = stockService.deductStockWithFEFO(storeId, Map.of(ingredientId, usageAmount));
 
         // then

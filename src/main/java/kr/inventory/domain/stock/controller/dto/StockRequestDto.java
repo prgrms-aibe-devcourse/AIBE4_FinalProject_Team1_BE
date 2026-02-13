@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotNull;
 
 public class StockRequestDto {
     public record OrderDeductionRequest(
+            @NotNull Long storeId,
             @NotNull Long salesOrderId
     ) {}
 

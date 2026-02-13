@@ -5,6 +5,7 @@ import kr.inventory.domain.sales.exception.SalesErrorCode;
 import kr.inventory.domain.sales.exception.SalesException;
 import kr.inventory.domain.sales.repository.SalesOrderRepository;
 import kr.inventory.domain.stock.controller.dto.StockRequestDto;
+import kr.inventory.domain.store.service.StoreAccessValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -20,13 +22,14 @@ public class StockManagerFacade {
     private final TheoreticalUsageService theoreticalUsageService;
     private final SalesOrderRepository salesOrderRepository;
     private final StockService stockService;
+    private final StoreAccessValidator storeAccessValidator;
 
     @Transactional
-    public void processOrderStockDeduction(StockRequestDto.OrderDeductionRequest request) {
-        SalesOrder salesOrder = salesOrderRepository.findById(request.salesOrderId())
-                .orElseThrow(() -> new SalesException(SalesErrorCode.SALES_ORDER_NOT_FOUND));
+    public void processOrderStockDeduction(Long userId, UUID storePublicId, StockRequestDto.OrderDeductionRequest request) {
+        Long internalStoreId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
-        Long storeId = salesOrder.getStore().getStoreId();
+        SalesOrder salesOrder = salesOrderRepository.findByIdAndStoreStoreId(request.salesOrderId(), internalStoreId)
+                .orElseThrow(() -> new SalesException(SalesErrorCode.SALES_ORDER_NOT_FOUND));
 
         if (salesOrder.isStockProcessed()) {
             log.info("이미 재고가 차감된 주문입니다. 주문 ID: {}", request.salesOrderId());
@@ -35,7 +38,7 @@ public class StockManagerFacade {
 
         Map<Long, BigDecimal> usageMap = theoreticalUsageService.calculateOrderUsage(salesOrder);
 
-        Map<Long, BigDecimal> shortageMap = stockService.deductStockWithFEFO(storeId, usageMap);
+        Map<Long, BigDecimal> shortageMap = stockService.deductStockWithFEFO(internalStoreId, usageMap);
 
         if(!shortageMap.isEmpty()){
             handleStockShortage(salesOrder.getSalesOrderId(), shortageMap);
