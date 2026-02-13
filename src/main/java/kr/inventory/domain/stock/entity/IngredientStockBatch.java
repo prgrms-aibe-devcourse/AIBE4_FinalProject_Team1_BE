@@ -83,4 +83,20 @@ public class IngredientStockBatch extends AuditableEntity {
         this.remainingQuantity = newAmount;
         this.status = (newAmount.signum() <= 0) ? StockBatchStatus.CLOSED : StockBatchStatus.OPEN;
     }
+
+    public static IngredientStockBatch createAdjustment(
+            Ingredient ingredient,
+            BigDecimal quantity,
+            BigDecimal unitCost
+    ){
+        IngredientStockBatch batch = new IngredientStockBatch();
+        batch.ingredient = ingredient;
+        batch.inboundItem = null;
+        batch.initialQuantity = quantity;
+        batch.remainingQuantity = quantity;
+        batch.unitCost = unitCost;
+        batch.expirationDate = null;
+        batch.status = StockBatchStatus.OPEN;
+        return batch;
+    }
 }

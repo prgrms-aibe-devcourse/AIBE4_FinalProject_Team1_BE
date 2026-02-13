@@ -1,5 +1,9 @@
 package kr.inventory.domain.stock.service;
 
+import kr.inventory.domain.catalog.entity.Ingredient;
+import kr.inventory.domain.catalog.exception.IngredientErrorCode;
+import kr.inventory.domain.catalog.exception.IngredientException;
+import kr.inventory.domain.catalog.repository.IngredientRepository;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.Stocktake;
 import kr.inventory.domain.stock.exception.StockErrorCode;
@@ -17,6 +21,7 @@ import java.util.List;
 public class StocktakeService {
     private final StocktakeRepository stocktakeRepository;
     private final IngredientStockBatchRepository ingredientStockBatchRepository;
+    private final IngredientRepository ingredientRepository;
 
     public Long inputStocktake(Long ingredientId, BigDecimal stocktakeQty){
         Stocktake draft = Stocktake.createDraft(ingredientId, stocktakeQty);
@@ -60,6 +65,20 @@ public class StocktakeService {
     }
 
     private void createAdjustmentBatch(Long ingredientId, BigDecimal amount) {
-        // TODO: 기존 배치를 넘어서 배치가 생성되어야 하는 경우 레코드 추가..
+        Ingredient ingredient = ingredientRepository.findById(ingredientId)
+                .orElseThrow(() -> new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND));
+
+        BigDecimal adjustmentUnitCost = ingredientStockBatchRepository
+                .findFirstByIngredientOrderByCreatedAtDesc(ingredient)
+                .map(IngredientStockBatch::getUnitCost)
+                .orElse(BigDecimal.ZERO);
+
+        IngredientStockBatch adjustmentBatch = IngredientStockBatch.createAdjustment(
+                ingredient,
+                amount,
+                adjustmentUnitCost
+        );
+
+        ingredientStockBatchRepository.save(adjustmentBatch);
     }
 }
