@@ -3,7 +3,7 @@ package kr.inventory.domain.document.controller.dto.ocr;
 import java.util.Collections;
 import java.util.List;
 
-public record ReceiptData(
+public record ReceiptResponse(
 	Field<String> vendorName,
 	Field<String> date,
 	Field<String> amount,
@@ -33,8 +33,8 @@ public record ReceiptData(
 		}
 	}
 
-	public static ReceiptData empty(String msg) {
+	public static ReceiptResponse empty(String msg) {
 		Field<String> errorField = Field.fail(msg);
-		return new ReceiptData(errorField, errorField, errorField, Collections.emptyList());
+		return new ReceiptResponse(errorField, errorField, errorField, Collections.emptyList());
 	}
 }
