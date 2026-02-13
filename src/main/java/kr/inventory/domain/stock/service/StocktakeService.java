@@ -1,9 +1,9 @@
 package kr.inventory.domain.stock.service;
 
+import jakarta.transaction.Transactional;
 import kr.inventory.domain.catalog.entity.Ingredient;
-import kr.inventory.domain.catalog.exception.IngredientErrorCode;
-import kr.inventory.domain.catalog.exception.IngredientException;
 import kr.inventory.domain.catalog.repository.IngredientRepository;
+import kr.inventory.domain.stock.controller.dto.StocktakeDto;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.Stocktake;
 import kr.inventory.domain.stock.exception.StockErrorCode;
@@ -15,6 +15,9 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -23,12 +26,27 @@ public class StocktakeService {
     private final IngredientStockBatchRepository ingredientStockBatchRepository;
     private final IngredientRepository ingredientRepository;
 
-    public Long inputStocktake(Long ingredientId, BigDecimal stocktakeQty){
-        Ingredient ingredient = ingredientRepository.findById(ingredientId)
-                .orElseThrow(() -> new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND));
+    @Transactional
+    public List<Long> inputStocktakeList(List<StocktakeDto.ItemRequest> requests){
+        List<Long> ingredientIds = requests.stream()
+                .map(StocktakeDto.ItemRequest::ingredientId)
+                .toList();
 
-        Stocktake draft = Stocktake.createDraft(ingredient, stocktakeQty);
-        return stocktakeRepository.save(draft).getStocktakeId();
+        List<Ingredient> ingredients = ingredientRepository.findAllById(ingredientIds);
+
+        Map<Long, Ingredient> ingredientMap = ingredients.stream()
+                .collect(Collectors.toMap(Ingredient::getIngredientId, Function.identity()));
+
+        List<Stocktake> drafts = requests.stream()
+                .map(req ->{
+                    Ingredient ingredient = ingredientMap.get(req.ingredientId());
+                    return Stocktake.createDraft(ingredient, req.stocktakeQty());
+                })
+                .toList();
+
+        return stocktakeRepository.saveAll(drafts).stream()
+                .map(Stocktake::getStocktakeId)
+                .toList();
     }
 
     public void confirmStocktake(Long stocktakeId){
