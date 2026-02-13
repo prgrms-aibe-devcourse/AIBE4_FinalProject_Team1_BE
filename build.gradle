@@ -28,6 +28,9 @@ dependencies {
     // Web
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
+    // AOP
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+
     // 모니터링 - Prometheus/Grafana는 이후에 붙일 예정
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
@@ -73,6 +76,11 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt-api:0.13.0'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
+
+    // AWS S3 SDK v2 (IAM Role 기반 인증)
+    implementation platform('software.amazon.awssdk:bom:2.25.11')
+    implementation 'software.amazon.awssdk:s3'
+    implementation 'software.amazon.awssdk:sts'
 
     // Env
     implementation 'me.paulschwarz:springboot3-dotenv:5.1.0'
