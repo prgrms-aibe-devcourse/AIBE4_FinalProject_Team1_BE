@@ -1,8 +1,7 @@
 package kr.inventory.domain.document.service;
 
 import kr.inventory.domain.document.controller.dto.ocr.OcrResultResponse;
-import kr.inventory.domain.document.controller.dto.ocr.ReceiptData;
-import kr.inventory.domain.document.repository.DocumentRepository;
+import kr.inventory.domain.document.controller.dto.ocr.ReceiptResponse;
 import kr.inventory.domain.document.service.processor.OcrProcessor;
 import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.repository.StoreRepository;
@@ -10,12 +9,14 @@ import kr.inventory.domain.user.entity.User;
 import kr.inventory.domain.user.exception.UserErrorCode;
 import kr.inventory.domain.user.exception.UserException;
 import kr.inventory.domain.user.repository.UserRepository;
-import kr.inventory.global.exception.ErrorModel;
+import kr.inventory.global.config.infrastructure.S3StorageService;
+import kr.inventory.global.config.infrastructure.exception.FileError;
+import kr.inventory.global.config.infrastructure.exception.FileException;
+import kr.inventory.global.util.FileUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
@@ -27,7 +28,8 @@ import java.util.List;
 public class DocumentOcrService {
 
 	private final List<OcrProcessor> processors;
-	private final DocumentRepository documentRepository;
+	private final DocumentService documentService;
+	private final S3StorageService s3StorageService;
 	private final StoreRepository storeRepository;
 	private final UserRepository userRepository;
 
@@ -40,36 +42,34 @@ public class DocumentOcrService {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
-		List<ReceiptData> results = new ArrayList<>();
+		List<ReceiptResponse> results = new ArrayList<>();
 
 		for (MultipartFile file : files) {
 			if (file.isEmpty())
 				continue;
 
-			// TODO: s3 연동 후 저장 기능 구현
-			// // 1. Document 생성 및 저장
-			// Document document = Document.create(
-			// 	store,
-			// 	DocumentType.RECEIPT, // 기본값, 필요 시 로직 추가
-			// 	file.getOriginalFilename(),
-			// 	file.getContentType(),
-			// 	user
-			// );
-			// documentRepository.save(document);
-
-			// 2. OCR 처리
 			OcrProcessor processor = findProcessor(file);
-			ReceiptData data;
-			if (processor != null) {
-				data = processor.process(file);
-				log.info("OCR processing completed for file: {}",
-					file.getOriginalFilename());
-			} else {
+			if (processor == null) {
 				log.warn("지원하지 않는 파일 형식 입니다: {}", file.getOriginalFilename());
-				data = ReceiptData.empty("데이터를 불러오는 중 오류가 발생했습니다.");
+				throw new FileException(FileError.INVALID_FILE_FORMAT);
 			}
 
-			results.add(data);
+			try {
+				ReceiptResponse data = processor.process(file);
+				log.info("OCR processing completed for file: {}",
+					file.getOriginalFilename());
+
+				String filePath = "document/" + FileUtil.buildFileName(file.getOriginalFilename());
+				s3StorageService.upload(file, filePath);
+
+				documentService.saveDocument(store, user, file, filePath);
+
+				results.add(data);
+			} catch (Exception e) {
+				log.error("파일 처리 프로세스 중 오류 발생: {}", file.getOriginalFilename(), e);
+				throw new FileException(FileError.STORAGE_UPLOAD_FAILURE);
+			}
+
 		}
 
 		log.info("All OCR processing completed. Total files processed: {}", results.size());
