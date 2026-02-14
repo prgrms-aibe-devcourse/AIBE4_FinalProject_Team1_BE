@@ -62,27 +62,49 @@ public class StocktakeService {
     @Transactional
     public void confirmSheet(Long userId, UUID storePublicId, Long sheetId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+        StocktakeSheet sheet = getValidSheetForConfirm(sheetId, storeId);
 
+        List<Stocktake> items = stocktakeRepository.findBySheet(sheet);
+        if (items.isEmpty()) return;
+
+        Map<Long, List<IngredientStockBatch>> batchMap = fetchGroupedBatches(storeId, items);
+
+        processStocktakeItems(storeId, items, batchMap);
+
+        sheet.confirm();
+    }
+
+    private StocktakeSheet getValidSheetForConfirm(Long sheetId, Long storeId) {
         StocktakeSheet sheet = stocktakeSheetRepository.findByIdAndStoreId(sheetId, storeId)
                 .orElseThrow(() -> new StockException(StockErrorCode.SHEET_NOT_FOUND));
 
         if (sheet.getStatus() == StocktakeStatus.CONFIRMED) {
             throw new StockException(StockErrorCode.ALREADY_CONFIRMED);
         }
-
-        List<Stocktake> items = stocktakeRepository.findBySheet(sheet);
-
-        for (Stocktake item : items) {
-            confirmIndividualItem(storeId, item);
-        }
-
-        sheet.confirm();
+        return sheet;
     }
 
-    private void confirmIndividualItem(Long storeId, Stocktake item) {
-        Ingredient ingredient = item.getIngredient();
+    private Map<Long, List<IngredientStockBatch>> fetchGroupedBatches(Long storeId, List<Stocktake> items) {
+        List<Long> ingredientIds = items.stream()
+                .map(item -> item.getIngredient().getIngredientId())
+                .toList();
 
-        List<IngredientStockBatch> batches = ingredientStockBatchRepository.findAvailableBatchesByStoreWithLock(storeId, List.of(ingredient.getIngredientId()));
+        return ingredientStockBatchRepository.findAvailableBatchesByStoreWithLock(storeId, ingredientIds)
+                .stream()
+                .collect(Collectors.groupingBy(IngredientStockBatch::getIngredientId));
+    }
+
+    private void processStocktakeItems(Long storeId, List<Stocktake> items, Map<Long, List<IngredientStockBatch>> batchMap) {
+        for (Stocktake item : items) {
+            Long ingredientId = item.getIngredient().getIngredientId();
+            List<IngredientStockBatch> ingredientBatches = batchMap.getOrDefault(ingredientId, List.of());
+
+            confirmIndividualItem(storeId, item, ingredientBatches);
+        }
+    }
+
+    private void confirmIndividualItem(Long storeId, Stocktake item, List<IngredientStockBatch> batches){
+        Ingredient ingredient = item.getIngredient();
 
         BigDecimal theoreticalQty = batches.stream()
                 .map(IngredientStockBatch::getRemainingQuantity)
