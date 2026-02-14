@@ -18,10 +18,10 @@ import java.util.stream.Collectors;
 public class StockService {
     private final IngredientStockBatchRepository ingredientStockBatchRepository;
 
-    public Map<Long, BigDecimal> deductStockWithFEFO(Map<Long, BigDecimal> usageMap){
+    public Map<Long, BigDecimal> deductStockWithFEFO(Long storeId, Map<Long, BigDecimal> usageMap){
         List<Long> sortedIds = getSortedIngredientIds(usageMap);
 
-        Map<Long, List<IngredientStockBatch>> batchGroup = fetchBatchesGroupedById(sortedIds);
+        Map<Long, List<IngredientStockBatch>> batchGroup = fetchBatchesGroupedById(storeId, sortedIds);
 
         Map<Long,BigDecimal> shortageMap = new HashMap<>();
 
@@ -44,8 +44,8 @@ public class StockService {
                 .toList();
     }
 
-    private Map<Long, List<IngredientStockBatch>> fetchBatchesGroupedById(List<Long> ingredientIds) {
-        List<IngredientStockBatch> allBatches = ingredientStockBatchRepository.findAllAvailableBatchesWithLock(ingredientIds);
+    private Map<Long, List<IngredientStockBatch>> fetchBatchesGroupedById(Long storeId, List<Long> ingredientIds) {
+        List<IngredientStockBatch> allBatches = ingredientStockBatchRepository.findAvailableBatchesByStoreWithLock(storeId, ingredientIds);
 
         return allBatches.stream()
                 .collect(Collectors.groupingBy(IngredientStockBatch::getIngredientId));

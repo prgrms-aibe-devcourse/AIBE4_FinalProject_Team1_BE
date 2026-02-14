@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Entity
 @Table(
@@ -51,6 +52,11 @@ public class SalesOrder extends AuditableEntity {
     @Column(nullable = false, length = 20)
     private SalesOrderChannel channel;
 
+    @Column(nullable = false)
+    private boolean stockProcessed = false;
+
+    private OffsetDateTime stockProcessedAt;
+
     public static SalesOrder create(
             Store store,
             String externalOrderId,
@@ -65,5 +71,18 @@ public class SalesOrder extends AuditableEntity {
         order.status = SalesOrderStatus.ORDERED;
         order.totalAmount = BigDecimal.ZERO;
         return order;
+    }
+
+    public void markAsStockProcessed() {
+        if (this.stockProcessed) {
+            return;
+        }
+        this.stockProcessed = true;
+        this.stockProcessedAt = OffsetDateTime.now(ZoneOffset.UTC);
+    }
+
+    public void rollbackStockProcessed() {
+        this.stockProcessed = false;
+        this.stockProcessedAt = null;
     }
 }

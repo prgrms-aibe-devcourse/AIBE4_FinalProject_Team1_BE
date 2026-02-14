@@ -7,6 +7,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Entity
 @Table(name = "stores")
 @Getter
@@ -16,6 +18,9 @@ public class Store extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long storeId;
+
+    @Column(nullable = false, updatable = false)
+    private UUID storePublicId;
 
     @Column(nullable = false, length = 100)
     private String name;
@@ -35,6 +40,7 @@ public class Store extends AuditableEntity {
 
     public static Store create(String name, String businessRegistrationNumber, String address, String phoneNumber) {
         Store store = new Store();
+        store.storePublicId = UUID.randomUUID();
         store.name = name;
         store.businessRegistrationNumber = businessRegistrationNumber;
         store.address = address;
