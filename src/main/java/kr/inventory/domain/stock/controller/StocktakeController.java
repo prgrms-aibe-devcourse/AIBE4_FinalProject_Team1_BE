@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("api/stocktakes/{storePublicId}")
+@RequestMapping("/api/stocktakes/{storePublicId}")
 @RequiredArgsConstructor
 public class StocktakeController {
     private final StocktakeService stocktakeService;

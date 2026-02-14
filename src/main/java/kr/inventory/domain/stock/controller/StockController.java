@@ -2,7 +2,6 @@ package kr.inventory.domain.stock.controller;
 
 import jakarta.validation.Valid;
 import kr.inventory.domain.auth.security.CustomUserDetails;
-import kr.inventory.domain.sales.repository.SalesOrderRepository;
 import kr.inventory.domain.stock.controller.dto.StockRequestDto;
 import kr.inventory.domain.stock.service.StockManagerFacade;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +17,6 @@ import java.util.UUID;
 public class StockController {
 
     private final StockManagerFacade stockManagerFacade;
-    private final SalesOrderRepository salesOrderRepository;
 
     @PostMapping("/{storePublicId}/deduct")
     public ResponseEntity<StockRequestDto.DeductionResponse> deductStock(
