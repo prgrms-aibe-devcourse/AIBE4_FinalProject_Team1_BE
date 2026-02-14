@@ -7,4 +7,5 @@ import java.util.Optional;
 
 public interface StocktakeSheetRepository extends JpaRepository<StocktakeSheet,Long> {
     Optional<StocktakeSheet> findBySheet(StocktakeSheet sheet);
+    Optional<StocktakeSheet> findByIdAndStoreId(Long sheetId, Long storeId);
 }

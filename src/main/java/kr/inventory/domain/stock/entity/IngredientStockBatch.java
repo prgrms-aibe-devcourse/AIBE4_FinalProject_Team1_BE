@@ -89,11 +89,13 @@ public class IngredientStockBatch extends AuditableEntity {
     }
 
     public static IngredientStockBatch createAdjustment(
+            Long storeId,
             Ingredient ingredient,
             BigDecimal quantity,
             BigDecimal unitCost
     ){
         IngredientStockBatch batch = new IngredientStockBatch();
+        batch.storeId = storeId;
         batch.ingredient = ingredient;
         batch.inboundItem = null;
         batch.initialQuantity = quantity;

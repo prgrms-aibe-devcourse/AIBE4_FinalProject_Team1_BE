@@ -15,6 +15,7 @@ import kr.inventory.domain.stock.exception.StockException;
 import kr.inventory.domain.stock.repository.IngredientStockBatchRepository;
 import kr.inventory.domain.stock.repository.StocktakeRepository;
 import kr.inventory.domain.stock.repository.StocktakeSheetRepository;
+import kr.inventory.domain.store.service.StoreAccessValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -32,13 +34,18 @@ public class StocktakeService {
     private final IngredientStockBatchRepository ingredientStockBatchRepository;
     private final IngredientRepository ingredientRepository;
     private final StocktakeSheetRepository stocktakeSheetRepository;
+    private final StoreAccessValidator storeAccessValidator;
 
-    public Long createStocktakeSheet(StocktakeDto.CreateRequest request){
-        StocktakeSheet sheet = StocktakeSheet.create(request.title());
+    @Transactional
+    public Long createStocktakeSheet(Long userId, UUID storePublicId, StocktakeDto.CreateRequest request){
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
+        StocktakeSheet sheet = StocktakeSheet.create(storeId, request.title());
         stocktakeSheetRepository.save(sheet);
 
         List<Long> ingredientIds = request.items().stream().map(StocktakeDto.ItemRequest::ingredientId).toList();
-        Map<Long, Ingredient> ingredientMap = ingredientRepository.findAllById(ingredientIds).stream().collect(Collectors.toMap(Ingredient::getIngredientId, Function.identity()));
+
+        Map<Long, Ingredient> ingredientMap = ingredientRepository.findAllByStoreIdAndIdIn(storeId, ingredientIds).stream().collect(Collectors.toMap(Ingredient::getIngredientId, Function.identity()));
 
         List<Stocktake> items = request.items().stream()
                 .map(req -> {
@@ -53,8 +60,10 @@ public class StocktakeService {
     }
 
     @Transactional
-    public void confirmSheet(Long sheetId) {
-        StocktakeSheet sheet = stocktakeSheetRepository.findById(sheetId)
+    public void confirmSheet(Long userId, UUID storePublicId, Long sheetId) {
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
+        StocktakeSheet sheet = stocktakeSheetRepository.findByIdAndStoreId(sheetId, storeId)
                 .orElseThrow(() -> new StockException(StockErrorCode.SHEET_NOT_FOUND));
 
         if (sheet.getStatus() == StocktakeStatus.CONFIRMED) {
@@ -64,16 +73,16 @@ public class StocktakeService {
         List<Stocktake> items = stocktakeRepository.findBySheet(sheet);
 
         for (Stocktake item : items) {
-            confirmIndividualItem(item);
+            confirmIndividualItem(storeId, item);
         }
 
         sheet.confirm();
     }
 
-    private void confirmIndividualItem(Stocktake item) {
+    private void confirmIndividualItem(Long storeId, Stocktake item) {
         Ingredient ingredient = item.getIngredient();
 
-        List<IngredientStockBatch> batches = ingredientStockBatchRepository.findAllForAdjustmentWithLock(ingredient.getIngredientId());
+        List<IngredientStockBatch> batches = ingredientStockBatchRepository.findAvailableBatchesByStoreWithLock(storeId, List.of(ingredient.getIngredientId()));
 
         BigDecimal theoreticalQty = batches.stream()
                 .map(IngredientStockBatch::getRemainingQuantity)
@@ -83,10 +92,10 @@ public class StocktakeService {
 
         item.updateQuantities(theoreticalQty, varianceQty);
 
-        applyRedistribution(batches, item.getStocktakeQty(), ingredient);
+        applyRedistribution(storeId, batches, item.getStocktakeQty(), ingredient);
     }
 
-    private void applyRedistribution(List<IngredientStockBatch> batches, BigDecimal stocktakeQty, Ingredient ingredient){
+    private void applyRedistribution(Long storeId, List<IngredientStockBatch> batches, BigDecimal stocktakeQty, Ingredient ingredient){
         BigDecimal remainingToDistribute = stocktakeQty;
 
         for(IngredientStockBatch batch : batches){
@@ -101,17 +110,17 @@ public class StocktakeService {
         }
 
         if(remainingToDistribute.signum() > 0){
-            createAdjustmentBatch(ingredient, remainingToDistribute);
+            createAdjustmentBatch(storeId, ingredient, remainingToDistribute);
         }
     }
 
-    private void createAdjustmentBatch(Ingredient ingredient, BigDecimal amount) {
+    private void createAdjustmentBatch(Long storeId, Ingredient ingredient, BigDecimal amount) {
         BigDecimal adjustmentUnitCost = ingredientStockBatchRepository
-                .findFirstByIngredientOrderByCreatedAtDesc(ingredient)
-                .map(IngredientStockBatch::getUnitCost)
+                .findLatestUnitCostByStoreAndIngredient(storeId, ingredient.getIngredientId())
                 .orElse(BigDecimal.ZERO);
 
         IngredientStockBatch adjustmentBatch = IngredientStockBatch.createAdjustment(
+                storeId,
                 ingredient,
                 amount,
                 adjustmentUnitCost

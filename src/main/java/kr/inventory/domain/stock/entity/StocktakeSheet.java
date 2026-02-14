@@ -18,6 +18,9 @@ public class StocktakeSheet extends AuditableEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long sheetId;
 
+    @Column(name = "store_id", nullable = false)
+    private Long storeId;
+
     @Column(nullable = false)
     private String title;
 
@@ -27,8 +30,9 @@ public class StocktakeSheet extends AuditableEntity {
 
     private OffsetDateTime confirmedAt;
 
-    public static StocktakeSheet create(String title) {
+    public static StocktakeSheet create(Long storeId, String title) {
         StocktakeSheet sheet = new StocktakeSheet();
+        sheet.storeId = storeId;
         sheet.title = title;
         sheet.status = StocktakeStatus.DRAFT;
         return sheet;

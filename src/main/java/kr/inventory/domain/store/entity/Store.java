@@ -20,7 +20,7 @@ public class Store extends AuditableEntity {
     private Long storeId;
 
     @Column(nullable = false, updatable = false)
-    private UUID publicId;
+    private UUID storePublicId;
 
     @Column(nullable = false, length = 100)
     private String name;
@@ -40,7 +40,7 @@ public class Store extends AuditableEntity {
 
     public static Store create(String name, String businessRegistrationNumber, String address, String phoneNumber) {
         Store store = new Store();
-        store.publicId = UUID.randomUUID();
+        store.storePublicId = UUID.randomUUID();
         store.name = name;
         store.businessRegistrationNumber = businessRegistrationNumber;
         store.address = address;

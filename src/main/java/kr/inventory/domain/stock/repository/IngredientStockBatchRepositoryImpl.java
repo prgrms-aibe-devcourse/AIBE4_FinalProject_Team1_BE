@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static kr.inventory.domain.stock.entity.QIngredientStockBatch.ingredientStockBatch;
 
@@ -43,17 +44,19 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
     }
 
     @Override
-    public List<IngredientStockBatch> findAllForAdjustmentWithLock(Long ingredientId) {
-        return queryFactory
-                .selectFrom(ingredientStockBatch)
-                .join(ingredientStockBatch.ingredient).fetchJoin()
-                .where(ingredientStockBatch.ingredient.ingredientId.eq(ingredientId))
-                .orderBy(
-                        ingredientStockBatch.expirationDate.desc().nullsFirst(),
-                        ingredientStockBatch.createdAt.desc(),
-                        ingredientStockBatch.batchId.desc()
-                )
-                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
-                .fetch();
+    public Optional<BigDecimal> findLatestUnitCostByStoreAndIngredient(Long storeId, Long ingredientId) {
+        return Optional.ofNullable(
+                queryFactory
+                        .select(ingredientStockBatch.unitCost)
+                        .from(ingredientStockBatch)
+                        .where(
+                                ingredientStockBatch.storeId.eq(storeId),
+                                ingredientStockBatch.ingredient.ingredientId.eq(ingredientId),
+                                ingredientStockBatch.unitCost.isNotNull(),
+                                ingredientStockBatch.unitCost.gt(BigDecimal.ZERO)
+                        )
+                        .orderBy(ingredientStockBatch.createdAt.desc())
+                        .fetchFirst()
+        );
     }
 }

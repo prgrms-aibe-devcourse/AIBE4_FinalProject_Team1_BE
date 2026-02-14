@@ -24,7 +24,7 @@ public class StoreMemberRepositoryImpl implements StoreMemberRepositoryCustom {
                         .join(storeMember.store, store)
                         .where(
                                 storeMember.user.userId.eq(userId),
-                                store.publicId.eq(publicId),
+                                store.storePublicId.eq(publicId),
                                 storeMember.status.eq(StoreMemberStatus.ACTIVE),
                                 store.status.eq(StoreStatus.ACTIVE)
                         )
