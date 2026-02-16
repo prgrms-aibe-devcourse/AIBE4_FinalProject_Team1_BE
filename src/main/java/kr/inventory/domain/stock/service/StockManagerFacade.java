@@ -28,7 +28,7 @@ public class StockManagerFacade {
     public void processOrderStockDeduction(Long userId, UUID storePublicId, StockRequestDto.OrderDeductionRequest request) {
         Long internalStoreId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
-        SalesOrder salesOrder = salesOrderRepository.findByIdAndStoreStoreId(request.salesOrderId(), internalStoreId)
+        SalesOrder salesOrder = salesOrderRepository.findByIdAndStoreStoreIdWithLock(request.salesOrderId(), internalStoreId)
                 .orElseThrow(() -> new SalesException(SalesErrorCode.SALES_ORDER_NOT_FOUND));
 
         if (salesOrder.isStockProcessed()) {
