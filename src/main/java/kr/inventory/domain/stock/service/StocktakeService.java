@@ -65,7 +65,10 @@ public class StocktakeService {
         StocktakeSheet sheet = getValidSheetForConfirm(sheetId, storeId);
 
         List<Stocktake> items = stocktakeRepository.findBySheet(sheet);
-        if (items.isEmpty()) return;
+        if (items.isEmpty()){
+            sheet.confirm();
+            return;
+        }
 
         Map<Long, List<IngredientStockBatch>> batchMap = fetchGroupedBatches(storeId, items);
 
