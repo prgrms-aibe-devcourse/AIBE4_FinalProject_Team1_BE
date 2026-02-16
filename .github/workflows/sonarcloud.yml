@@ -23,11 +23,15 @@ jobs:
       - name: Test (with coverage)
         run: ./gradlew test jacocoTestReport
 
+      - name: Check JaCoCo XML exists
+        run: |
+          ls -al build/reports/jacoco/test || true
+          test -f build/reports/jacoco/test/jacocoTestReport.xml
+
+      - name: Enforce coverage gate (min 60%)
+        run: ./gradlew jacocoTestCoverageVerification
+
       - name: SonarCloud (via Gradle)
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: ./gradlew sonar --info --stacktrace
-
-      - name: Enforce coverage gate (min 60%)
-        if: github.event_name == 'push'
-        run: ./gradlew jacocoTestCoverageVerification

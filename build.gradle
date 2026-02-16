@@ -164,6 +164,10 @@ tasks.named('test') {
     finalizedBy tasks.named('jacocoTestReport')
 }
 
+tasks.named("sonar") {
+    dependsOn(tasks.named("jacocoTestReport"))
+}
+
 jacocoTestReport {
     dependsOn test
 
