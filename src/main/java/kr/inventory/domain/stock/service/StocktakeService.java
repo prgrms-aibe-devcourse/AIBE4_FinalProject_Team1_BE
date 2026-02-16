@@ -78,7 +78,7 @@ public class StocktakeService {
     }
 
     private StocktakeSheet getValidSheetForConfirm(Long sheetId, Long storeId) {
-        StocktakeSheet sheet = stocktakeSheetRepository.findByIdAndStoreId(sheetId, storeId)
+        StocktakeSheet sheet = stocktakeSheetRepository.findByIdAndStoreIdWithLock(sheetId, storeId)
                 .orElseThrow(() -> new StockException(StockErrorCode.SHEET_NOT_FOUND));
 
         if (sheet.getStatus() == StocktakeStatus.CONFIRMED) {

@@ -75,13 +75,11 @@ class StocktakeServiceTest {
         Long sheetId = 1L;
         StocktakeSheet sheet = createSheet(sheetId, storeId);
         Ingredient ingredient = createIngredient(100L);
-        Stocktake stocktakeItem = createStocktakeItem(sheet, ingredient, new BigDecimal("150.0")); // 실제 재고 150
-
-        // 기존 배치: 합계 100
+        Stocktake stocktakeItem = createStocktakeItem(sheet, ingredient, new BigDecimal("150.0"));
         IngredientStockBatch batch = createBatch(storeId, ingredient, new BigDecimal("100.0"));
 
         given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
-        given(sheetRepository.findByIdAndStoreId(sheetId, storeId)).willReturn(Optional.of(sheet));
+        given(sheetRepository.findByIdAndStoreIdWithLock(sheetId, storeId)).willReturn(Optional.of(sheet));
         given(stocktakeRepository.findBySheet(sheet)).willReturn(List.of(stocktakeItem));
         given(batchRepository.findAvailableBatchesByStoreWithLock(eq(storeId), anyList())).willReturn(List.of(batch));
         given(batchRepository.findLatestUnitCostByStoreAndIngredient(storeId, 100L)).willReturn(Optional.of(new BigDecimal("1200")));
@@ -90,8 +88,8 @@ class StocktakeServiceTest {
         stocktakeService.confirmSheet(userId, storePublicId, sheetId);
 
         // then
-        assertThat(batch.getRemainingQuantity()).isEqualByComparingTo("100.0"); // 기존 배치는 꽉 채워짐
-        verify(batchRepository, times(1)).save(any(IngredientStockBatch.class)); // 조정 배치 생성 확인
+        assertThat(batch.getRemainingQuantity()).isEqualByComparingTo("100.0");
+        verify(batchRepository, times(1)).save(any(IngredientStockBatch.class));
         assertThat(sheet.getStatus()).isEqualTo(StocktakeStatus.CONFIRMED);
     }
 
@@ -102,13 +100,11 @@ class StocktakeServiceTest {
         Long sheetId = 1L;
         StocktakeSheet sheet = createSheet(sheetId, storeId);
         Ingredient ingredient = createIngredient(200L);
-        Stocktake stocktakeItem = createStocktakeItem(sheet, ingredient, new BigDecimal("30.0")); // 실제 재고 30
-
-        // 기존 배치: 100개 존재
+        Stocktake stocktakeItem = createStocktakeItem(sheet, ingredient, new BigDecimal("30.0"));
         IngredientStockBatch batch = createBatch(storeId, ingredient, new BigDecimal("100.0"));
 
         given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
-        given(sheetRepository.findByIdAndStoreId(sheetId, storeId)).willReturn(Optional.of(sheet));
+        given(sheetRepository.findByIdAndStoreIdWithLock(sheetId, storeId)).willReturn(Optional.of(sheet));
         given(stocktakeRepository.findBySheet(sheet)).willReturn(List.of(stocktakeItem));
         given(batchRepository.findAvailableBatchesByStoreWithLock(eq(storeId), anyList())).willReturn(List.of(batch));
 
@@ -116,8 +112,8 @@ class StocktakeServiceTest {
         stocktakeService.confirmSheet(userId, storePublicId, sheetId);
 
         // then
-        assertThat(batch.getRemainingQuantity()).isEqualByComparingTo("30.0"); // 100 -> 30으로 조정
-        verify(batchRepository, never()).save(any()); // 추가 배치는 생성되지 않음
+        assertThat(batch.getRemainingQuantity()).isEqualByComparingTo("30.0");
+        verify(batchRepository, never()).save(any());
     }
 
     @Test
@@ -129,7 +125,7 @@ class StocktakeServiceTest {
         sheet.confirm();
 
         given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
-        given(sheetRepository.findByIdAndStoreId(sheetId, storeId)).willReturn(Optional.of(sheet));
+        given(sheetRepository.findByIdAndStoreIdWithLock(sheetId, storeId)).willReturn(Optional.of(sheet));
 
         // when & then
         assertThatThrownBy(() -> stocktakeService.confirmSheet(userId, storePublicId, sheetId))
