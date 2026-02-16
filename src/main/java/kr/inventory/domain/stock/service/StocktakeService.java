@@ -17,6 +17,7 @@ import kr.inventory.domain.stock.repository.StocktakeRepository;
 import kr.inventory.domain.stock.repository.StocktakeSheetRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class StocktakeService {
     private final StocktakeRepository stocktakeRepository;
     private final IngredientStockBatchRepository ingredientStockBatchRepository;
@@ -117,32 +119,42 @@ public class StocktakeService {
 
         item.updateQuantities(theoreticalQty, varianceQty);
 
-        applyRedistribution(storeId, batches, item.getStocktakeQty(), ingredient);
+        adjustStockByVariance(storeId, ingredient, batches, varianceQty);
     }
 
-    private void applyRedistribution(Long storeId, List<IngredientStockBatch> batches, BigDecimal stocktakeQty, Ingredient ingredient){
-        BigDecimal remainingToDistribute = stocktakeQty;
+    private void adjustStockByVariance(Long storeId, Ingredient ingredient, List<IngredientStockBatch> batches, BigDecimal variance) {
+        int compare = variance.signum();
 
-        for(IngredientStockBatch batch : batches){
-            if(remainingToDistribute.signum() <= 0){
-                batch.updateRemaining(BigDecimal.ZERO);
-            } else{
-                BigDecimal fillAmount = remainingToDistribute.min(batch.getInitialQuantity());
-                batch.updateRemaining(fillAmount);
-
-                remainingToDistribute = remainingToDistribute.subtract(fillAmount);
-            }
+        if (compare < 0) {
+            handleStockDeficit(batches, variance.abs());
+        } else if (compare > 0) {
+            createAdjustmentBatch(storeId, ingredient, variance);
         }
+    }
 
-        if(remainingToDistribute.signum() > 0){
-            createAdjustmentBatch(storeId, ingredient, remainingToDistribute);
+    private void handleStockDeficit(List<IngredientStockBatch> batches, BigDecimal deficitAmount) {
+        BigDecimal remainingToDeduct = deficitAmount;
+
+        for (IngredientStockBatch batch : batches) {
+            if (remainingToDeduct.signum() <= 0) break;
+
+            BigDecimal currentRemaining = batch.getRemainingQuantity();
+            BigDecimal deductAmount = currentRemaining.min(remainingToDeduct);
+
+            batch.updateRemaining(currentRemaining.subtract(deductAmount));
+
+            remainingToDeduct = remainingToDeduct.subtract(deductAmount);
         }
     }
 
     private void createAdjustmentBatch(Long storeId, Ingredient ingredient, BigDecimal amount) {
         BigDecimal adjustmentUnitCost = ingredientStockBatchRepository
                 .findLatestUnitCostByStoreAndIngredient(storeId, ingredient.getIngredientId())
-                .orElse(BigDecimal.ZERO);
+                .orElseGet(() -> {
+                    log.warn("재고 조정 중 단가를 찾을 수 없습니다. (식재료: {}, 매장: {}). 단가 0으로 생성됩니다.",
+                            ingredient.getName(), storeId);
+                    return BigDecimal.ZERO;
+                });
 
         IngredientStockBatch adjustmentBatch = IngredientStockBatch.createAdjustment(
                 storeId,
