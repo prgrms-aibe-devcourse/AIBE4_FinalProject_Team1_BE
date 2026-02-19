@@ -58,7 +58,7 @@ class StocktakeServiceTest {
         Ingredient ingredient = createIngredient(100L);
 
         given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
-        given(ingredientRepository.findAllByStoreIdAndIdIn(eq(storeId), anyList())).willReturn(List.of(ingredient));
+        given(ingredientRepository.findAllByStoreStoreIdAndIngredientIdIn(eq(storeId), anyList())).willReturn(List.of(ingredient));
 
         // when
         stocktakeService.createStocktakeSheet(userId, storePublicId, request);
