@@ -1,17 +1,19 @@
 spring:
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: false
 
 logging:
   level:
-    root: DEBUG
+    root: INFO
     kr.inventory: DEBUG
     org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.hibernate.type.descriptor.sql.BasicBinder: OFF
+    org.springframework.boot.autoconfigure: INFO
+    jdk.internal.httpclient: INFO
 
 cors:
   allowed-origins:

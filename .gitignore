@@ -50,3 +50,6 @@ mnt/
 
 # Windows 예약어 파일
 nul
+
+# ssm
+.ssm-logs/
