@@ -34,6 +34,9 @@ dependencies {
     // Web
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
+    // AOP
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+
     // 모니터링 - Prometheus/Grafana
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
@@ -86,6 +89,11 @@ dependencies {
 
     // Env
     implementation 'me.paulschwarz:springboot3-dotenv:5.1.0'
+
+    // AWS S3
+    implementation platform('software.amazon.awssdk:bom:2.25.11')
+    implementation 'software.amazon.awssdk:s3'
+    implementation 'software.amazon.awssdk:sts'
 
     // PDFBox
     implementation 'org.apache.pdfbox:pdfbox:3.0.1'
