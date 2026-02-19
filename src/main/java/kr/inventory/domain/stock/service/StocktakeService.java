@@ -47,7 +47,7 @@ public class StocktakeService {
 
         List<Long> ingredientIds = request.items().stream().map(StocktakeDto.ItemRequest::ingredientId).toList();
 
-        Map<Long, Ingredient> ingredientMap = ingredientRepository.findAllByStoreIdAndIdIn(storeId, ingredientIds).stream().collect(Collectors.toMap(Ingredient::getIngredientId, Function.identity()));
+        Map<Long, Ingredient> ingredientMap = ingredientRepository.findAllByStoreStoreIdAndIngredientIdIn(storeId, ingredientIds).stream().collect(Collectors.toMap(Ingredient::getIngredientId, Function.identity()));
 
         List<Stocktake> items = request.items().stream()
                 .map(req -> {
