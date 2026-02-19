@@ -1,24 +1,101 @@
 spring:
   application:
-    name: finalproject-be
+    name: inventory
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
 
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: true
+      timeout: 3000
+      lettuce:
+        pool:
+          max-active: 5
+          max-idle: 3
+          min-idle: 1
+
+  elasticsearch:
+    uris: ${ES_URL}
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope: [profile, email]
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - profile_nickname
+              - account_email
+            client-name: Kakao
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
 server:
-  port: ${PORT:8080}
   forward-headers-strategy: framework
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health, info, prometheus
   endpoint:
     health:
       probes:
         enabled: true
       show-details: never
+    prometheus:
+      enabled: true
+      health:
+        show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
 
 springdoc:
   swagger-ui:
     url: /v3/api-docs
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-exp: ${JWT_ACCESS_EXP}
+  refresh-exp: ${JWT_REFRESH_EXP}
+
+cloud:
+  aws:
+    s3:
+      bucket: ${S3_BUCKET}
+    region:
+      static: ap-northeast-2
+
+nts:
+  api:
+    url: https://api.odcloud.kr/api/nts-businessman/v1
+    key: ${NTS_API_KEY}
+
+gemini:
+  api:
+    key: ${GEMINI_API_KEY}
+    url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent

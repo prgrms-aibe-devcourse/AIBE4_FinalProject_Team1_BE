@@ -32,7 +32,7 @@ public class TheoreticalUsageService {
     private final ObjectMapper objectMapper;
 
     public Map<Long, BigDecimal> calculateOrderUsage(SalesOrder salesOrder) {
-        List<SalesOrderItem> items = salesOrderItemRepository.findBySalesOrderId(salesOrder.getSalesOrderId());
+        List<SalesOrderItem> items = salesOrderItemRepository.findBySalesOrderSalesOrderId(salesOrder.getSalesOrderId());
 
         return getTotalUsage(items);
     }

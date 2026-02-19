@@ -21,6 +21,9 @@ public class IngredientStockBatch extends AuditableEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long batchId;
 
+    @Column(nullable = false)
+    private Long storeId;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ingredient_id", nullable = false)
     private Ingredient ingredient;
@@ -51,6 +54,7 @@ public class IngredientStockBatch extends AuditableEntity {
     ) {
         IngredientStockBatch batch = new IngredientStockBatch();
         batch.ingredient = ingredient;
+        batch.storeId = ingredient.getStore().getStoreId();
         batch.inboundItem = inboundItem;
         batch.initialQuantity = initialQuantity;
         batch.remainingQuantity = initialQuantity;
@@ -77,5 +81,28 @@ public class IngredientStockBatch extends AuditableEntity {
 
     public Long getIngredientId() {
         return this.ingredient.getIngredientId();
+    }
+
+    public void updateRemaining(BigDecimal newAmount){
+        this.remainingQuantity = newAmount;
+        this.status = (newAmount.signum() <= 0) ? StockBatchStatus.CLOSED : StockBatchStatus.OPEN;
+    }
+
+    public static IngredientStockBatch createAdjustment(
+            Long storeId,
+            Ingredient ingredient,
+            BigDecimal quantity,
+            BigDecimal unitCost
+    ){
+        IngredientStockBatch batch = new IngredientStockBatch();
+        batch.storeId = storeId;
+        batch.ingredient = ingredient;
+        batch.inboundItem = null;
+        batch.initialQuantity = quantity;
+        batch.remainingQuantity = quantity;
+        batch.unitCost = unitCost;
+        batch.expirationDate = null;
+        batch.status = StockBatchStatus.OPEN;
+        return batch;
     }
 }
