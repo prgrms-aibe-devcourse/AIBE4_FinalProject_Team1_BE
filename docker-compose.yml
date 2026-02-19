@@ -69,19 +69,6 @@ services:
       elasticsearch:
         condition: service_healthy
 
-  mcp-server:
-    container_name: mcp-server
-    build:
-      context: ../AIBE4_FinalProject_Team1_MCP_SERVER
-      dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
-    environment:
-      - SPRING_BOOT_URL=http://backend:8080
-    depends_on:
-      backend:
-        condition: service_started
-
   web:
     container_name: web
     build:
@@ -89,8 +76,6 @@ services:
       dockerfile: Dockerfile
     depends_on:
       backend:
-        condition: service_started
-      mcp-server:
         condition: service_started
     ports:
       - "80:80"
