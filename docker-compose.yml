@@ -33,7 +33,7 @@ services:
 
       # ★ 중요: RDS(공용/서버 DB) 붙을 때 dev의 ddl-auto=create는 위험하므로,
       # docker-compose에서 안전하게 덮어쓰기 권장
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop
       # 필요하면 validate 대신 none도 고려 가능:
       # - SPRING_JPA_HIBERNATE_DDL_AUTO=none
     env_file:
@@ -49,14 +49,14 @@ services:
     # - "<VALKEY_ENDPOINT>:host-gateway"
     # - "<RDS_ENDPOINT>:host-gateway"
 
-  # Frontend (로컬 빌드 + Nginx)
   web:
     build:
       context: ../AIBE4_FinalProject_Team1_FE
       dockerfile: Dockerfile
     container_name: inventory-web
     depends_on:
-      - backend
+      backend:
+        condition: service_started
     ports:
       - "80:80"
     volumes:
