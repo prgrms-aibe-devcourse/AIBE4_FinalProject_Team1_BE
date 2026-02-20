@@ -1,17 +1,23 @@
 package kr.inventory.domain.purchase.entity;
 
-import jakarta.persistence.*;
-import kr.inventory.domain.catalog.entity.Ingredient;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import kr.inventory.domain.common.CreatedAtEntity;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 
 @Entity
-@Table(name = "purchase_order_items")
+@Table(name = "purchase_order_item")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PurchaseOrderItem extends CreatedAtEntity {
@@ -24,30 +30,28 @@ public class PurchaseOrderItem extends CreatedAtEntity {
     @JoinColumn(name = "purchase_order_id", nullable = false)
     private PurchaseOrder purchaseOrder;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "ingredient_id", nullable = false)
-    private Ingredient ingredient;
+    @Column(nullable = false, length = 120)
+    private String itemName;
 
-    @Column(nullable = false, precision = 14, scale = 3)
-    private BigDecimal quantity;
+    @Column(nullable = false)
+    private Integer quantity;
 
-    @Column(precision = 14, scale = 2)
-    private BigDecimal unitCost;
+    @Column(nullable = false, precision = 14, scale = 2)
+    private BigDecimal unitPrice;
 
-    @Column(precision = 14, scale = 2)
-    private BigDecimal lineTotal;
+    @Column(nullable = false, precision = 14, scale = 2)
+    private BigDecimal lineAmount;
 
-    private LocalDate expirationDate;
-
-    public static PurchaseOrderItem create(
-            PurchaseOrder purchaseOrder,
-            Ingredient ingredient,
-            BigDecimal quantity
-    ) {
+    public static PurchaseOrderItem create(String itemName, Integer quantity, BigDecimal unitPrice) {
         PurchaseOrderItem item = new PurchaseOrderItem();
-        item.purchaseOrder = purchaseOrder;
-        item.ingredient = ingredient;
+        item.itemName = itemName;
         item.quantity = quantity;
+        item.unitPrice = unitPrice;
+        item.lineAmount = unitPrice.multiply(BigDecimal.valueOf(quantity));
         return item;
+    }
+
+    void assignOrder(PurchaseOrder purchaseOrder) {
+        this.purchaseOrder = purchaseOrder;
     }
 }
