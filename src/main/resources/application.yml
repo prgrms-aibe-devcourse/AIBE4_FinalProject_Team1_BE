@@ -19,20 +19,6 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
-  data:
-    redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT}
-      password: ${REDIS_PASSWORD}
-      ssl:
-        enabled: false
-      timeout: 3000
-      lettuce:
-        pool:
-          max-active: 5
-          max-idle: 3
-          min-idle: 1
-
   elasticsearch:
     uris: ${ES_URL}
 
@@ -103,8 +89,8 @@ nts:
   api:
     url: https://api.odcloud.kr/api/nts-businessman/v1
     key: ${NTS_API_KEY}
-    connect-timeout: 3000   # ms
-    read-timeout: 5000      # ms
+    connect-timeout: 3000
+    read-timeout: 5000
 
 gemini:
   api:
