@@ -18,6 +18,12 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+  redis:
+    image: redis:7
+    container_name: inventory-redis
+    ports:
+      - "6379:6379"
+    command: [ "redis-server", "--appendonly", "yes" ]
 
   # Backend (로컬 빌드, 서버 DB/Valkey는 SSM 터널로 접근)
   backend:
@@ -33,7 +39,7 @@ services:
 
       # ★ 중요: RDS(공용/서버 DB) 붙을 때 dev의 ddl-auto=create는 위험하므로,
       # docker-compose에서 안전하게 덮어쓰기 권장
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       # 필요하면 validate 대신 none도 고려 가능:
       # - SPRING_JPA_HIBERNATE_DDL_AUTO=none
     env_file:
@@ -41,6 +47,8 @@ services:
     depends_on:
       elasticsearch:
         condition: service_healthy
+      redis:
+        condition: service_started
     extra_hosts:
       - "host.docker.internal:host-gateway"
     # (선택) 만약 Valkey TLS 핸드셰이크에서 호스트네임 검증 문제 등이 생기면,
