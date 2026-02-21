@@ -103,6 +103,8 @@ nts:
   api:
     url: https://api.odcloud.kr/api/nts-businessman/v1
     key: ${NTS_API_KEY}
+    connect-timeout: 3000   # ms
+    read-timeout: 5000      # ms
 
 gemini:
   api:
