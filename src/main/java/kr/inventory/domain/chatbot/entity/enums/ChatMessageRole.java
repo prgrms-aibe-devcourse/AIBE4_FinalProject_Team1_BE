@@ -1,4 +1,4 @@
-package kr.inventory.domain.chat.entity.enums;
+package kr.inventory.domain.chatbot.entity.enums;
 
 public enum ChatMessageRole {
     USER,

@@ -1,10 +1,24 @@
 spring:
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     properties:
       hibernate:
         format_sql: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: false
+      timeout: 3000
+      lettuce:
+        pool:
+          max-active: 5
+          max-idle: 3
+          min-idle: 1
 
 logging:
   level:

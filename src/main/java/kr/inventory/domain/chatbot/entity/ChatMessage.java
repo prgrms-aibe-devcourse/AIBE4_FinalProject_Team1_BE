@@ -1,7 +1,7 @@
-package kr.inventory.domain.chat.entity;
+package kr.inventory.domain.chatbot.entity;
 
 import jakarta.persistence.*;
-import kr.inventory.domain.chat.entity.enums.ChatMessageRole;
+import kr.inventory.domain.chatbot.entity.enums.ChatMessageRole;
 import kr.inventory.domain.common.CreatedAtEntity;
 import lombok.AccessLevel;
 import lombok.Getter;
