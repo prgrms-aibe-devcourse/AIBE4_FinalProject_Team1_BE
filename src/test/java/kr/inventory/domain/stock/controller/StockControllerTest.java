@@ -2,7 +2,7 @@ package kr.inventory.domain.stock.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inventory.domain.auth.security.CustomUserDetails;
-import kr.inventory.domain.stock.controller.dto.StockRequestDto;
+import kr.inventory.domain.stock.controller.dto.StockOrderDeductionRequest;
 import kr.inventory.domain.stock.service.StockManagerFacade;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.bean.override.mockito.MockitoBean; // 새로운 임포트 경로
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
@@ -23,7 +23,8 @@ import static org.mockito.Mockito.mock;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(StockController.class)
 class StockControllerTest {
@@ -44,12 +45,16 @@ class StockControllerTest {
     @WithMockUser
     @DisplayName("재고 차감 요청 성공 - 200 OK 반환")
     void deductStock_Success() throws Exception {
-        StockRequestDto.OrderDeductionRequest request = new StockRequestDto.OrderDeductionRequest(10L, 100L);
+        Long storeId = 10L;
+        Long salesOrderId = 100L;
+
+        StockOrderDeductionRequest request = new StockOrderDeductionRequest(storeId, salesOrderId);
 
         CustomUserDetails userDetails = mock(CustomUserDetails.class);
         given(userDetails.getUserId()).willReturn(userId);
 
-        doNothing().when(stockManagerFacade).processOrderStockDeduction(eq(userId), eq(storePublicId), any());
+        doNothing().when(stockManagerFacade)
+                .processOrderStockDeduction(eq(userId), eq(storePublicId), any());
 
         mockMvc.perform(post("/api/stock/{storePublicId}/deduct", storePublicId)
                         .with(csrf())
@@ -57,6 +62,7 @@ class StockControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("SUCCESS"));
+                .andExpect(jsonPath("$.salesOrderId").value(salesOrderId))
+                .andExpect(jsonPath("$.message").value("재고 차감 처리가 완료되었습니다."));
     }
 }

@@ -5,7 +5,8 @@ import kr.inventory.domain.catalog.entity.Ingredient;
 import kr.inventory.domain.catalog.exception.IngredientErrorCode;
 import kr.inventory.domain.catalog.exception.IngredientException;
 import kr.inventory.domain.catalog.repository.IngredientRepository;
-import kr.inventory.domain.stock.controller.dto.StocktakeDto;
+import kr.inventory.domain.stock.controller.dto.StocktakeCreateRequest;
+import kr.inventory.domain.stock.controller.dto.StocktakeItemRequest;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.Stocktake;
 import kr.inventory.domain.stock.entity.StocktakeSheet;
@@ -39,13 +40,13 @@ public class StocktakeService {
     private final StoreAccessValidator storeAccessValidator;
 
     @Transactional
-    public Long createStocktakeSheet(Long userId, UUID storePublicId, StocktakeDto.CreateRequest request){
+    public Long createStocktakeSheet(Long userId, UUID storePublicId, StocktakeCreateRequest request){
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
         StocktakeSheet sheet = StocktakeSheet.create(storeId, request.title());
         stocktakeSheetRepository.save(sheet);
 
-        List<Long> ingredientIds = request.items().stream().map(StocktakeDto.ItemRequest::ingredientId).toList();
+        List<Long> ingredientIds = request.items().stream().map(StocktakeItemRequest::ingredientId).toList();
 
         Map<Long, Ingredient> ingredientMap = ingredientRepository.findAllByStoreStoreIdAndIngredientIdIn(storeId, ingredientIds).stream().collect(Collectors.toMap(Ingredient::getIngredientId, Function.identity()));
 

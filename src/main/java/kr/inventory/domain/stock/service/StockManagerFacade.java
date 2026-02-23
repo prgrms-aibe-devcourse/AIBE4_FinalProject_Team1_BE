@@ -4,7 +4,7 @@ import kr.inventory.domain.sales.entity.SalesOrder;
 import kr.inventory.domain.sales.exception.SalesErrorCode;
 import kr.inventory.domain.sales.exception.SalesException;
 import kr.inventory.domain.sales.repository.SalesOrderRepository;
-import kr.inventory.domain.stock.controller.dto.StockRequestDto;
+import kr.inventory.domain.stock.controller.dto.StockOrderDeductionRequest;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +25,7 @@ public class StockManagerFacade {
     private final StoreAccessValidator storeAccessValidator;
 
     @Transactional
-    public void processOrderStockDeduction(Long userId, UUID storePublicId, StockRequestDto.OrderDeductionRequest request) {
+    public void processOrderStockDeduction(Long userId, UUID storePublicId, StockOrderDeductionRequest request) {
         Long internalStoreId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
         SalesOrder salesOrder = salesOrderRepository.findByIdAndStoreStoreIdWithLock(request.salesOrderId(), internalStoreId)
