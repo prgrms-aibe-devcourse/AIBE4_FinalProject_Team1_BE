@@ -42,12 +42,20 @@ public class Ingredient extends AuditableEntity {
     @Column(nullable = false, length = 20)
     private IngredientStatus status;
 
-    public static Ingredient create(Store store, String name, IngredientUnit unit) {
+    public static Ingredient create(Store store, String name, IngredientUnit unit, BigDecimal lowStockThreshold) {
         Ingredient ingredient = new Ingredient();
         ingredient.store = store;
         ingredient.name = name;
         ingredient.unit = unit;
+        ingredient.lowStockThreshold = lowStockThreshold;
         ingredient.status = IngredientStatus.ACTIVE;
         return ingredient;
+    }
+
+    public void update(String name, IngredientUnit unit, BigDecimal lowStockThreshold, IngredientStatus status) {
+        if (name != null) this.name = name;
+        if (unit != null) this.unit = unit;
+        if (lowStockThreshold != null) this.lowStockThreshold = lowStockThreshold;
+        if (status != null) this.status = status;
     }
 }
