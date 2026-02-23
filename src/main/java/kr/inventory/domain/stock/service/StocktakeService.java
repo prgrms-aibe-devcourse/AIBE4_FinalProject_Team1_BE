@@ -1,6 +1,5 @@
 package kr.inventory.domain.stock.service;
 
-import jakarta.transaction.Transactional;
 import kr.inventory.domain.catalog.entity.Ingredient;
 import kr.inventory.domain.catalog.exception.IngredientErrorCode;
 import kr.inventory.domain.catalog.exception.IngredientException;
@@ -21,6 +20,7 @@ import kr.inventory.domain.store.service.StoreAccessValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -40,7 +40,7 @@ public class StocktakeService {
     private final StocktakeSheetRepository stocktakeSheetRepository;
     private final StoreAccessValidator storeAccessValidator;
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<StocktakeSheetResponse> getStocktakeSheets(Long userId, UUID storePublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
         List<StocktakeSheet> sheets = stocktakeSheetRepository.findAllByStoreIdOrderByCreatedAtDesc(storeId);
