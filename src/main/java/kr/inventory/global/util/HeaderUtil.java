@@ -22,7 +22,9 @@ public class HeaderUtil {
 
     public String extractToken(String bearerToken) {
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(AuthConstant.BEARER_PREFIX)) {
-            return bearerToken.substring(AuthConstant.BEARER_PREFIX.length());
+            String token = bearerToken.substring(AuthConstant.BEARER_PREFIX.length());
+
+            return token.replace("\"", "").trim();
         }
 
         throw new AuthException(AuthErrorCode.INVALID_TOKEN_FORMAT);

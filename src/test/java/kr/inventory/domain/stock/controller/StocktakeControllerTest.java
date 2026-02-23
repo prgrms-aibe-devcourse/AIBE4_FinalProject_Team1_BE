@@ -2,7 +2,8 @@ package kr.inventory.domain.stock.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inventory.domain.auth.security.CustomUserDetails;
-import kr.inventory.domain.stock.controller.dto.StocktakeDto;
+import kr.inventory.domain.stock.controller.dto.StocktakeCreateRequest;
+import kr.inventory.domain.stock.controller.dto.StocktakeItemRequest;
 import kr.inventory.domain.stock.service.StocktakeService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,11 +47,11 @@ class StocktakeControllerTest {
     @DisplayName("새로운 실사 시트를 성공적으로 생성한다.")
     void createSheet_Success() throws Exception {
         // given
-        StocktakeDto.ItemRequest item = new StocktakeDto.ItemRequest(10L, new BigDecimal("50.0"));
-        StocktakeDto.CreateRequest request = new StocktakeDto.CreateRequest("2026-02-14 정기 실사", List.of(item));
+        StocktakeItemRequest item = new StocktakeItemRequest(10L, new BigDecimal("50.0"));
+        StocktakeCreateRequest request = new StocktakeCreateRequest("2026-02-14 정기 실사", List.of(item));
 
         CustomUserDetails userDetails = createMockUser();
-        given(stocktakeService.createStocktakeSheet(eq(userId), eq(storePublicId), any(StocktakeDto.CreateRequest.class)))
+        given(stocktakeService.createStocktakeSheet(eq(userId), eq(storePublicId), any(StocktakeCreateRequest.class)))
                 .willReturn(100L);
 
         // when & then
