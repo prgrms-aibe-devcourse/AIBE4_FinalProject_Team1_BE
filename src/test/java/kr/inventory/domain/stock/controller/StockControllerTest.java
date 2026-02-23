@@ -45,12 +45,16 @@ class StockControllerTest {
     @WithMockUser
     @DisplayName("재고 차감 요청 성공 - 200 OK 반환")
     void deductStock_Success() throws Exception {
-        StockOrderDeductionRequest request = new StockOrderDeductionRequest(10L, 100L);
+        Long storeId = 10L;
+        Long salesOrderId = 100L;
+
+        StockOrderDeductionRequest request = new StockOrderDeductionRequest(storeId, salesOrderId);
 
         CustomUserDetails userDetails = mock(CustomUserDetails.class);
         given(userDetails.getUserId()).willReturn(userId);
 
-        doNothing().when(stockManagerFacade).processOrderStockDeduction(eq(userId), eq(storePublicId), any());
+        doNothing().when(stockManagerFacade)
+                .processOrderStockDeduction(eq(userId), eq(storePublicId), any());
 
         mockMvc.perform(post("/api/stock/{storePublicId}/deduct", storePublicId)
                         .with(csrf())
@@ -58,6 +62,7 @@ class StockControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("SUCCESS"));
+                .andExpect(jsonPath("$.salesOrderId").value(salesOrderId))
+                .andExpect(jsonPath("$.message").value("재고 차감 처리가 완료되었습니다."));
     }
 }
