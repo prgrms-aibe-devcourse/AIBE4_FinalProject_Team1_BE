@@ -1,5 +1,7 @@
 package kr.inventory.domain.stock.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.stock.controller.dto.StockDeductionResponse;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+@Tag(name = "재고(Stock)", description = "재고 관련 기능을 담당하는 API입니다.")
 @RestController
 @RequestMapping("/api/stock")
 @RequiredArgsConstructor
@@ -19,6 +22,10 @@ public class StockController {
 
     private final StockManagerFacade stockManagerFacade;
 
+    @Operation(
+            summary = "주문 재고 차감",
+            description = "주문 정보를 바탕으로 해당 매장의 상품 재고를 차감합니다."
+    )
     @PostMapping("/{storePublicId}/deduct")
     public ResponseEntity<StockDeductionResponse> deductStock(
             @AuthenticationPrincipal CustomUserDetails principal,
