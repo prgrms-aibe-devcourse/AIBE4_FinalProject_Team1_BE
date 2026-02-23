@@ -48,12 +48,8 @@ public class IngredientService {
 
     public IngredientResponse getIngredient(Long userId, UUID storePublicId, UUID ingredientPublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        Ingredient ingredient = ingredientRepository.findByIngredientPublicId(ingredientPublicId)
-                .orElseThrow(() -> new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND));
 
-        if (!ingredient.getStore().getStoreId().equals(storeId)) {
-            throw new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND);
-        }
+        Ingredient ingredient = getValidIngredient(ingredientPublicId, storeId);
 
         return IngredientResponse.from(ingredient);
     }
@@ -61,12 +57,8 @@ public class IngredientService {
     @Transactional
     public void updateIngredient(Long userId, UUID storePublicId, UUID ingredientPublicId, IngredientUpdateRequest request) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        Ingredient ingredient = ingredientRepository.findByIngredientPublicId(ingredientPublicId)
-                .orElseThrow(() -> new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND));
 
-        if (!ingredient.getStore().getStoreId().equals(storeId)) {
-            throw new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND);
-        }
+        Ingredient ingredient = getValidIngredient(ingredientPublicId, storeId);
 
         ingredient.update(request.name(), request.unit(), request.lowStockThreshold(), request.status());
     }
@@ -74,13 +66,24 @@ public class IngredientService {
     @Transactional
     public void deleteIngredient(Long userId, UUID storePublicId, UUID ingredientPublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
+        Ingredient ingredient = getValidIngredient(ingredientPublicId, storeId);
+
+        ingredientRepository.delete(ingredient);
+    }
+
+    private Ingredient getValidIngredient(UUID ingredientPublicId, Long storeId) {
         Ingredient ingredient = ingredientRepository.findByIngredientPublicId(ingredientPublicId)
                 .orElseThrow(() -> new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND));
 
+        validateIngredientBelongsToStore(ingredient, storeId);
+
+        return ingredient;
+    }
+
+    private void validateIngredientBelongsToStore(Ingredient ingredient, Long storeId){
         if (!ingredient.getStore().getStoreId().equals(storeId)) {
             throw new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND);
         }
-
-        ingredientRepository.delete(ingredient);
     }
 }
