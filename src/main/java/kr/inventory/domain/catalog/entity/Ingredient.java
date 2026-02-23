@@ -8,6 +8,8 @@ import kr.inventory.domain.store.entity.Store;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -17,6 +19,8 @@ import java.util.UUID;
         name = "ingredients",
         uniqueConstraints = @UniqueConstraint(columnNames = {"store_id", "name"})
 )
+@SQLDelete(sql = "UPDATE ingredients SET status = 'DELETED' WHERE ingredient_id = ?")
+@Where(clause = "status <> 'DELETED'")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Ingredient extends AuditableEntity {
