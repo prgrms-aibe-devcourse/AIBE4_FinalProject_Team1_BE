@@ -5,12 +5,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.stock.controller.dto.StocktakeCreateRequest;
+import kr.inventory.domain.stock.controller.dto.StocktakeSheetResponse;
 import kr.inventory.domain.stock.service.StocktakeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @Tag(name = "재고 실사(Stocktake)", description = "매장 재고 실사 관련 기능을 담당하는 API입니다.")
@@ -19,6 +21,17 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class StocktakeController {
     private final StocktakeService stocktakeService;
+
+    @Operation(
+            summary = "재고 실사 시트 목록 조회",
+            description = "특정 매장의 모든 재고 실사 시트 목록을 조회합니다."
+    )
+    @GetMapping
+    public ResponseEntity<List<StocktakeSheetResponse>> getSheets(
+            @PathVariable UUID storePublicId,
+            @AuthenticationPrincipal CustomUserDetails principal) {
+        return ResponseEntity.ok(stocktakeService.getStocktakeSheets(principal.getUserId(), storePublicId));
+    }
 
     @Operation(
             summary = "재고 실사 시트 생성",

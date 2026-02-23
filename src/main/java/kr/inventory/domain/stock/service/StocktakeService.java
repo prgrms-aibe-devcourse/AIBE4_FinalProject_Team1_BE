@@ -7,6 +7,7 @@ import kr.inventory.domain.catalog.exception.IngredientException;
 import kr.inventory.domain.catalog.repository.IngredientRepository;
 import kr.inventory.domain.stock.controller.dto.StocktakeCreateRequest;
 import kr.inventory.domain.stock.controller.dto.StocktakeItemRequest;
+import kr.inventory.domain.stock.controller.dto.StocktakeSheetResponse;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.Stocktake;
 import kr.inventory.domain.stock.entity.StocktakeSheet;
@@ -38,6 +39,15 @@ public class StocktakeService {
     private final IngredientRepository ingredientRepository;
     private final StocktakeSheetRepository stocktakeSheetRepository;
     private final StoreAccessValidator storeAccessValidator;
+
+    @Transactional
+    public List<StocktakeSheetResponse> getStocktakeSheets(Long userId, UUID storePublicId) {
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+        List<StocktakeSheet> sheets = stocktakeSheetRepository.findAllByStoreIdOrderByCreatedAtDesc(storeId);
+        return sheets.stream()
+                .map(StocktakeSheetResponse::from)
+                .toList();
+    }
 
     @Transactional
     public Long createStocktakeSheet(Long userId, UUID storePublicId, StocktakeCreateRequest request){
