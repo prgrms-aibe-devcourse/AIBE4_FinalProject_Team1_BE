@@ -3,7 +3,7 @@ package kr.inventory.domain.stock.service;
 import kr.inventory.domain.sales.entity.SalesOrder;
 import kr.inventory.domain.sales.entity.enums.SalesOrderChannel;
 import kr.inventory.domain.sales.repository.SalesOrderRepository;
-import kr.inventory.domain.stock.controller.dto.StockRequestDto;
+import kr.inventory.domain.stock.controller.dto.StockOrderDeductionRequest;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,8 +44,8 @@ class StockManagerFacadeTest {
     @DisplayName("재고 차감 프로세스 성공 - 모든 로직이 정상 호출되어야 한다")
     void processOrderStockDeduction_Success() {
         // given
-        StockRequestDto.OrderDeductionRequest request =
-                new StockRequestDto.OrderDeductionRequest(internalStoreId, salesOrderId);
+        StockOrderDeductionRequest request =
+                new StockOrderDeductionRequest(internalStoreId, salesOrderId);
 
         SalesOrder salesOrder = spy(SalesOrder.create(null, "EXT-001", OffsetDateTime.now(), SalesOrderChannel.POS));
 
@@ -70,8 +70,8 @@ class StockManagerFacadeTest {
     @DisplayName("이미 처리된 주문인 경우 조기 리턴되어야 한다")
     void processOrderStockDeduction_AlreadyProcessed() {
         // given
-        StockRequestDto.OrderDeductionRequest request =
-                new StockRequestDto.OrderDeductionRequest(internalStoreId, salesOrderId);
+        StockOrderDeductionRequest request =
+                new StockOrderDeductionRequest(internalStoreId, salesOrderId);
 
         SalesOrder salesOrder = SalesOrder.create(null, "EXT-001", OffsetDateTime.now(), SalesOrderChannel.POS);
         salesOrder.markAsStockProcessed();

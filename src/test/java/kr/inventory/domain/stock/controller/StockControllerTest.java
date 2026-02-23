@@ -2,7 +2,6 @@ package kr.inventory.domain.stock.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inventory.domain.auth.security.CustomUserDetails;
-import kr.inventory.domain.stock.controller.dto.StockRequestDto;
 import kr.inventory.domain.stock.service.StockManagerFacade;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

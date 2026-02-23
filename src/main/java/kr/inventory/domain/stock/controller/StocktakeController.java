@@ -2,7 +2,7 @@ package kr.inventory.domain.stock.controller;
 
 import jakarta.validation.Valid;
 import kr.inventory.domain.auth.security.CustomUserDetails;
-import kr.inventory.domain.stock.controller.dto.StocktakeDto;
+import kr.inventory.domain.stock.controller.dto.StocktakeCreateRequest;
 import kr.inventory.domain.stock.service.StocktakeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +21,7 @@ public class StocktakeController {
     public ResponseEntity<Long> createSheet(
             @PathVariable UUID storePublicId,
             @AuthenticationPrincipal CustomUserDetails principal,
-            @RequestBody @Valid StocktakeDto.CreateRequest request) {
+            @RequestBody @Valid StocktakeCreateRequest request) {
         return ResponseEntity.ok(stocktakeService.createStocktakeSheet(principal.getUserId(), storePublicId, request));
     }
 

@@ -2,7 +2,8 @@ package kr.inventory.domain.stock.controller;
 
 import jakarta.validation.Valid;
 import kr.inventory.domain.auth.security.CustomUserDetails;
-import kr.inventory.domain.stock.controller.dto.StockRequestDto;
+import kr.inventory.domain.stock.controller.dto.StockDeductionResponse;
+import kr.inventory.domain.stock.controller.dto.StockOrderDeductionRequest;
 import kr.inventory.domain.stock.service.StockManagerFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,10 +20,10 @@ public class StockController {
     private final StockManagerFacade stockManagerFacade;
 
     @PostMapping("/{storePublicId}/deduct")
-    public ResponseEntity<StockRequestDto.DeductionResponse> deductStock(
+    public ResponseEntity<StockDeductionResponse> deductStock(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable("storePublicId") UUID publicId,
-            @RequestBody @Valid StockRequestDto.OrderDeductionRequest request
+            @RequestBody @Valid StockOrderDeductionRequest request
     ) {
         stockManagerFacade.processOrderStockDeduction(
                 principal.getUserId(),
@@ -30,7 +31,7 @@ public class StockController {
                 request
         );
 
-        return ResponseEntity.ok(new StockRequestDto.DeductionResponse(
+        return ResponseEntity.ok(new StockDeductionResponse(
                 request.salesOrderId(),
                 "SUCCESS",
                 "재고 차감 처리가 완료되었습니다."
