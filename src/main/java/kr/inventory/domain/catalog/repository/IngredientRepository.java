@@ -10,5 +10,5 @@ import java.util.UUID;
 public interface IngredientRepository extends JpaRepository<Ingredient, Long> {
     List<Ingredient> findAllByStoreStoreIdAndIngredientIdIn(Long storeId, List<Long> ingredientIds);
     List<Ingredient> findAllByStoreStoreId(Long storeId);
-    Optional<Ingredient> findByPublicId(UUID publicId);
+    Optional<Ingredient> findByIngredientPublicId(UUID publicId);
 }

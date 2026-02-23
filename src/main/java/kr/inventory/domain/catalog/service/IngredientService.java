@@ -36,7 +36,7 @@ public class IngredientService {
 
         Ingredient ingredient = Ingredient.create(store, request.name(), request.unit(), request.lowStockThreshold());
         ingredientRepository.save(ingredient);
-        return ingredient.getPublicId();
+        return ingredient.getIngredientPublicId();
     }
 
     public List<IngredientResponse> getIngredients(Long userId, UUID storePublicId) {
@@ -48,7 +48,7 @@ public class IngredientService {
 
     public IngredientResponse getIngredient(Long userId, UUID storePublicId, UUID ingredientPublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        Ingredient ingredient = ingredientRepository.findByPublicId(ingredientPublicId)
+        Ingredient ingredient = ingredientRepository.findByIngredientPublicId(ingredientPublicId)
                 .orElseThrow(() -> new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND));
 
         if (!ingredient.getStore().getStoreId().equals(storeId)) {
@@ -61,7 +61,7 @@ public class IngredientService {
     @Transactional
     public void updateIngredient(Long userId, UUID storePublicId, UUID ingredientPublicId, IngredientUpdateRequest request) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        Ingredient ingredient = ingredientRepository.findByPublicId(ingredientPublicId)
+        Ingredient ingredient = ingredientRepository.findByIngredientPublicId(ingredientPublicId)
                 .orElseThrow(() -> new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND));
 
         if (!ingredient.getStore().getStoreId().equals(storeId)) {
@@ -74,7 +74,7 @@ public class IngredientService {
     @Transactional
     public void deleteIngredient(Long userId, UUID storePublicId, UUID ingredientPublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        Ingredient ingredient = ingredientRepository.findByPublicId(ingredientPublicId)
+        Ingredient ingredient = ingredientRepository.findByIngredientPublicId(ingredientPublicId)
                 .orElseThrow(() -> new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND));
 
         if (!ingredient.getStore().getStoreId().equals(storeId)) {

@@ -16,7 +16,7 @@ public record IngredientResponse(
 ) {
     public static IngredientResponse from(Ingredient ingredient) {
         return new IngredientResponse(
-                ingredient.getPublicId(),
+                ingredient.getIngredientPublicId(),
                 ingredient.getName(),
                 ingredient.getUnit(),
                 ingredient.getLowStockThreshold(),

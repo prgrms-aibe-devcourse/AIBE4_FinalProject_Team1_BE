@@ -26,7 +26,7 @@ public class Ingredient extends AuditableEntity {
     private Long ingredientId;
 
     @Column(nullable = false, unique = true, updatable = false)
-    private UUID publicId = UUID.randomUUID();
+    private UUID ingredientPublicId = UUID.randomUUID();
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "store_id", nullable = false)
