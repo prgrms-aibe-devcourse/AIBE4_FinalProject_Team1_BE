@@ -38,10 +38,8 @@ public class StockController {
                 request
         );
 
-        return ResponseEntity.ok(new StockDeductionResponse(
-                request.salesOrderId(),
-                "SUCCESS",
-                "재고 차감 처리가 완료되었습니다."
-        ));
+        return ResponseEntity.ok(
+                StockDeductionResponse.from(request.salesOrderId(), "재고 차감 처리가 완료되었습니다.")
+        );
     }
 }
