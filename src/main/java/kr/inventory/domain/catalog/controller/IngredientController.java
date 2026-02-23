@@ -26,7 +26,7 @@ public class IngredientController {
 
     @Operation(summary = "식재료 생성", description = "새로운 식재료를 등록합니다.")
     @PostMapping
-    public ResponseEntity<Long> createIngredient(
+    public ResponseEntity<UUID> createIngredient(
             @PathVariable UUID storePublicId,
             @AuthenticationPrincipal CustomUserDetails principal,
             @RequestBody @Valid IngredientCreateRequest request) {
@@ -42,32 +42,32 @@ public class IngredientController {
     }
 
     @Operation(summary = "식재료 상세 조회", description = "특정 식재료의 상세 정보를 조회합니다.")
-    @GetMapping("/{ingredientId}")
+    @GetMapping("/{ingredientPublicId}")
     public ResponseEntity<IngredientResponse> getIngredient(
             @PathVariable UUID storePublicId,
-            @PathVariable Long ingredientId,
+            @PathVariable UUID ingredientPublicId,
             @AuthenticationPrincipal CustomUserDetails principal) {
-        return ResponseEntity.ok(ingredientService.getIngredient(principal.getUserId(), storePublicId, ingredientId));
+        return ResponseEntity.ok(ingredientService.getIngredient(principal.getUserId(), storePublicId, ingredientPublicId));
     }
 
     @Operation(summary = "식재료 수정", description = "식재료 정보를 수정합니다.")
-    @PutMapping("/{ingredientId}")
+    @PutMapping("/{ingredientPublicId}")
     public ResponseEntity<Void> updateIngredient(
             @PathVariable UUID storePublicId,
-            @PathVariable Long ingredientId,
+            @PathVariable UUID ingredientPublicId,
             @AuthenticationPrincipal CustomUserDetails principal,
             @RequestBody @Valid IngredientUpdateRequest request) {
-        ingredientService.updateIngredient(principal.getUserId(), storePublicId, ingredientId, request);
+        ingredientService.updateIngredient(principal.getUserId(), storePublicId, ingredientPublicId, request);
         return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "식재료 삭제", description = "식재료를 삭제합니다.")
-    @DeleteMapping("/{ingredientId}")
+    @DeleteMapping("/{ingredientPublicId}")
     public ResponseEntity<Void> deleteIngredient(
             @PathVariable UUID storePublicId,
-            @PathVariable Long ingredientId,
+            @PathVariable UUID ingredientPublicId,
             @AuthenticationPrincipal CustomUserDetails principal) {
-        ingredientService.deleteIngredient(principal.getUserId(), storePublicId, ingredientId);
+        ingredientService.deleteIngredient(principal.getUserId(), storePublicId, ingredientPublicId);
         return ResponseEntity.noContent().build();
     }
 }

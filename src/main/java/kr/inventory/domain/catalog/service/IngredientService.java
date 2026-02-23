@@ -29,14 +29,14 @@ public class IngredientService {
     private final StoreAccessValidator storeAccessValidator;
 
     @Transactional
-    public Long createIngredient(Long userId, UUID storePublicId, IngredientCreateRequest request) {
+    public UUID createIngredient(Long userId, UUID storePublicId, IngredientCreateRequest request) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_NOT_FOUND));
 
         Ingredient ingredient = Ingredient.create(store, request.name(), request.unit(), request.lowStockThreshold());
         ingredientRepository.save(ingredient);
-        return ingredient.getIngredientId();
+        return ingredient.getPublicId();
     }
 
     public List<IngredientResponse> getIngredients(Long userId, UUID storePublicId) {
@@ -46,9 +46,9 @@ public class IngredientService {
                 .toList();
     }
 
-    public IngredientResponse getIngredient(Long userId, UUID storePublicId, Long ingredientId) {
+    public IngredientResponse getIngredient(Long userId, UUID storePublicId, UUID ingredientPublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        Ingredient ingredient = ingredientRepository.findById(ingredientId)
+        Ingredient ingredient = ingredientRepository.findByPublicId(ingredientPublicId)
                 .orElseThrow(() -> new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND));
 
         if (!ingredient.getStore().getStoreId().equals(storeId)) {
@@ -59,9 +59,9 @@ public class IngredientService {
     }
 
     @Transactional
-    public void updateIngredient(Long userId, UUID storePublicId, Long ingredientId, IngredientUpdateRequest request) {
+    public void updateIngredient(Long userId, UUID storePublicId, UUID ingredientPublicId, IngredientUpdateRequest request) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        Ingredient ingredient = ingredientRepository.findById(ingredientId)
+        Ingredient ingredient = ingredientRepository.findByPublicId(ingredientPublicId)
                 .orElseThrow(() -> new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND));
 
         if (!ingredient.getStore().getStoreId().equals(storeId)) {
@@ -72,9 +72,9 @@ public class IngredientService {
     }
 
     @Transactional
-    public void deleteIngredient(Long userId, UUID storePublicId, Long ingredientId) {
+    public void deleteIngredient(Long userId, UUID storePublicId, UUID ingredientPublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        Ingredient ingredient = ingredientRepository.findById(ingredientId)
+        Ingredient ingredient = ingredientRepository.findByPublicId(ingredientPublicId)
                 .orElseThrow(() -> new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND));
 
         if (!ingredient.getStore().getStoreId().equals(storeId)) {

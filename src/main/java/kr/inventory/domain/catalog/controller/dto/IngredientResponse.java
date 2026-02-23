@@ -5,9 +5,10 @@ import kr.inventory.domain.catalog.entity.enums.IngredientStatus;
 import kr.inventory.domain.catalog.entity.enums.IngredientUnit;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 public record IngredientResponse(
-        Long ingredientId,
+        UUID ingredientPublicId,
         String name,
         IngredientUnit unit,
         BigDecimal lowStockThreshold,
@@ -15,7 +16,7 @@ public record IngredientResponse(
 ) {
     public static IngredientResponse from(Ingredient ingredient) {
         return new IngredientResponse(
-                ingredient.getIngredientId(),
+                ingredient.getPublicId(),
                 ingredient.getName(),
                 ingredient.getUnit(),
                 ingredient.getLowStockThreshold(),
