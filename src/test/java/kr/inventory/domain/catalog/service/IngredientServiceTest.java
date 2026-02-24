@@ -54,7 +54,7 @@ class IngredientServiceTest {
     @DisplayName("식재료 생성 성공")
     void createIngredient_Success() {
         // given
-        IngredientCreateRequest request = new IngredientCreateRequest("소금", IngredientUnit.KG, BigDecimal.valueOf(3));
+        IngredientCreateRequest request = new IngredientCreateRequest("소금", IngredientUnit.G, BigDecimal.valueOf(3));
         Store store = Mockito.mock(Store.class);
 
         given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
