@@ -14,6 +14,7 @@ public enum StoreErrorCode implements ErrorModel {
     DUPLICATE_BUSINESS_REGISTRATION_NUMBER(HttpStatus.CONFLICT, "S002", "이미 등록된 사업자등록번호입니다."),
     INVALID_BUSINESS_REGISTRATION_NUMBER(HttpStatus.BAD_REQUEST, "S003", "유효하지 않은 사업자등록번호입니다."),
     CLOSED_BUSINESS_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "S004", "폐업 상태의 사업자는 매장을 등록할 수 없습니다."),
+    STORE_NOT_FOUND_OR_ACCESS_DENIED(HttpStatus.FORBIDDEN, "STORE_403", "해당 매장에 대한 접근 권한이 없거나 존재하지 않는 매장입니다."),
 
     // 멤버
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "SM001", "멤버를 찾을 수 없습니다."),
