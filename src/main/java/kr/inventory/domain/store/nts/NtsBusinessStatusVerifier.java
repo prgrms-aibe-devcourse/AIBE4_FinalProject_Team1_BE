@@ -34,8 +34,12 @@ public class NtsBusinessStatusVerifier implements BusinessStatusVerifier {
 
         NtsBusinessStatusResponse.DataItem dataItem = extractFirstItemOrThrow(response);
 
-        if (NtsConstants.CLOSED_BUSINESS_CODE.equals(dataItem.bSttCd())) {
-            throw new StoreException(StoreErrorCode.CLOSED_BUSINESS_NOT_ALLOWED);
+        // 계속사업자(01)만 허용
+        if (!NtsConstants.ACTIVE_BUSINESS_CODE.equals(dataItem.bSttCd())) {
+            if (NtsConstants.CLOSED_BUSINESS_CODE.equals(dataItem.bSttCd())) {
+                throw new StoreException(StoreErrorCode.CLOSED_BUSINESS_NOT_ALLOWED);
+            }
+            throw new StoreException(StoreErrorCode.INVALID_BUSINESS_REGISTRATION_NUMBER);
         }
     }
 
