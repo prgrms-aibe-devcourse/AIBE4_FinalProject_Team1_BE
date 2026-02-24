@@ -4,6 +4,7 @@ import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.exception.StoreErrorCode;
 import kr.inventory.domain.store.exception.StoreException;
 import kr.inventory.domain.store.repository.StoreRepository;
+import kr.inventory.domain.store.service.StoreAccessValidator;
 import kr.inventory.domain.vendor.controller.dto.VendorCreateRequest;
 import kr.inventory.domain.vendor.controller.dto.VendorResponse;
 import kr.inventory.domain.vendor.controller.dto.VendorUpdateRequest;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -25,12 +27,14 @@ public class VendorService {
 
     private final VendorRepository vendorRepository;
     private final StoreRepository storeRepository;
+    private final StoreAccessValidator storeAccessValidator;
 
     @Transactional
-    public VendorResponse createVendor(Long storeId, VendorCreateRequest request) {
+    public VendorResponse createVendor(Long userId, UUID storePublicId, VendorCreateRequest request) {
         // 1. 매장 조회
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
         Store store = storeRepository.findById(storeId)
-                .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_NOT_FOUND_OR_ACCESS_DENIED));
+                .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_NOT_FOUND));
 
         // 2. 거래처명 중복 체크
         if (vendorRepository.existsByStoreStoreIdAndName(storeId, request.name())) {
@@ -53,24 +57,27 @@ public class VendorService {
         return VendorResponse.from(savedVendor);
     }
 
-    public List<VendorResponse> getVendorsByStore(Long storeId, VendorStatus status) {
+    public List<VendorResponse> getVendorsByStore(Long userId, UUID storePublicId, VendorStatus status) {
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
         List<Vendor> vendors = vendorRepository.findByStoreIdWithFilters(storeId, status);
         return vendors.stream()
                 .map(VendorResponse::from)
                 .toList();
     }
 
-    public VendorResponse getVendor(Long vendorId) {
-        Vendor vendor = vendorRepository.findById(vendorId)
-                .orElseThrow(() -> new VendorException(VendorErrorCode.VENDOR_NOT_FOUND));
+    public VendorResponse getVendor(UUID storePublicId, UUID vendorPublicId, Long userId) {
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
+        Vendor vendor = getValidVendor(vendorPublicId, storeId);
 
         return VendorResponse.from(vendor);
     }
 
     @Transactional
-    public VendorResponse updateVendor(Long vendorId, VendorUpdateRequest request) {
-        Vendor vendor = vendorRepository.findById(vendorId)
-                .orElseThrow(() -> new VendorException(VendorErrorCode.VENDOR_NOT_FOUND));
+    public VendorResponse updateVendor(UUID storePublicId, UUID vendorPublicId, Long userId, VendorUpdateRequest request) {
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
+        Vendor vendor = getValidVendor(vendorPublicId, storeId);
 
         // 연락처 정보 수정
         vendor.updateContactInfo(
@@ -88,10 +95,26 @@ public class VendorService {
     }
 
     @Transactional
-    public void deactivateVendor(Long vendorId) {
-        Vendor vendor = vendorRepository.findById(vendorId)
-                .orElseThrow(() -> new VendorException(VendorErrorCode.VENDOR_NOT_FOUND));
+    public void deactivateVendor(UUID storePublicId, UUID vendorPublicId, Long userId) {
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
+        Vendor vendor = getValidVendor(vendorPublicId, storeId);
 
         vendor.deactivate();
+    }
+
+    private Vendor getValidVendor(UUID vendorPublicId, Long storeId) {
+        Vendor vendor = vendorRepository.findByVendorPublicId(vendorPublicId)
+                .orElseThrow(() -> new VendorException(VendorErrorCode.VENDOR_NOT_FOUND));
+
+        validateVendorBelongsToStore(vendor, storeId);
+
+        return vendor;
+    }
+
+    private void validateVendorBelongsToStore(Vendor vendor, Long storeId) {
+        if (!vendor.getStore().getStoreId().equals(storeId)) {
+            throw new VendorException(VendorErrorCode.VENDOR_NOT_FOUND);
+        }
     }
 }
