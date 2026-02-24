@@ -67,14 +67,14 @@ public class InvitationService {
         String currentCode = existingInvitationOpt.map(Invitation::getCode).orElse(null);
         String code = generateCodeAvoidingSame(currentCode);
 
-        Invitation invitation;
-        if (existingInvitationOpt.isPresent()) {
-            invitation = existingInvitationOpt.get();
-            invitation.renew(invitedBy, token, code, expiresAt); // 재발급
-        } else {
-            invitation = Invitation.create(store, invitedBy, token, code, expiresAt);
-            invitation = invitationRepository.save(invitation);
-        }
+        Invitation invitation = existingInvitationOpt
+                .map(existing -> {
+                    existing.renew(invitedBy, token, code, expiresAt);
+                    return existing;
+                })
+                .orElseGet(() -> Invitation.create(store, invitedBy, token, code, expiresAt));
+
+        invitation = invitationRepository.save(invitation);
 
         return InvitationCreateResponse.from(invitation, invitationProperties.getFrontBaseUrl());
     }
