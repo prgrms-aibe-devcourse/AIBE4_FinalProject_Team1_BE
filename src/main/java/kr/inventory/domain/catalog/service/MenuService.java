@@ -47,32 +47,23 @@ public class MenuService {
     }
 
     public MenuResponse getMenu(Long userId, UUID storePublicId, UUID menuPublicId) {
-        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        Menu menu = menuRepository.findByMenuPublicId(menuPublicId)
-                .orElseThrow(() -> new MenuException(MenuErrorCode.MENU_NOT_FOUND));
-
-        if (!menu.getStore().getStoreId().equals(storeId)) {
-            throw new MenuException(MenuErrorCode.MENU_NOT_FOUND);
-        }
-
+        Menu menu = validateAndGetMenu(userId, storePublicId, menuPublicId);
         return MenuResponse.from(menu);
     }
 
     @Transactional
     public void updateMenu(Long userId, UUID storePublicId, UUID menuPublicId, MenuUpdateRequest request) {
-        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        Menu menu = menuRepository.findByMenuPublicId(menuPublicId)
-                .orElseThrow(() -> new MenuException(MenuErrorCode.MENU_NOT_FOUND));
-
-        if (!menu.getStore().getStoreId().equals(storeId)) {
-            throw new MenuException(MenuErrorCode.MENU_NOT_FOUND);
-        }
-
+        Menu menu = validateAndGetMenu(userId, storePublicId, menuPublicId);
         menu.update(request.name(), request.basePrice(), request.status(), request.ingredientsJson());
     }
 
     @Transactional
     public void deleteMenu(Long userId, UUID storePublicId, UUID menuPublicId) {
+        Menu menu = validateAndGetMenu(userId, storePublicId, menuPublicId);
+        menuRepository.delete(menu);
+    }
+
+    private Menu validateAndGetMenu(Long userId, UUID storePublicId, UUID menuPublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
         Menu menu = menuRepository.findByMenuPublicId(menuPublicId)
                 .orElseThrow(() -> new MenuException(MenuErrorCode.MENU_NOT_FOUND));
@@ -80,7 +71,6 @@ public class MenuService {
         if (!menu.getStore().getStoreId().equals(storeId)) {
             throw new MenuException(MenuErrorCode.MENU_NOT_FOUND);
         }
-
-        menuRepository.delete(menu);
+        return menu;
     }
 }
