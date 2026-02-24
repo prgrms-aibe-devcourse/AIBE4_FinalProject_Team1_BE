@@ -36,6 +36,9 @@ public class SecurityConfig {
                         .requestMatchers("/", "/error", "/favicon.ico").permitAll()
                         .requestMatchers("/login/**", "/api/auth/**").permitAll()
                         .requestMatchers("/api/users/**").authenticated()
+                        .requestMatchers("/api/stores/**").permitAll()
+                        .requestMatchers("/api/menus/**").permitAll()
+                        .requestMatchers("/api/ingredients/**").permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
