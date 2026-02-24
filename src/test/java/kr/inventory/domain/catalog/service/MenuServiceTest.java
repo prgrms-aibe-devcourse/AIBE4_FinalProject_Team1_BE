@@ -133,7 +133,7 @@ class MenuServiceTest {
         assertThatThrownBy(() -> menuService.getMenu(userId, storePublicId, menuPublicId))
                 .isInstanceOf(MenuException.class)
                 .extracting("errorModel")
-                .isEqualTo(MenuErrorCode.MENU_NOT_FOUND);
+                .isEqualTo(MenuErrorCode.MENU_ACCESS_DENIED);
     }
 
     @Test

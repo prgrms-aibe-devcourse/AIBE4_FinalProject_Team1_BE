@@ -69,7 +69,7 @@ public class MenuService {
                 .orElseThrow(() -> new MenuException(MenuErrorCode.MENU_NOT_FOUND));
 
         if (!menu.getStore().getStoreId().equals(storeId)) {
-            throw new MenuException(MenuErrorCode.MENU_NOT_FOUND);
+            throw new MenuException(MenuErrorCode.MENU_ACCESS_DENIED);
         }
         return menu;
     }
