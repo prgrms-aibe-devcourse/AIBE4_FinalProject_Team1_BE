@@ -8,6 +8,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Entity
 @Table(
         name = "vendors",
@@ -23,6 +25,9 @@ public class Vendor extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long vendorId;
+
+    @Column(nullable = false, unique = true, updatable = false)
+    private UUID vendorPublicId = UUID.randomUUID();
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "store_id", nullable = false)
