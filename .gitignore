@@ -47,6 +47,7 @@ src/main/generated/
 .env.*
 AGENTS.md
 mnt/
+.skills
 
 # Windows 예약어 파일
 nul
