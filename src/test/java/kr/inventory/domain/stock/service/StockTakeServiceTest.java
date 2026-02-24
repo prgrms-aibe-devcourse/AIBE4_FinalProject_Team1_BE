@@ -2,16 +2,16 @@ package kr.inventory.domain.stock.service;
 
 import kr.inventory.domain.catalog.entity.Ingredient;
 import kr.inventory.domain.catalog.repository.IngredientRepository;
-import kr.inventory.domain.stock.controller.dto.StocktakeCreateRequest;
-import kr.inventory.domain.stock.controller.dto.StocktakeItemRequest;
+import kr.inventory.domain.stock.controller.dto.StockTakeCreateRequest;
+import kr.inventory.domain.stock.controller.dto.StockTakeItemRequest;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
-import kr.inventory.domain.stock.entity.Stocktake;
-import kr.inventory.domain.stock.entity.StocktakeSheet;
-import kr.inventory.domain.stock.entity.enums.StocktakeStatus;
+import kr.inventory.domain.stock.entity.StockTake;
+import kr.inventory.domain.stock.entity.StockTakeSheet;
+import kr.inventory.domain.stock.entity.enums.StockTakeStatus;
 import kr.inventory.domain.stock.exception.StockException;
 import kr.inventory.domain.stock.repository.IngredientStockBatchRepository;
-import kr.inventory.domain.stock.repository.StocktakeRepository;
-import kr.inventory.domain.stock.repository.StocktakeSheetRepository;
+import kr.inventory.domain.stock.repository.StockTakeRepository;
+import kr.inventory.domain.stock.repository.StockTakeSheetRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,17 +34,17 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class StocktakeServiceTest {
+class StockTakeServiceTest {
 
     @Mock
-    private StocktakeRepository stocktakeRepository;
+    private StockTakeRepository stockTakeRepository;
     @Mock private IngredientStockBatchRepository batchRepository;
     @Mock private IngredientRepository ingredientRepository;
-    @Mock private StocktakeSheetRepository sheetRepository;
+    @Mock private StockTakeSheetRepository sheetRepository;
     @Mock private StoreAccessValidator storeAccessValidator;
 
     @InjectMocks
-    private StocktakeService stocktakeService;
+    private StockTakeService stockTakeService;
 
     private final Long userId = 1L;
     private final Long storeId = 10L;
@@ -52,21 +52,21 @@ class StocktakeServiceTest {
 
     @Test
     @DisplayName("실사 시트를 생성하면 시트와 항목들이 정상적으로 저장된다.")
-    void createStocktakeSheet_Success() {
+    void createStockTakeSheet_Success() {
         // given
-        StocktakeItemRequest itemReq = new StocktakeItemRequest(100L, new BigDecimal("50.0"));
-        StocktakeCreateRequest request = new StocktakeCreateRequest("정기 실사", List.of(itemReq));
+        StockTakeItemRequest itemReq = new StockTakeItemRequest(100L, new BigDecimal("50.0"));
+        StockTakeCreateRequest request = new StockTakeCreateRequest("정기 실사", List.of(itemReq));
         Ingredient ingredient = createIngredient(100L);
 
         given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
         given(ingredientRepository.findAllByStoreStoreIdAndIngredientIdIn(eq(storeId), anyList())).willReturn(List.of(ingredient));
 
         // when
-        stocktakeService.createStocktakeSheet(userId, storePublicId, request);
+        stockTakeService.createStockTakeSheet(userId, storePublicId, request);
 
         // then
-        verify(sheetRepository, times(1)).save(any(StocktakeSheet.class));
-        verify(stocktakeRepository, times(1)).saveAll(anyList());
+        verify(sheetRepository, times(1)).save(any(StockTakeSheet.class));
+        verify(stockTakeRepository, times(1)).saveAll(anyList());
     }
 
     @Test
@@ -74,24 +74,24 @@ class StocktakeServiceTest {
     void confirmSheet_Surplus_CreatesAdjustmentBatch() {
         // given
         Long sheetId = 1L;
-        StocktakeSheet sheet = createSheet(sheetId, storeId);
+        StockTakeSheet sheet = createSheet(sheetId, storeId);
         Ingredient ingredient = createIngredient(100L);
-        Stocktake stocktakeItem = createStocktakeItem(sheet, ingredient, new BigDecimal("150.0"));
+        StockTake stockTakeItem = createStockTakeItem(sheet, ingredient, new BigDecimal("150.0"));
         IngredientStockBatch batch = createBatch(storeId, ingredient, new BigDecimal("100.0"));
 
         given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
         given(sheetRepository.findByIdAndStoreIdWithLock(sheetId, storeId)).willReturn(Optional.of(sheet));
-        given(stocktakeRepository.findBySheet(sheet)).willReturn(List.of(stocktakeItem));
+        given(stockTakeRepository.findBySheet(sheet)).willReturn(List.of(stockTakeItem));
         given(batchRepository.findAvailableBatchesByStoreWithLock(eq(storeId), anyList())).willReturn(List.of(batch));
         given(batchRepository.findLatestUnitCostByStoreAndIngredient(storeId, 100L)).willReturn(Optional.of(new BigDecimal("1200")));
 
         // when
-        stocktakeService.confirmSheet(userId, storePublicId, sheetId);
+        stockTakeService.confirmSheet(userId, storePublicId, sheetId);
 
         // then
         assertThat(batch.getRemainingQuantity()).isEqualByComparingTo("100.0");
         verify(batchRepository, times(1)).save(any(IngredientStockBatch.class));
-        assertThat(sheet.getStatus()).isEqualTo(StocktakeStatus.CONFIRMED);
+        assertThat(sheet.getStatus()).isEqualTo(StockTakeStatus.CONFIRMED);
     }
 
     @Test
@@ -99,18 +99,18 @@ class StocktakeServiceTest {
     void confirmSheet_Deficit_UpdatesExistingBatches() {
         // given
         Long sheetId = 1L;
-        StocktakeSheet sheet = createSheet(sheetId, storeId);
+        StockTakeSheet sheet = createSheet(sheetId, storeId);
         Ingredient ingredient = createIngredient(200L);
-        Stocktake stocktakeItem = createStocktakeItem(sheet, ingredient, new BigDecimal("30.0"));
+        StockTake stockTakeItem = createStockTakeItem(sheet, ingredient, new BigDecimal("30.0"));
         IngredientStockBatch batch = createBatch(storeId, ingredient, new BigDecimal("100.0"));
 
         given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
         given(sheetRepository.findByIdAndStoreIdWithLock(sheetId, storeId)).willReturn(Optional.of(sheet));
-        given(stocktakeRepository.findBySheet(sheet)).willReturn(List.of(stocktakeItem));
+        given(stockTakeRepository.findBySheet(sheet)).willReturn(List.of(stockTakeItem));
         given(batchRepository.findAvailableBatchesByStoreWithLock(eq(storeId), anyList())).willReturn(List.of(batch));
 
         // when
-        stocktakeService.confirmSheet(userId, storePublicId, sheetId);
+        stockTakeService.confirmSheet(userId, storePublicId, sheetId);
 
         // then
         assertThat(batch.getRemainingQuantity()).isEqualByComparingTo("30.0");
@@ -122,14 +122,14 @@ class StocktakeServiceTest {
     void confirmSheet_AlreadyConfirmed_ThrowsException() {
         // given
         Long sheetId = 1L;
-        StocktakeSheet sheet = createSheet(sheetId, storeId);
+        StockTakeSheet sheet = createSheet(sheetId, storeId);
         sheet.confirm();
 
         given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
         given(sheetRepository.findByIdAndStoreIdWithLock(sheetId, storeId)).willReturn(Optional.of(sheet));
 
         // when & then
-        assertThatThrownBy(() -> stocktakeService.confirmSheet(userId, storePublicId, sheetId))
+        assertThatThrownBy(() -> stockTakeService.confirmSheet(userId, storePublicId, sheetId))
                 .isInstanceOf(StockException.class)
                 .hasMessageContaining("이미 확정된 시트입니다.");
     }
@@ -146,14 +146,14 @@ class StocktakeServiceTest {
         return ingredient;
     }
 
-    private StocktakeSheet createSheet(Long id, Long storeId) {
-        StocktakeSheet sheet = StocktakeSheet.create(storeId, "Test Sheet");
+    private StockTakeSheet createSheet(Long id, Long storeId) {
+        StockTakeSheet sheet = StockTakeSheet.create(storeId, "Test Sheet");
         ReflectionTestUtils.setField(sheet, "sheetId", id);
         return sheet;
     }
 
-    private Stocktake createStocktakeItem(StocktakeSheet sheet, Ingredient ingredient, BigDecimal qty) {
-        return Stocktake.createDraft(sheet, ingredient, qty);
+    private StockTake createStockTakeItem(StockTakeSheet sheet, Ingredient ingredient, BigDecimal qty) {
+        return kr.inventory.domain.stock.entity.StockTake.createDraft(sheet, ingredient, qty);
     }
 
     private IngredientStockBatch createBatch(Long storeId, Ingredient ingredient, BigDecimal qty) {

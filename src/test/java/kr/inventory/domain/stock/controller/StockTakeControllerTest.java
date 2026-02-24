@@ -2,9 +2,9 @@ package kr.inventory.domain.stock.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inventory.domain.auth.security.CustomUserDetails;
-import kr.inventory.domain.stock.controller.dto.StocktakeCreateRequest;
-import kr.inventory.domain.stock.controller.dto.StocktakeItemRequest;
-import kr.inventory.domain.stock.service.StocktakeService;
+import kr.inventory.domain.stock.controller.dto.StockTakeCreateRequest;
+import kr.inventory.domain.stock.controller.dto.StockTakeItemRequest;
+import kr.inventory.domain.stock.service.StockTakeService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,8 +28,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(StocktakeController.class)
-class StocktakeControllerTest {
+@WebMvcTest(StockTakeController.class)
+class StockTakeControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -38,7 +38,7 @@ class StocktakeControllerTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private StocktakeService stocktakeService;
+    private StockTakeService stockTakeService;
 
     private final UUID storePublicId = UUID.randomUUID();
     private final Long userId = 1L;
@@ -47,11 +47,11 @@ class StocktakeControllerTest {
     @DisplayName("새로운 실사 시트를 성공적으로 생성한다.")
     void createSheet_Success() throws Exception {
         // given
-        StocktakeItemRequest item = new StocktakeItemRequest(10L, new BigDecimal("50.0"));
-        StocktakeCreateRequest request = new StocktakeCreateRequest("2026-02-14 정기 실사", List.of(item));
+        StockTakeItemRequest item = new StockTakeItemRequest(10L, new BigDecimal("50.0"));
+        StockTakeCreateRequest request = new StockTakeCreateRequest("2026-02-14 정기 실사", List.of(item));
 
         CustomUserDetails userDetails = createMockUser();
-        given(stocktakeService.createStocktakeSheet(eq(userId), eq(storePublicId), any(StocktakeCreateRequest.class)))
+        given(stockTakeService.createStockTakeSheet(eq(userId), eq(storePublicId), any(StockTakeCreateRequest.class)))
                 .willReturn(100L);
 
         // when & then

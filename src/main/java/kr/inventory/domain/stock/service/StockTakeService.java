@@ -4,18 +4,18 @@ import kr.inventory.domain.catalog.entity.Ingredient;
 import kr.inventory.domain.catalog.exception.IngredientErrorCode;
 import kr.inventory.domain.catalog.exception.IngredientException;
 import kr.inventory.domain.catalog.repository.IngredientRepository;
-import kr.inventory.domain.stock.controller.dto.StocktakeCreateRequest;
-import kr.inventory.domain.stock.controller.dto.StocktakeItemRequest;
-import kr.inventory.domain.stock.controller.dto.StocktakeSheetResponse;
+import kr.inventory.domain.stock.controller.dto.StockTakeCreateRequest;
+import kr.inventory.domain.stock.controller.dto.StockTakeItemRequest;
+import kr.inventory.domain.stock.controller.dto.StockTakeSheetResponse;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
-import kr.inventory.domain.stock.entity.Stocktake;
-import kr.inventory.domain.stock.entity.StocktakeSheet;
-import kr.inventory.domain.stock.entity.enums.StocktakeStatus;
+import kr.inventory.domain.stock.entity.StockTake;
+import kr.inventory.domain.stock.entity.StockTakeSheet;
+import kr.inventory.domain.stock.entity.enums.StockTakeStatus;
 import kr.inventory.domain.stock.exception.StockErrorCode;
 import kr.inventory.domain.stock.exception.StockException;
 import kr.inventory.domain.stock.repository.IngredientStockBatchRepository;
-import kr.inventory.domain.stock.repository.StocktakeRepository;
-import kr.inventory.domain.stock.repository.StocktakeSheetRepository;
+import kr.inventory.domain.stock.repository.StockTakeRepository;
+import kr.inventory.domain.stock.repository.StockTakeSheetRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,51 +33,51 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class StocktakeService {
-    private final StocktakeRepository stocktakeRepository;
+public class StockTakeService {
+    private final StockTakeRepository stockTakeRepository;
     private final IngredientStockBatchRepository ingredientStockBatchRepository;
     private final IngredientRepository ingredientRepository;
-    private final StocktakeSheetRepository stocktakeSheetRepository;
+    private final StockTakeSheetRepository stockTakeSheetRepository;
     private final StoreAccessValidator storeAccessValidator;
 
     @Transactional(readOnly = true)
-    public List<StocktakeSheetResponse> getStocktakeSheets(Long userId, UUID storePublicId) {
+    public List<StockTakeSheetResponse> getStockTakeSheets(Long userId, UUID storePublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        List<StocktakeSheet> sheets = stocktakeSheetRepository.findAllByStoreIdOrderByCreatedAtDesc(storeId);
+        List<StockTakeSheet> sheets = stockTakeSheetRepository.findAllByStoreIdOrderByCreatedAtDesc(storeId);
         return sheets.stream()
-                .map(StocktakeSheetResponse::from)
+                .map(StockTakeSheetResponse::from)
                 .toList();
     }
 
     @Transactional
-    public Long createStocktakeSheet(Long userId, UUID storePublicId, StocktakeCreateRequest request){
+    public Long createStockTakeSheet(Long userId, UUID storePublicId, StockTakeCreateRequest request){
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
-        StocktakeSheet sheet = StocktakeSheet.create(storeId, request.title());
-        stocktakeSheetRepository.save(sheet);
+        StockTakeSheet sheet = StockTakeSheet.create(storeId, request.title());
+        stockTakeSheetRepository.save(sheet);
 
-        List<Long> ingredientIds = request.items().stream().map(StocktakeItemRequest::ingredientId).toList();
+        List<Long> ingredientIds = request.items().stream().map(StockTakeItemRequest::ingredientId).toList();
 
         Map<Long, Ingredient> ingredientMap = ingredientRepository.findAllByStoreStoreIdAndIngredientIdIn(storeId, ingredientIds).stream().collect(Collectors.toMap(Ingredient::getIngredientId, Function.identity()));
 
-        List<Stocktake> items = request.items().stream()
+        List<StockTake> items = request.items().stream()
                 .map(req -> {
                     Ingredient ingredient = Optional.ofNullable(ingredientMap.get(req.ingredientId()))
                             .orElseThrow(() -> new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND));
-                    return Stocktake.createDraft(sheet, ingredient, req.stocktakeQty());
+                    return kr.inventory.domain.stock.entity.StockTake.createDraft(sheet, ingredient, req.stocktakeQty());
                 })
                 .toList();
 
-        stocktakeRepository.saveAll(items);
+        stockTakeRepository.saveAll(items);
         return sheet.getSheetId();
     }
 
     @Transactional
     public void confirmSheet(Long userId, UUID storePublicId, Long sheetId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        StocktakeSheet sheet = getValidSheetForConfirm(sheetId, storeId);
+        StockTakeSheet sheet = getValidSheetForConfirm(sheetId, storeId);
 
-        List<Stocktake> items = stocktakeRepository.findBySheet(sheet);
+        List<StockTake> items = stockTakeRepository.findBySheet(sheet);
         if (items.isEmpty()){
             sheet.confirm();
             return;
@@ -90,17 +90,17 @@ public class StocktakeService {
         sheet.confirm();
     }
 
-    private StocktakeSheet getValidSheetForConfirm(Long sheetId, Long storeId) {
-        StocktakeSheet sheet = stocktakeSheetRepository.findByIdAndStoreIdWithLock(sheetId, storeId)
+    private StockTakeSheet getValidSheetForConfirm(Long sheetId, Long storeId) {
+        StockTakeSheet sheet = stockTakeSheetRepository.findByIdAndStoreIdWithLock(sheetId, storeId)
                 .orElseThrow(() -> new StockException(StockErrorCode.SHEET_NOT_FOUND));
 
-        if (sheet.getStatus() == StocktakeStatus.CONFIRMED) {
+        if (sheet.getStatus() == StockTakeStatus.CONFIRMED) {
             throw new StockException(StockErrorCode.ALREADY_CONFIRMED);
         }
         return sheet;
     }
 
-    private Map<Long, List<IngredientStockBatch>> fetchGroupedBatches(Long storeId, List<Stocktake> items) {
+    private Map<Long, List<IngredientStockBatch>> fetchGroupedBatches(Long storeId, List<StockTake> items) {
         List<Long> ingredientIds = items.stream()
                 .map(item -> item.getIngredient().getIngredientId())
                 .toList();
@@ -110,8 +110,8 @@ public class StocktakeService {
                 .collect(Collectors.groupingBy(IngredientStockBatch::getIngredientId));
     }
 
-    private void processStocktakeItems(Long storeId, List<Stocktake> items, Map<Long, List<IngredientStockBatch>> batchMap) {
-        for (Stocktake item : items) {
+    private void processStocktakeItems(Long storeId, List<StockTake> items, Map<Long, List<IngredientStockBatch>> batchMap) {
+        for (StockTake item : items) {
             Long ingredientId = item.getIngredient().getIngredientId();
             List<IngredientStockBatch> ingredientBatches = batchMap.getOrDefault(ingredientId, List.of());
 
@@ -119,14 +119,14 @@ public class StocktakeService {
         }
     }
 
-    private void confirmIndividualItem(Long storeId, Stocktake item, List<IngredientStockBatch> batches){
+    private void confirmIndividualItem(Long storeId, StockTake item, List<IngredientStockBatch> batches){
         Ingredient ingredient = item.getIngredient();
 
         BigDecimal theoreticalQty = batches.stream()
                 .map(IngredientStockBatch::getRemainingQuantity)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal varianceQty = item.getStocktakeQty().subtract(theoreticalQty);
+        BigDecimal varianceQty = item.getStockTakeQty().subtract(theoreticalQty);
 
         item.updateQuantities(theoreticalQty, varianceQty);
 

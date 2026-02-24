@@ -2,26 +2,26 @@ package kr.inventory.domain.stock.repository;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.LockModeType;
-import kr.inventory.domain.stock.entity.StocktakeSheet;
+import kr.inventory.domain.stock.entity.StockTakeSheet;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Optional;
 
-import static kr.inventory.domain.stock.entity.QStocktakeSheet.stocktakeSheet;
+import static kr.inventory.domain.stock.entity.QStockTakeSheet.stockTakeSheet;
 
 @RequiredArgsConstructor
-public class StocktakeSheetRepositoryImpl implements StocktakeSheetRepositoryCustom {
+public class StockTakeSheetRepositoryImpl implements StockTakeSheetRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public Optional<StocktakeSheet> findByIdAndStoreIdWithLock(Long sheetId, Long storeId) {
+    public Optional<StockTakeSheet> findByIdAndStoreIdWithLock(Long sheetId, Long storeId) {
         return Optional.ofNullable(
                 queryFactory
-                        .selectFrom(stocktakeSheet)
+                        .selectFrom(stockTakeSheet)
                         .where(
-                                stocktakeSheet.sheetId.eq(sheetId),
-                                stocktakeSheet.storeId.eq(storeId)
+                                stockTakeSheet.sheetId.eq(sheetId),
+                                stockTakeSheet.storeId.eq(storeId)
                         )
                         .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                         .fetchOne()
