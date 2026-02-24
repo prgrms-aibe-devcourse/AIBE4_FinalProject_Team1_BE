@@ -42,3 +42,7 @@ cors:
     - http://localhost:3000
     - https://inventorykitchen.cloud
     - https://www.inventorykitchen.cloud
+
+invitation:
+  ttl: PT30M
+  front-base-url: https://inventorykitchen.cloud

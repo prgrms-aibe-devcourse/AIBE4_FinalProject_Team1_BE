@@ -1,0 +1,65 @@
+package kr.inventory.domain.store.controller;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import kr.inventory.domain.auth.security.CustomUserDetails;
+import kr.inventory.domain.store.controller.dto.request.*;
+import kr.inventory.domain.store.controller.dto.response.*;
+import kr.inventory.domain.store.service.StoreService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/stores")
+@Tag(name = "Store", description = "매장")
+@RequiredArgsConstructor
+public class StoreController {
+
+    private final StoreService storeService;
+
+    @Operation(summary = "매장 등록")
+    @PostMapping
+    public ResponseEntity<StoreCreateResponse> createStore(
+        @AuthenticationPrincipal CustomUserDetails principal,
+        @Valid @RequestBody StoreCreateRequest request
+    ) {
+        StoreCreateResponse response = storeService.createStore(principal.getUserId(), request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @Operation(summary = "내 소속 매장 목록 조회")
+    @GetMapping
+    public ResponseEntity<List<MyStoreResponse>> getMyStores(
+        @AuthenticationPrincipal CustomUserDetails principal
+    ) {
+        List<MyStoreResponse> stores = storeService.getMyStores(principal.getUserId());
+        return ResponseEntity.ok(stores);
+    }
+
+    @Operation(summary = "매장 단건 조회")
+    @GetMapping("/{storeId}")
+    public ResponseEntity<MyStoreResponse> getStoreById(
+        @AuthenticationPrincipal CustomUserDetails principal,
+        @PathVariable Long storeId
+    ) {
+        MyStoreResponse response = storeService.getStoreById(principal.getUserId(), storeId);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "매장 상호명 변경")
+    @PatchMapping("/{storeId}/name")
+    public ResponseEntity<MyStoreResponse> updateStoreName(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @PathVariable Long storeId,
+            @Valid @RequestBody StoreNameUpdateRequest request
+    ) {
+        MyStoreResponse response = storeService.updateStoreName(principal.getUserId(), storeId, request);
+        return ResponseEntity.ok(response);
+    }
+}
