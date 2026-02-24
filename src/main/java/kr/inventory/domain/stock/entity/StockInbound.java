@@ -57,4 +57,20 @@ public class StockInbound extends AuditableEntity {
 		inbound.status = InboundStatus.DRAFT;
 		return inbound;
 	}
+
+	public static StockInbound create(Store store, Vendor vendor, Document sourceDocument, PurchaseOrder sourcePurchaseOrder) {
+		StockInbound inbound = new StockInbound();
+		inbound.store = store;
+		inbound.vendor = vendor;
+		inbound.sourceDocument = sourceDocument;
+		inbound.sourcePurchaseOrder = sourcePurchaseOrder;
+		inbound.status = InboundStatus.DRAFT;
+		return inbound;
+	}
+
+	public void confirm(User confirmedByUser) {
+		this.status = InboundStatus.CONFIRMED;
+		this.confirmedByUser = confirmedByUser;
+		this.confirmedAt = OffsetDateTime.now();
+	}
 }

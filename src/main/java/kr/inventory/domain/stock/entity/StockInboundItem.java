@@ -39,12 +39,16 @@ public class StockInboundItem extends CreatedAtEntity {
     public static StockInboundItem create(
             StockInbound inbound,
             Ingredient ingredient,
-            BigDecimal quantity
+            BigDecimal quantity,
+            BigDecimal unitCost,
+            LocalDate expirationDate
     ) {
         StockInboundItem item = new StockInboundItem();
         item.inbound = inbound;
         item.ingredient = ingredient;
         item.quantity = quantity;
+        item.unitCost = unitCost;
+        item.expirationDate = expirationDate;
         return item;
     }
 }

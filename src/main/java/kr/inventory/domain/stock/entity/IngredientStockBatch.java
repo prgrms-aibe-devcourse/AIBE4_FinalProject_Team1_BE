@@ -47,17 +47,18 @@ public class IngredientStockBatch extends AuditableEntity {
     @Column(nullable = false, length = 20)
     private StockBatchStatus status;
 
-    public static IngredientStockBatch create(
+    public static IngredientStockBatch createFromInbound(
             Ingredient ingredient,
-            StockInboundItem inboundItem,
-            BigDecimal initialQuantity
+            StockInboundItem inboundItem
     ) {
         IngredientStockBatch batch = new IngredientStockBatch();
         batch.ingredient = ingredient;
         batch.storeId = ingredient.getStore().getStoreId();
         batch.inboundItem = inboundItem;
-        batch.initialQuantity = initialQuantity;
-        batch.remainingQuantity = initialQuantity;
+        batch.initialQuantity = inboundItem.getQuantity();
+        batch.remainingQuantity = inboundItem.getQuantity();
+        batch.unitCost = inboundItem.getUnitCost();
+        batch.expirationDate = inboundItem.getExpirationDate();
         batch.status = StockBatchStatus.OPEN;
         return batch;
     }
