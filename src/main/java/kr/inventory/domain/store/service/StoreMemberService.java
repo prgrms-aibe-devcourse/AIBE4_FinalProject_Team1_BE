@@ -1,0 +1,80 @@
+package kr.inventory.domain.store.service;
+
+import kr.inventory.domain.store.controller.dto.request.*;
+import kr.inventory.domain.store.controller.dto.response.*;
+import kr.inventory.domain.store.entity.StoreMember;
+import kr.inventory.domain.store.entity.enums.StoreMemberRole;
+import kr.inventory.domain.store.entity.enums.StoreMemberStatus;
+import kr.inventory.domain.store.exception.StoreErrorCode;
+import kr.inventory.domain.store.exception.StoreException;
+import kr.inventory.domain.store.repository.StoreMemberRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class StoreMemberService {
+
+    private final StoreMemberRepository storeMemberRepository;
+
+    public List<StoreMemberResponse> getStoreMembers(Long userId, Long storeId) {
+        boolean isMember = storeMemberRepository.isStoreMember(storeId, userId);
+        if (!isMember) {
+            throw new StoreException(StoreErrorCode.NOT_STORE_MEMBER);
+        }
+
+        // 매장의 모든 멤버 조회
+        List<StoreMember> members = storeMemberRepository.findAllByStoreStoreIdWithUser(storeId);
+
+        return members.stream()
+            .map(StoreMemberResponse::from)
+            .toList();
+    }
+
+    public StoreMemberResponse getStoreMember(Long userId, Long storeId, Long memberId) {
+        boolean isMember = storeMemberRepository.isStoreMember(storeId, userId);
+        if (!isMember) {
+            throw new StoreException(StoreErrorCode.NOT_STORE_MEMBER);
+        }
+
+        StoreMember member = storeMemberRepository.findById(memberId)
+                .orElseThrow(() -> new StoreException(StoreErrorCode.MEMBER_NOT_FOUND));
+
+        // 매장 일치 여부 확인
+        if (!member.getStore().getStoreId().equals(storeId)) {
+            throw new StoreException(StoreErrorCode.MEMBER_NOT_FOUND_IN_STORE);
+        }
+
+        return StoreMemberResponse.from(member);
+    }
+
+    @Transactional
+    public StoreMemberResponse updateMemberStatus(Long userId, Long storeId, Long memberId, MemberStatusUpdateRequest request) {
+
+        // 권한 검증
+        storeMemberRepository.findByStoreStoreIdAndUserUserId(storeId, userId)
+                .orElseThrow(() -> new StoreException(StoreErrorCode.NOT_STORE_MEMBER));
+
+        // 멤버 조회
+        StoreMember targetMember = storeMemberRepository.findById(memberId)
+                .orElseThrow(() -> new StoreException(StoreErrorCode.MEMBER_NOT_FOUND));
+
+        if (!targetMember.getStore().getStoreId().equals(storeId)) {
+            throw new StoreException(StoreErrorCode.MEMBER_NOT_FOUND_IN_STORE);
+        }
+
+        // OWNER는 INACTIVE 금지
+        if (targetMember.getRole() == StoreMemberRole.OWNER &&
+            request.status() == StoreMemberStatus.INACTIVE) {
+            throw new StoreException(StoreErrorCode.CANNOT_DEACTIVATE_OWNER);
+        }
+
+        targetMember.updateStatus(request.status());
+
+        return StoreMemberResponse.from(targetMember);
+    }
+}
