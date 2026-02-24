@@ -1,8 +1,8 @@
-package kr.inventory.domain.purchase.entity;
+package kr.inventory.domain.vendor.entity;
 
 import jakarta.persistence.*;
 import kr.inventory.domain.common.AuditableEntity;
-import kr.inventory.domain.purchase.entity.enums.VendorStatus;
+import kr.inventory.domain.vendor.entity.enums.VendorStatus;
 import kr.inventory.domain.store.entity.Store;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -46,11 +46,40 @@ public class Vendor extends AuditableEntity {
     @Column(nullable = false, length = 20)
     private VendorStatus status;
 
-    public static Vendor create(Store store, String name) {
+    public static Vendor create(
+            Store store,
+            String name,
+            String contactPerson,
+            String phone,
+            String email,
+            Integer leadTimeDays
+    ) {
         Vendor vendor = new Vendor();
         vendor.store = store;
         vendor.name = name;
+        vendor.contactPerson = contactPerson;
+        vendor.phone = phone;
+        vendor.email = email;
+        vendor.leadTimeDays = leadTimeDays != null ? leadTimeDays : 1;
         vendor.status = VendorStatus.ACTIVE;
         return vendor;
+    }
+
+    public void updateContactInfo(String contactPerson, String phone, String email) {
+        this.contactPerson = contactPerson;
+        this.phone = phone;
+        this.email = email;
+    }
+
+    public void updateLeadTime(Integer leadTimeDays) {
+        this.leadTimeDays = leadTimeDays;
+    }
+
+    public void deactivate() {
+        this.status = VendorStatus.INACTIVE;
+    }
+
+    public void activate() {
+        this.status = VendorStatus.ACTIVE;
     }
 }
