@@ -88,7 +88,6 @@ class TheoreticalUsageServiceTest {
         SalesOrderItem item = BeanUtils.instantiateClass(SalesOrderItem.class);
         Menu menu = BeanUtils.instantiateClass(Menu.class);
 
-        // [수정] List를 JsonNode로 변환하여 타입 불일치 해결
         JsonNode jsonNode = objectMapper.valueToTree(jsonContent);
 
         ReflectionTestUtils.setField(menu, "menuId", menuId);

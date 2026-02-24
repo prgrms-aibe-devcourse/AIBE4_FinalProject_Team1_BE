@@ -5,6 +5,7 @@ import kr.inventory.domain.common.AuditableEntity;
 import kr.inventory.domain.purchase.entity.enums.PurchaseOrderStatus;
 import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.user.entity.User;
+import kr.inventory.domain.vendor.entity.Vendor;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

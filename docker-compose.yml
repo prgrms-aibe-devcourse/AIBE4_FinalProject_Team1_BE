@@ -1,6 +1,18 @@
 services:
-  # Elasticsearch - 로컬 개발용
-  # 서버 ES를 쓸 경우 이 서비스를 주석 처리하고 .env에서 ES_URL을 서버 주소로 변경
+  redis:
+    image: redis:7.4.7
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
   elasticsearch:
     container_name: elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:8.19.10
@@ -19,7 +31,6 @@ services:
       retries: 10
       start_period: 30s
 
-  # Backend (로컬 빌드, 서버 DB/Valkey는 SSM 터널로 접근)
   backend:
     build:
       context: .
@@ -28,26 +39,17 @@ services:
     ports:
       - "8080:8080"
     environment:
-      # dev == local 의미로 사용
       - SPRING_PROFILES_ACTIVE=dev
-
-      # ★ 중요: RDS(공용/서버 DB) 붙을 때 dev의 ddl-auto=create는 위험하므로,
-      # docker-compose에서 안전하게 덮어쓰기 권장
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop
-      # 필요하면 validate 대신 none도 고려 가능:
-      # - SPRING_JPA_HIBERNATE_DDL_AUTO=none
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
     env_file:
       - .env
     depends_on:
+      redis:
+        condition: service_healthy
       elasticsearch:
         condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    # (선택) 만약 Valkey TLS 핸드셰이크에서 호스트네임 검증 문제 등이 생기면,
-    # 아래처럼 엔드포인트 호스트를 host-gateway로 매핑하고,
-    # .env의 REDIS_HOST를 실제 엔드포인트로 바꾸는 방식으로 해결할 수 있습니다.
-    # - "<VALKEY_ENDPOINT>:host-gateway"
-    # - "<RDS_ENDPOINT>:host-gateway"
 
   web:
     build:
@@ -62,7 +64,6 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
 
-  # Monitoring Stack
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -134,6 +135,7 @@ services:
     restart: unless-stopped
 
 volumes:
+  redis-data:
   es-data:
   prometheus_data:
   grafana_data:

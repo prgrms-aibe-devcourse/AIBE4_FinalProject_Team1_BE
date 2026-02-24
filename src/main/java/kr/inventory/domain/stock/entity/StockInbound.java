@@ -3,7 +3,7 @@ package kr.inventory.domain.stock.entity;
 import jakarta.persistence.*;
 import kr.inventory.domain.common.AuditableEntity;
 import kr.inventory.domain.document.entity.Document;
-import kr.inventory.domain.purchase.entity.Vendor;
+import kr.inventory.domain.vendor.entity.Vendor;
 import kr.inventory.domain.stock.entity.enums.InboundStatus;
 import kr.inventory.domain.purchase.entity.PurchaseOrder;
 import kr.inventory.domain.store.entity.Store;

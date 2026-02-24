@@ -1,7 +1,9 @@
 package kr.inventory.domain.stock.service;
 
 import kr.inventory.domain.catalog.entity.Ingredient;
-import kr.inventory.domain.stock.controller.dto.StocktakeDto;
+import kr.inventory.domain.catalog.repository.IngredientRepository;
+import kr.inventory.domain.stock.controller.dto.StocktakeCreateRequest;
+import kr.inventory.domain.stock.controller.dto.StocktakeItemRequest;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.Stocktake;
 import kr.inventory.domain.stock.entity.StocktakeSheet;
@@ -10,7 +12,6 @@ import kr.inventory.domain.stock.exception.StockException;
 import kr.inventory.domain.stock.repository.IngredientStockBatchRepository;
 import kr.inventory.domain.stock.repository.StocktakeRepository;
 import kr.inventory.domain.stock.repository.StocktakeSheetRepository;
-import kr.inventory.domain.catalog.repository.IngredientRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -53,8 +54,8 @@ class StocktakeServiceTest {
     @DisplayName("실사 시트를 생성하면 시트와 항목들이 정상적으로 저장된다.")
     void createStocktakeSheet_Success() {
         // given
-        StocktakeDto.ItemRequest itemReq = new StocktakeDto.ItemRequest(100L, new BigDecimal("50.0"));
-        StocktakeDto.CreateRequest request = new StocktakeDto.CreateRequest("정기 실사", List.of(itemReq));
+        StocktakeItemRequest itemReq = new StocktakeItemRequest(100L, new BigDecimal("50.0"));
+        StocktakeCreateRequest request = new StocktakeCreateRequest("정기 실사", List.of(itemReq));
         Ingredient ingredient = createIngredient(100L);
 
         given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
