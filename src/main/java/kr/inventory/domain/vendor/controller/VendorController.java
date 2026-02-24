@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-@Tag(name = "Vendor", description = "거래처 관리")
+@Tag(name = "거래처(Vendor)", description = "거래처 관리 API")
 @RestController
 @RequestMapping("/api/vendors/{storePublicId}")
 @RequiredArgsConstructor
