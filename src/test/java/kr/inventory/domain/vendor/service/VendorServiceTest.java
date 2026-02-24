@@ -46,7 +46,7 @@ class VendorServiceTest {
     void givenValidRequest_whenCreateVendor_thenSuccess() {
         // given
         Long storeId = 1L;
-        Store store = Store.create("청춘식당", "1234567890", "서울시 강남구", "02-1234-5678");
+        Store store = Store.create("청춘식당", "1234567890");
 
         VendorCreateRequest request = new VendorCreateRequest(
                 "신선마트",
@@ -115,7 +115,7 @@ class VendorServiceTest {
     void givenDuplicateName_whenCreateVendor_thenThrowException() {
         // given
         Long storeId = 1L;
-        Store store = Store.create("청춘식당", "1234567890", "서울시 강남구", "02-1234-5678");
+        Store store = Store.create("청춘식당", "1234567890");
 
         VendorCreateRequest request = new VendorCreateRequest(
                 "신선마트",
@@ -143,7 +143,7 @@ class VendorServiceTest {
     void givenStoreId_whenGetVendorsByStore_thenReturnList() {
         // given
         Long storeId = 1L;
-        Store store = Store.create("청춘식당", "1234567890", "서울시 강남구", "02-1234-5678");
+        Store store = Store.create("청춘식당", "1234567890");
 
         Vendor vendor1 = Vendor.create(store, "신선마트", "김철수", "010-1111-1111", "v1@test.com", 1);
         Vendor vendor2 = Vendor.create(store, "농협마트", "이영희", "010-2222-2222", "v2@test.com", 2);
@@ -167,7 +167,7 @@ class VendorServiceTest {
     void givenStoreIdAndActiveStatus_whenGetVendorsByStore_thenReturnActiveOnly() {
         // given
         Long storeId = 1L;
-        Store store = Store.create("청춘식당", "1234567890", "서울시 강남구", "02-1234-5678");
+        Store store = Store.create("청춘식당", "1234567890");
 
         Vendor activeVendor = Vendor.create(store, "신선마트", "김철수", "010-1111-1111", "v1@test.com", 1);
 
@@ -189,7 +189,7 @@ class VendorServiceTest {
     void givenVendorId_whenGetVendor_thenReturnVendor() {
         // given
         Long vendorId = 1L;
-        Store store = Store.create("청춘식당", "1234567890", "서울시 강남구", "02-1234-5678");
+        Store store = Store.create("청춘식당", "1234567890");
         Vendor vendor = Vendor.create(store, "신선마트", "김철수", "010-1234-5678", "fresh@market.com", 2);
 
         given(vendorRepository.findById(vendorId)).willReturn(Optional.of(vendor));
@@ -227,7 +227,7 @@ class VendorServiceTest {
     void givenValidRequest_whenUpdateVendor_thenSuccess() {
         // given
         Long vendorId = 1L;
-        Store store = Store.create("청춘식당", "1234567890", "서울시 강남구", "02-1234-5678");
+        Store store = Store.create("청춘식당", "1234567890");
         Vendor vendor = Vendor.create(store, "신선마트", "김철수", "010-1234-5678", "fresh@market.com", 2);
 
         VendorUpdateRequest request = new VendorUpdateRequest(
@@ -280,7 +280,7 @@ class VendorServiceTest {
     void givenVendorId_whenDeactivateVendor_thenSuccess() {
         // given
         Long vendorId = 1L;
-        Store store = Store.create("청춘식당", "1234567890", "서울시 강남구", "02-1234-5678");
+        Store store = Store.create("청춘식당", "1234567890");
         Vendor vendor = Vendor.create(store, "신선마트", "김철수", "010-1234-5678", "fresh@market.com", 2);
 
         given(vendorRepository.findById(vendorId)).willReturn(Optional.of(vendor));
