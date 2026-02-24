@@ -54,7 +54,7 @@ class VendorServiceTest {
         Long userId = 1L;
         UUID storePublicId = UUID.randomUUID();
         Long storeId = 1L;
-        Store store = Store.create("청춘식당", "1234567890", "서울시 강남구", "02-1234-5678");
+        Store store = Store.create("청춘식당", "1234567890");
         ReflectionTestUtils.setField(store, "storeId", storeId);
 
         VendorCreateRequest request = new VendorCreateRequest(
@@ -132,7 +132,7 @@ class VendorServiceTest {
         Long userId = 1L;
         UUID storePublicId = UUID.randomUUID();
         Long storeId = 1L;
-        Store store = Store.create("청춘식당", "1234567890", "서울시 강남구", "02-1234-5678");
+        Store store = Store.create("청춘식당", "1234567890");
 
         VendorCreateRequest request = new VendorCreateRequest(
                 "신선마트",
@@ -164,7 +164,7 @@ class VendorServiceTest {
         Long userId = 1L;
         UUID storePublicId = UUID.randomUUID();
         Long storeId = 1L;
-        Store store = Store.create("청춘식당", "1234567890", "서울시 강남구", "02-1234-5678");
+        Store store = Store.create("청춘식당", "1234567890");
 
         Vendor vendor1 = Vendor.create(store, "신선마트", "김철수", "010-1111-1111", "v1@test.com", 1);
         Vendor vendor2 = Vendor.create(store, "농협마트", "이영희", "010-2222-2222", "v2@test.com", 2);
@@ -194,7 +194,7 @@ class VendorServiceTest {
         UUID vendorPublicId = UUID.randomUUID();
         Long storeId = 1L;
 
-        Store store = Store.create("청춘식당", "1234567890", "서울시 강남구", "02-1234-5678");
+        Store store = Store.create("청춘식당", "1234567890");
         ReflectionTestUtils.setField(store, "storeId", storeId);
 
         Vendor vendor = Vendor.create(store, "신선마트", "김철수", "010-1234-5678", "fresh@market.com", 2);
@@ -245,7 +245,7 @@ class VendorServiceTest {
         UUID vendorPublicId = UUID.randomUUID();
         Long storeId = 1L;
 
-        Store store = Store.create("청춘식당", "1234567890", "서울시 강남구", "02-1234-5678");
+        Store store = Store.create("청춘식당", "1234567890");
         ReflectionTestUtils.setField(store, "storeId", storeId);
 
         Vendor vendor = Vendor.create(store, "신선마트", "김철수", "010-1234-5678", "fresh@market.com", 2);
@@ -312,7 +312,7 @@ class VendorServiceTest {
         UUID vendorPublicId = UUID.randomUUID();
         Long storeId = 1L;
 
-        Store store = Store.create("청춘식당", "1234567890", "서울시 강남구", "02-1234-5678");
+        Store store = Store.create("청춘식당", "1234567890");
         ReflectionTestUtils.setField(store, "storeId", storeId);
 
         Vendor vendor = Vendor.create(store, "신선마트", "김철수", "010-1234-5678", "fresh@market.com", 2);
