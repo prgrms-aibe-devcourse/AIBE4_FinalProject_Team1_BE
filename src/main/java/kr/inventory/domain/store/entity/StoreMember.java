@@ -9,9 +9,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-
 @Entity
 @Table(
         name = "store_members",
@@ -41,21 +38,13 @@ public class StoreMember extends AuditableEntity {
     @Column(nullable = false, length = 20)
     private StoreMemberStatus status;
 
-    @Column(nullable = false)
-    private OffsetDateTime joinedAt;
-
     public static StoreMember create(Store store, User user, StoreMemberRole role) {
         StoreMember member = new StoreMember();
         member.store = store;
         member.user = user;
         member.role = role;
         member.status = StoreMemberStatus.ACTIVE;
-        member.joinedAt = OffsetDateTime.now(ZoneOffset.UTC);
         return member;
-    }
-
-    public void updateRole(StoreMemberRole newRole) {
-        this.role = newRole;
     }
 
     public void updateStatus(StoreMemberStatus newStatus) {
