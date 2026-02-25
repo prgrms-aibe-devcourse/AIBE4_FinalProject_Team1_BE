@@ -7,6 +7,8 @@ import kr.inventory.domain.store.entity.Store;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 
 import java.util.UUID;
 
@@ -21,6 +23,8 @@ import java.util.UUID;
                 @Index(name = "idx_dining_tables_public_id", columnList = "table_public_id")
         }
 )
+@SQLDelete(sql = "UPDATE menus SET status = 'DELETED' WHERE menu_id = ?")
+@Where(clause = "status <> 'DELETED'")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class DiningTable extends AuditableEntity {
@@ -51,11 +55,8 @@ public class DiningTable extends AuditableEntity {
         return t;
     }
 
-    public void updateTableCode(String tableCode) {
+    public void update(String tableCode, TableStatus status) {
         if (tableCode != null) this.tableCode = tableCode;
-    }
-
-    public void changeStatus(TableStatus status) {
         if (status != null) this.status = status;
     }
 }
