@@ -13,7 +13,7 @@ public interface TableQrRepository extends JpaRepository<TableQr, Long> {
 
     Optional<TableQr> findTopByTable_TableIdOrderByRotationVersionDesc(Long tableId);
 
-    Optional<TableQr> findByStore_StorePublicIdAndEntryTokenHashAndStatus(
+    Optional<TableQr> findByTable_Store_StorePublicIdAndEntryTokenHashAndStatus(
             UUID storePublicId,
             String entryTokenHash,
             TableQrStatus status
