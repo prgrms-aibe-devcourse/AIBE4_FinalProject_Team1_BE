@@ -39,25 +39,6 @@ public class StoreAccessValidator {
             .findByStoreStoreIdAndUserUserId(storeId, userId)
             .orElseThrow(() -> new StoreException(StoreErrorCode.NOT_STORE_MEMBER));
 
-        // ACTIVE 상태인지 확인 (선택적)
-        // if (member.getStatus() != StoreMemberStatus.ACTIVE) {
-        //     throw new StoreException(StoreErrorCode.NOT_STORE_MEMBER);
-        // }
-
         return storeId;
-    }
-
-    /**
-     * 사용자가 매장 멤버인지 검증만 수행
-     *
-     * @param userId 사용자 ID
-     * @param storeId 매장 ID
-     * @throws StoreException 매장 멤버가 아닌 경우
-     */
-    public void validateStoreMember(Long userId, Long storeId) {
-        boolean isMember = storeMemberRepository.isStoreMember(storeId, userId);
-        if (!isMember) {
-            throw new StoreException(StoreErrorCode.NOT_STORE_MEMBER);
-        }
     }
 }
