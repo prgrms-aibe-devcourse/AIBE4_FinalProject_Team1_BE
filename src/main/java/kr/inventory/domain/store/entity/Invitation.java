@@ -15,7 +15,8 @@ import java.time.OffsetDateTime;
         name = "store_invitations",
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_store_invitation_store", columnNames = "store_id"),
-                @UniqueConstraint(name = "uk_store_invitation_token", columnNames = "token")
+                @UniqueConstraint(name = "uk_store_invitation_token", columnNames = "token"),
+                @UniqueConstraint(name = "uk_store_invitation_code", columnNames = "code")
         }
 )
 @Getter
