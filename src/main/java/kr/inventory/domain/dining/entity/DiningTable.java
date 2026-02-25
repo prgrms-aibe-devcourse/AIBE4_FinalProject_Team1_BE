@@ -23,7 +23,7 @@ import java.util.UUID;
                 @Index(name = "idx_dining_tables_public_id", columnList = "table_public_id")
         }
 )
-@SQLDelete(sql = "UPDATE menus SET status = 'DELETED' WHERE menu_id = ?")
+@SQLDelete(sql = "UPDATE dining_tables SET status = 'DELETED' WHERE table_id = ?")
 @Where(clause = "status <> 'DELETED'")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
