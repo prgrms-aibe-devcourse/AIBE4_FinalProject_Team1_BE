@@ -4,9 +4,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import kr.inventory.domain.auth.security.CustomUserDetails;
-import kr.inventory.domain.stock.controller.dto.StocktakeCreateRequest;
-import kr.inventory.domain.stock.controller.dto.StocktakeSheetResponse;
-import kr.inventory.domain.stock.service.StocktakeService;
+import kr.inventory.domain.stock.controller.dto.StockTakeCreateRequest;
+import kr.inventory.domain.stock.controller.dto.StockTakeSheetResponse;
+import kr.inventory.domain.stock.service.StockTakeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -15,22 +15,22 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-@Tag(name = "재고 실사(Stocktake)", description = "매장 재고 실사 관련 기능을 담당하는 API입니다.")
+@Tag(name = "재고 실사(StockTake)", description = "매장 재고 실사 관련 기능을 담당하는 API입니다.")
 @RestController
 @RequestMapping("/api/stocktakes/{storePublicId}")
 @RequiredArgsConstructor
-public class StocktakeController {
-    private final StocktakeService stocktakeService;
+public class StockTakeController {
+    private final StockTakeService stockTakeService;
 
     @Operation(
             summary = "재고 실사 시트 목록 조회",
             description = "특정 매장의 모든 재고 실사 시트 목록을 조회합니다."
     )
     @GetMapping
-    public ResponseEntity<List<StocktakeSheetResponse>> getSheets(
+    public ResponseEntity<List<StockTakeSheetResponse>> getSheets(
             @PathVariable UUID storePublicId,
             @AuthenticationPrincipal CustomUserDetails principal) {
-        return ResponseEntity.ok(stocktakeService.getStocktakeSheets(principal.getUserId(), storePublicId));
+        return ResponseEntity.ok(stockTakeService.getStockTakeSheets(principal.getUserId(), storePublicId));
     }
 
     @Operation(
@@ -41,8 +41,8 @@ public class StocktakeController {
     public ResponseEntity<Long> createSheet(
             @PathVariable UUID storePublicId,
             @AuthenticationPrincipal CustomUserDetails principal,
-            @RequestBody @Valid StocktakeCreateRequest request) {
-        return ResponseEntity.ok(stocktakeService.createStocktakeSheet(principal.getUserId(), storePublicId, request));
+            @RequestBody @Valid StockTakeCreateRequest request) {
+        return ResponseEntity.ok(stockTakeService.createStockTakeSheet(principal.getUserId(), storePublicId, request));
     }
 
     @Operation(
@@ -54,7 +54,7 @@ public class StocktakeController {
             @PathVariable UUID storePublicId,
             @PathVariable Long sheetId,
             @AuthenticationPrincipal CustomUserDetails principal) {
-        stocktakeService.confirmSheet(principal.getUserId(), storePublicId, sheetId);
+        stockTakeService.confirmSheet(principal.getUserId(), storePublicId, sheetId);
         return ResponseEntity.noContent().build();
     }
 }

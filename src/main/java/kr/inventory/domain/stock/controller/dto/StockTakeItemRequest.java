@@ -5,7 +5,7 @@ import jakarta.validation.constraints.PositiveOrZero;
 
 import java.math.BigDecimal;
 
-public record StocktakeItemRequest(
+public record StockTakeItemRequest(
         @NotNull Long ingredientId,
         @NotNull @PositiveOrZero BigDecimal stocktakeQty
 ) {}

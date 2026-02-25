@@ -1,6 +1,7 @@
 package kr.inventory.domain.vendor.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.vendor.controller.dto.VendorCreateRequest;
 import kr.inventory.domain.vendor.controller.dto.VendorResponse;
 import kr.inventory.domain.vendor.controller.dto.VendorUpdateRequest;
@@ -11,18 +12,20 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -41,12 +44,14 @@ class VendorControllerTest {
     @MockitoBean
     private VendorService vendorService;
 
+    private final Long userId = 1L;
+    private final UUID storePublicId = UUID.randomUUID();
+    private final UUID vendorPublicId = UUID.randomUUID();
+
     @Test
-    @WithMockUser
     @DisplayName("거래처 등록 성공")
     void givenValidRequest_whenCreateVendor_thenReturnsCreated() throws Exception {
         // given
-        Long storeId = 1L;
         VendorCreateRequest request = new VendorCreateRequest(
                 "신선마트",
                 "김철수",
@@ -56,7 +61,7 @@ class VendorControllerTest {
         );
 
         VendorResponse response = new VendorResponse(
-                1L,
+                vendorPublicId,
                 "신선마트",
                 "김철수",
                 "010-1234-5678",
@@ -67,12 +72,16 @@ class VendorControllerTest {
                 OffsetDateTime.now()
         );
 
-        given(vendorService.createVendor(eq(storeId), any(VendorCreateRequest.class)))
+        CustomUserDetails userDetails = mock(CustomUserDetails.class);
+        given(userDetails.getUserId()).willReturn(userId);
+
+        given(vendorService.createVendor(eq(userId), eq(storePublicId), any(VendorCreateRequest.class)))
                 .willReturn(response);
 
         // when & then
-        mockMvc.perform(post("/api/stores/{storeId}/vendors", storeId)
+        mockMvc.perform(post("/api/vendors/{storePublicId}", storePublicId)
                         .with(csrf())
+                        .with(user(userDetails))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -86,11 +95,9 @@ class VendorControllerTest {
     }
 
     @Test
-    @WithMockUser
     @DisplayName("거래처 등록 실패 - Validation 오류")
     void givenInvalidRequest_whenCreateVendor_thenReturnsBadRequest() throws Exception {
         // given
-        Long storeId = 1L;
         VendorCreateRequest request = new VendorCreateRequest(
                 "",  // 빈 문자열 (NotBlank 위반)
                 "김철수",
@@ -99,9 +106,13 @@ class VendorControllerTest {
                 2
         );
 
+        CustomUserDetails userDetails = mock(CustomUserDetails.class);
+        given(userDetails.getUserId()).willReturn(userId);
+
         // when & then
-        mockMvc.perform(post("/api/stores/{storeId}/vendors", storeId)
+        mockMvc.perform(post("/api/vendors/{storePublicId}", storePublicId)
                         .with(csrf())
+                        .with(user(userDetails))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -109,20 +120,23 @@ class VendorControllerTest {
     }
 
     @Test
-    @WithMockUser
     @DisplayName("매장별 거래처 목록 조회 성공")
     void givenVendorsExist_whenGetVendorsByStore_thenReturnsVendorList() throws Exception {
         // given
-        Long storeId = 1L;
-        VendorResponse vendor1 = new VendorResponse(1L, "농협마트", "이영희", "010-2222-2222", "v2@test.com", 2, VendorStatus.ACTIVE, OffsetDateTime.now(), OffsetDateTime.now());
-        VendorResponse vendor2 = new VendorResponse(2L, "신선마트", "김철수", "010-1111-1111", "v1@test.com", 1, VendorStatus.ACTIVE, OffsetDateTime.now(), OffsetDateTime.now());
+        VendorResponse vendor1 = new VendorResponse(UUID.randomUUID(), "농협마트", "이영희", "010-2222-2222", "v2@test.com", 2, VendorStatus.ACTIVE, OffsetDateTime.now(), OffsetDateTime.now());
+        VendorResponse vendor2 = new VendorResponse(UUID.randomUUID(), "신선마트", "김철수", "010-1111-1111", "v1@test.com", 1, VendorStatus.ACTIVE, OffsetDateTime.now(), OffsetDateTime.now());
 
-        given(vendorService.getVendorsByStore(storeId, null))
+        CustomUserDetails userDetails = mock(CustomUserDetails.class);
+        given(userDetails.getUserId()).willReturn(userId);
+
+        given(vendorService.getVendorsByStore(userId, storePublicId, VendorStatus.ACTIVE))
                 .willReturn(List.of(vendor1, vendor2));
 
         // when & then
-        mockMvc.perform(get("/api/stores/{storeId}/vendors", storeId)
-                        .with(csrf()))
+        mockMvc.perform(get("/api/vendors/{storePublicId}", storePublicId)
+                        .with(csrf())
+                        .with(user(userDetails))
+                        .param("status", "ACTIVE"))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("농협마트"))
@@ -130,19 +144,21 @@ class VendorControllerTest {
     }
 
     @Test
-    @WithMockUser
     @DisplayName("매장별 거래처 목록 조회 - ACTIVE 필터링")
     void givenMixedStatus_whenGetVendorsByStoreWithActiveFilter_thenReturnsActiveOnly() throws Exception {
         // given
-        Long storeId = 1L;
-        VendorResponse activeVendor = new VendorResponse(1L, "신선마트", "김철수", "010-1111-1111", "v1@test.com", 1, VendorStatus.ACTIVE, OffsetDateTime.now(), OffsetDateTime.now());
+        VendorResponse activeVendor = new VendorResponse(vendorPublicId, "신선마트", "김철수", "010-1111-1111", "v1@test.com", 1, VendorStatus.ACTIVE, OffsetDateTime.now(), OffsetDateTime.now());
 
-        given(vendorService.getVendorsByStore(storeId, VendorStatus.ACTIVE))
+        CustomUserDetails userDetails = mock(CustomUserDetails.class);
+        given(userDetails.getUserId()).willReturn(userId);
+
+        given(vendorService.getVendorsByStore(userId, storePublicId, VendorStatus.ACTIVE))
                 .willReturn(List.of(activeVendor));
 
         // when & then
-        mockMvc.perform(get("/api/stores/{storeId}/vendors", storeId)
+        mockMvc.perform(get("/api/vendors/{storePublicId}", storePublicId)
                         .with(csrf())
+                        .with(user(userDetails))
                         .param("status", "ACTIVE"))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -151,13 +167,11 @@ class VendorControllerTest {
     }
 
     @Test
-    @WithMockUser
     @DisplayName("거래처 상세 조회 성공")
     void givenVendorExists_whenGetVendor_thenReturnsVendor() throws Exception {
         // given
-        Long vendorId = 1L;
         VendorResponse response = new VendorResponse(
-                vendorId,
+                vendorPublicId,
                 "신선마트",
                 "김철수",
                 "010-1234-5678",
@@ -168,25 +182,26 @@ class VendorControllerTest {
                 OffsetDateTime.now()
         );
 
-        given(vendorService.getVendor(vendorId))
+        CustomUserDetails userDetails = mock(CustomUserDetails.class);
+        given(userDetails.getUserId()).willReturn(userId);
+
+        given(vendorService.getVendor(storePublicId, vendorPublicId, userId))
                 .willReturn(response);
 
         // when & then
-        mockMvc.perform(get("/api/vendors/{vendorId}", vendorId)
-                        .with(csrf()))
+        mockMvc.perform(get("/api/vendors/{storePublicId}/{vendorPublicId}", storePublicId, vendorPublicId)
+                        .with(csrf())
+                        .with(user(userDetails)))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.vendorId").value(vendorId))
                 .andExpect(jsonPath("$.name").value("신선마트"))
                 .andExpect(jsonPath("$.contactPerson").value("김철수"));
     }
 
     @Test
-    @WithMockUser
     @DisplayName("거래처 수정 성공")
     void givenValidRequest_whenUpdateVendor_thenReturnsUpdatedVendor() throws Exception {
         // given
-        Long vendorId = 1L;
         VendorUpdateRequest request = new VendorUpdateRequest(
                 "박영수",
                 "010-9999-9999",
@@ -195,7 +210,7 @@ class VendorControllerTest {
         );
 
         VendorResponse response = new VendorResponse(
-                vendorId,
+                vendorPublicId,
                 "신선마트",  // 거래처명은 변경 불가
                 "박영수",
                 "010-9999-9999",
@@ -206,12 +221,16 @@ class VendorControllerTest {
                 OffsetDateTime.now()
         );
 
-        given(vendorService.updateVendor(eq(vendorId), any(VendorUpdateRequest.class)))
+        CustomUserDetails userDetails = mock(CustomUserDetails.class);
+        given(userDetails.getUserId()).willReturn(userId);
+
+        given(vendorService.updateVendor(eq(storePublicId), eq(vendorPublicId), eq(userId), any(VendorUpdateRequest.class)))
                 .willReturn(response);
 
         // when & then
-        mockMvc.perform(patch("/api/vendors/{vendorId}", vendorId)
+        mockMvc.perform(patch("/api/vendors/{storePublicId}/{vendorPublicId}", storePublicId, vendorPublicId)
                         .with(csrf())
+                        .with(user(userDetails))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -223,16 +242,18 @@ class VendorControllerTest {
     }
 
     @Test
-    @WithMockUser
     @DisplayName("거래처 비활성화 성공")
     void givenVendorExists_whenDeactivateVendor_thenReturnsNoContent() throws Exception {
         // given
-        Long vendorId = 1L;
-        doNothing().when(vendorService).deactivateVendor(vendorId);
+        CustomUserDetails userDetails = mock(CustomUserDetails.class);
+        given(userDetails.getUserId()).willReturn(userId);
+
+        doNothing().when(vendorService).deactivateVendor(storePublicId, vendorPublicId, userId);
 
         // when & then
-        mockMvc.perform(delete("/api/vendors/{vendorId}", vendorId)
-                        .with(csrf()))
+        mockMvc.perform(delete("/api/vendors/{storePublicId}/{vendorPublicId}", storePublicId, vendorPublicId)
+                        .with(csrf())
+                        .with(user(userDetails)))
                 .andDo(print())
                 .andExpect(status().isNoContent());
     }

@@ -12,21 +12,21 @@ import java.math.BigDecimal;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Stocktake extends AuditableEntity {
+public class StockTake extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long stocktakeId;
+    private Long stockTakeId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sheet_id", nullable = false)
-    private StocktakeSheet sheet;
+    private StockTakeSheet sheet;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ingredient_id", nullable = false)
     private Ingredient ingredient;
 
     @Column(nullable = false, precision = 14, scale = 3)
-    private BigDecimal stocktakeQty;
+    private BigDecimal stockTakeQty;
 
     @Column(precision = 14, scale = 3)
     private BigDecimal theoreticalQty;
@@ -34,11 +34,11 @@ public class Stocktake extends AuditableEntity {
     @Column(precision = 14, scale = 3)
     private BigDecimal varianceQty;
 
-    public static Stocktake createDraft(StocktakeSheet sheet, Ingredient ingredient, BigDecimal qty){
-        Stocktake item = new Stocktake();
+    public static StockTake createDraft(StockTakeSheet sheet, Ingredient ingredient, BigDecimal qty){
+        StockTake item = new StockTake();
         item.sheet = sheet;
         item.ingredient = ingredient;
-        item.stocktakeQty = qty;
+        item.stockTakeQty = qty;
         return item;
     }
 

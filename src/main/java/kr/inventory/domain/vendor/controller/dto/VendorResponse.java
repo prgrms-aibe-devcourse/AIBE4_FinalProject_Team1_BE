@@ -4,9 +4,10 @@ import kr.inventory.domain.vendor.entity.Vendor;
 import kr.inventory.domain.vendor.entity.enums.VendorStatus;
 
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 public record VendorResponse(
-        Long vendorId,
+        UUID vendorPublicId,
         String name,
         String contactPerson,
         String phone,
@@ -18,7 +19,7 @@ public record VendorResponse(
 ) {
     public static VendorResponse from(Vendor vendor) {
         return new VendorResponse(
-                vendor.getVendorId(),
+                vendor.getVendorPublicId(),
                 vendor.getName(),
                 vendor.getContactPerson(),
                 vendor.getPhone(),

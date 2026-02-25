@@ -1,5 +1,5 @@
 package kr.inventory.domain.stock.entity.enums;
 
-public enum StocktakeStatus {
+public enum StockTakeStatus {
     DRAFT, CONFIRMED
 }
