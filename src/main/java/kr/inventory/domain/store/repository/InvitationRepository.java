@@ -11,5 +11,5 @@ public interface InvitationRepository extends JpaRepository<Invitation, Long> {
 
     Optional<Invitation> findByToken(String token);
 
-    Optional<Invitation> findByStoreStoreIdAndCode(Long storeId, String code);
+    Optional<Invitation> findByCode(String code);
 }

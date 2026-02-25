@@ -67,18 +67,17 @@ public class InvitationService {
         String currentCode = existingInvitationOpt.map(Invitation::getCode).orElse(null);
         String code = generateCodeAvoidingSame(currentCode);
 
-        Invitation invitation;
-        if (existingInvitationOpt.isPresent()) {
-            invitation = existingInvitationOpt.get();
-            invitation.renew(invitedBy, token, code, expiresAt); // 재발급
-        } else {
-            invitation = Invitation.create(store, invitedBy, token, code, expiresAt);
-            invitation = invitationRepository.save(invitation);
-        }
+        Invitation invitation = existingInvitationOpt
+                .map(existing -> {
+                    existing.renew(invitedBy, token, code, expiresAt);
+                    return existing;
+                })
+                .orElseGet(() -> Invitation.create(store, invitedBy, token, code, expiresAt));
+
+        invitation = invitationRepository.save(invitation);
 
         return InvitationCreateResponse.from(invitation, invitationProperties.getFrontBaseUrl());
     }
-
 
     /*
      * - token 또는 code 중 하나만 허용
@@ -91,14 +90,13 @@ public class InvitationService {
                 && request.token() != null
                 && !request.token().isBlank();
 
-        boolean hasCodeFlow = request != null
-                && request.storeId() != null
+        boolean hasCode = request != null
                 && request.code() != null
                 && !request.code().isBlank();
 
         // true = ture / false = false
         // 둘 다 없음 또는 둘 다 있음 -> 입력 형태 오류(xor)
-        if (hasToken == hasCodeFlow) {
+        if (hasToken == hasCode) {
             throw new StoreException(StoreErrorCode.INVALID_INVITATION_REQUEST);
         }
 
@@ -106,7 +104,7 @@ public class InvitationService {
         Invitation invitation = hasToken
                 ? invitationRepository.findByToken(request.token())
                 .orElseThrow(() -> new StoreException(StoreErrorCode.INVITATION_NOT_FOUND))
-                : invitationRepository.findByStoreStoreIdAndCode(request.storeId(), request.code())
+                : invitationRepository.findByCode(request.code())
                 .orElseThrow(() -> new StoreException(StoreErrorCode.INVITATION_NOT_FOUND));
 
         if (invitation.getStatus() == InvitationStatus.REVOKED) {
@@ -134,7 +132,14 @@ public class InvitationService {
             return InvitationAcceptResponse.from(member);
         }
 
-        StoreMember newMember = StoreMember.create(store, user, StoreMemberRole.MEMBER);
+        // displayOrder 계산
+        Integer maxDisplayOrder = storeMemberRepository.findMaxDisplayOrderByUserUserId(userId);
+        Integer displayOrder = maxDisplayOrder + 1;
+
+        // 첫 매장 여부 확인
+        boolean isFirstStore = (maxDisplayOrder == -1);
+
+        StoreMember newMember = StoreMember.create(store, user, StoreMemberRole.MEMBER, displayOrder, isFirstStore);
         StoreMember saved = storeMemberRepository.save(newMember);
 
         return InvitationAcceptResponse.from(saved);
@@ -187,13 +192,26 @@ public class InvitationService {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
     }
 
-    // 초대 코드 생성(storeId + code)
+    // 초대 코드 생성
     private String generateCodeAvoidingSame(String currentCode) {
-        String code = generateRandomCode();
+        String code = generateUniqueCode();
+        // 현재 초대와 동일한 코드가 생성되면 다시 생성
         if (currentCode != null && currentCode.equals(code)) {
-            return generateRandomCode();
+            return generateUniqueCode();
         }
         return code;
+    }
+
+    private String generateUniqueCode() {
+        int maxAttempts = 10;
+        for (int i = 0; i < maxAttempts; i++) {
+            String code = generateRandomCode();
+            // 해당 코드가 이미 사용 중인지 확인
+            if (invitationRepository.findByCode(code).isEmpty()) {
+                return code;
+            }
+        }
+        throw new StoreException(StoreErrorCode.CODE_GENERATION_FAILED);
     }
 
     private String generateRandomCode() {
