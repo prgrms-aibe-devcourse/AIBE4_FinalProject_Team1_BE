@@ -1,6 +1,6 @@
 package kr.inventory.domain.dining.service;
 
-import kr.inventory.domain.dining.controller.dto.TableQrIssueResponse;
+import kr.inventory.domain.dining.controller.dto.response.TableQrIssueResponse;
 import kr.inventory.domain.dining.entity.DiningTable;
 import kr.inventory.domain.dining.entity.TableQr;
 import kr.inventory.domain.dining.entity.enums.TableQrStatus;
