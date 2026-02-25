@@ -16,9 +16,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/documents")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 @Tag(name = "Document OCR API", description = "OCR")
 public class DocumentOcrController {
@@ -27,14 +28,14 @@ public class DocumentOcrController {
 	private final DocumentService documentService;
 
 	@Operation(summary = "OCR 포함 파일 처리")
-	@PostMapping(value = "/ocr", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@PostMapping(value = "stores/{storeId}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<OcrResultResponse> processOcr(
-		@RequestParam("storeId") Long storeId,
+		@PathVariable("storeId") UUID storePublicId,
 		@AuthenticationPrincipal CustomUserDetails principal,
 		@RequestPart("files") List<MultipartFile> files
 	) {
 		OcrResultResponse response = documentOcrService.processOcr(
-			storeId,
+			storePublicId,
 			principal.getUserId(),
 			files);
 		return ResponseEntity.ok(response);

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import kr.inventory.domain.catalog.entity.Ingredient;
 import kr.inventory.domain.common.AuditableEntity;
 import kr.inventory.domain.stock.entity.enums.StockBatchStatus;
+import kr.inventory.domain.store.entity.Store;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -48,12 +49,13 @@ public class IngredientStockBatch extends AuditableEntity {
     private StockBatchStatus status;
 
     public static IngredientStockBatch createFromInbound(
+            Store store,
             Ingredient ingredient,
             StockInboundItem inboundItem
     ) {
         IngredientStockBatch batch = new IngredientStockBatch();
+        batch.storeId = store.getStoreId();
         batch.ingredient = ingredient;
-        batch.storeId = ingredient.getStore().getStoreId();
         batch.inboundItem = inboundItem;
         batch.initialQuantity = inboundItem.getQuantity();
         batch.remainingQuantity = inboundItem.getQuantity();

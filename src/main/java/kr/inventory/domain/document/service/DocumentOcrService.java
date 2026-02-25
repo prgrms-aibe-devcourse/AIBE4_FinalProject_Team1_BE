@@ -4,7 +4,10 @@ import kr.inventory.domain.document.controller.dto.ocr.OcrResultResponse;
 import kr.inventory.domain.document.controller.dto.ocr.ReceiptResponse;
 import kr.inventory.domain.document.service.processor.OcrProcessor;
 import kr.inventory.domain.store.entity.Store;
+import kr.inventory.domain.store.exception.StoreErrorCode;
+import kr.inventory.domain.store.exception.StoreException;
 import kr.inventory.domain.store.repository.StoreRepository;
+import kr.inventory.domain.store.service.StoreAccessValidator;
 import kr.inventory.domain.user.entity.User;
 import kr.inventory.domain.user.exception.UserErrorCode;
 import kr.inventory.domain.user.exception.UserException;
@@ -21,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -30,15 +34,16 @@ public class DocumentOcrService {
 	private final List<OcrProcessor> processors;
 	private final DocumentService documentService;
 	private final S3StorageService s3StorageService;
+	private final StoreAccessValidator storeAccessValidator;
 	private final StoreRepository storeRepository;
 	private final UserRepository userRepository;
 
 	public OcrResultResponse processOcr(
-		Long storeId,
+		UUID storeId,
 		Long userId,
 		List<MultipartFile> files) {
-		Store store = storeRepository.findById(storeId)
-			.orElseThrow(() -> new IllegalArgumentException("Store not found"));
+		Store store = storeRepository.findById(storeAccessValidator.validateAndGetStoreId(userId, storeId))
+			.orElseThrow(() -> new StoreException(StoreErrorCode.STORE_NOT_FOUND));
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 

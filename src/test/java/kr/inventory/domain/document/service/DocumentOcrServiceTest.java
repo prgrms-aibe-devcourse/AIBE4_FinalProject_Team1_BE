@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -57,6 +58,7 @@ class DocumentOcrServiceTest {
 	void processOcr_Success() {
 		// given
 		Long storeId = 1L;
+		UUID storePublicId = UUID.randomUUID();
 		Long userId = 1L;
 		MockMultipartFile file = new MockMultipartFile(
 			"files",
@@ -71,6 +73,7 @@ class DocumentOcrServiceTest {
 		ReceiptResponse receiptData = ReceiptResponse.empty("test");
 
 		given(storeRepository.findById(storeId)).willReturn(Optional.of(store));
+		// given(storeRepository.findByStorePublicId(storePublicId)).willReturn(Optional.of(store));
 		given(userRepository.findById(userId)).willReturn(Optional.of(user));
 		given(processors.stream()).willReturn(List.of(ocrProcessor).stream());
 		given(ocrProcessor.supports(any(MultipartFile.class))).willReturn(true);
@@ -78,7 +81,7 @@ class DocumentOcrServiceTest {
 		given(s3StorageService.upload(any(MultipartFile.class), anyString())).willReturn("http://s3-url/test.jpg");
 
 		// when
-		documentOcrService.processOcr(storeId, userId, files);
+		documentOcrService.processOcr(storePublicId, userId, files);
 
 		// then
 		verify(s3StorageService, times(1)).upload(any(MultipartFile.class), anyString());

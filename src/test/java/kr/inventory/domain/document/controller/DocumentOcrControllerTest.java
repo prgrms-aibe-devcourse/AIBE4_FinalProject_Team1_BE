@@ -1,7 +1,6 @@
 package kr.inventory.domain.document.controller;
 
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -57,7 +56,7 @@ class DocumentOcrControllerTest {
 
 		OcrResultResponse response = new OcrResultResponse(List.of(ReceiptResponse.empty("test")));
 
-		given(documentOcrService.processOcr(anyLong(), anyLong(), anyList()))
+		given(documentOcrService.processOcr(any(), anyLong(), anyList()))
 			.willReturn(response);
 
 		// when & then
