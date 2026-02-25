@@ -68,7 +68,7 @@ public class TableQrManagerFacade {
 
     public void revoke(Long userId, UUID storePublicId, UUID qrPublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        TableQr qr = tableQrRepository.findByStore_StoreIdAndQrPublicId(storeId, qrPublicId)
+        TableQr qr = tableQrRepository.findByTable_Store_StoreIdAndQrPublicId(storeId, qrPublicId)
                 .orElseThrow(() -> new QrException(QrErrorCode.QR_NOT_FOUND));
 
         qr.revoke(OffsetDateTime.now(ZoneOffset.UTC));
