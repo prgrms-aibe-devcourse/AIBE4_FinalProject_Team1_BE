@@ -9,7 +9,7 @@ import java.util.UUID;
 
 public interface TableQrRepository extends JpaRepository<TableQr, Long> {
 
-    Optional<TableQr> findByStore_StorePublicIdAndQrPublicId(UUID storePublicId, UUID qrPublicId);
+    Optional<TableQr> findByStore_StoreIdAndQrPublicId(Long storeId, UUID qrPublicId);
 
     Optional<TableQr> findTopByTable_TableIdOrderByRotationVersionDesc(Long tableId);
 

@@ -8,5 +8,5 @@ import java.util.UUID;
 
 public interface DiningTableRepository extends JpaRepository<DiningTable, Long> {
 
-    Optional<DiningTable> findByStore_StorePublicIdAndTablePublicId(UUID storePublicId, UUID tablePublicId);
+    Optional<DiningTable> findByStore_StoreIdAndTablePublicId(Long storeId, UUID tablePublicId);
 }
