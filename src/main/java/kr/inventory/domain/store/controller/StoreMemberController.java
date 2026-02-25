@@ -13,9 +13,10 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/stores/{storeId}/members")
+@RequestMapping("/api/stores/{storePublicId}/members")
 @Tag(name = "매장멤버(Store Member)", description = "매장 멤버관리 API")
 @RequiredArgsConstructor
 public class StoreMemberController {
@@ -26,10 +27,10 @@ public class StoreMemberController {
     @GetMapping
     public ResponseEntity<List<StoreMemberResponse>> getStoreMembers(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable Long storeId
+            @PathVariable UUID storePublicId
     ) {
         List<StoreMemberResponse> members =
-                storeMemberService.getStoreMembers(principal.getUserId(), storeId);
+                storeMemberService.getStoreMembers(principal.getUserId(), storePublicId);
         return ResponseEntity.ok(members);
     }
 
@@ -37,11 +38,11 @@ public class StoreMemberController {
     @GetMapping("/{memberId}")
     public ResponseEntity<StoreMemberResponse> getStoreMember(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable Long storeId,
+            @PathVariable UUID storePublicId,
             @PathVariable Long memberId
     ) {
         StoreMemberResponse response =
-                storeMemberService.getStoreMember(principal.getUserId(), storeId, memberId);
+                storeMemberService.getStoreMember(principal.getUserId(), storePublicId, memberId);
         return ResponseEntity.ok(response);
     }
 
@@ -49,12 +50,12 @@ public class StoreMemberController {
     @PatchMapping("/{memberId}/status")
     public ResponseEntity<StoreMemberResponse> updateMemberStatus(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable Long storeId,
+            @PathVariable UUID storePublicId,
             @PathVariable Long memberId,
             @Valid @RequestBody MemberStatusUpdateRequest request
     ) {
         StoreMemberResponse response =
-                storeMemberService.updateMemberStatus(principal.getUserId(), storeId, memberId, request);
+                storeMemberService.updateMemberStatus(principal.getUserId(), storePublicId, memberId, request);
         return ResponseEntity.ok(response);
     }
 }

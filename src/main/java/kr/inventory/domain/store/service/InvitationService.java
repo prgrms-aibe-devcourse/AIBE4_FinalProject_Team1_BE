@@ -29,6 +29,7 @@ import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -44,13 +45,13 @@ public class InvitationService {
     private final InvitationProperties invitationProperties;
 
     @Transactional
-    public InvitationCreateResponse createInvitation(Long userId, Long storeId) {
-        boolean isOwner = storeMemberRepository.hasRole(storeId, userId, StoreMemberRole.OWNER);
+    public InvitationCreateResponse createInvitation(Long userId, UUID storePublicId) {
+        boolean isOwner = storeMemberRepository.hasRoleByPublicId(storePublicId, userId, StoreMemberRole.OWNER);
         if (!isOwner) {
             throw new StoreException(StoreErrorCode.OWNER_PERMISSION_REQUIRED);
         }
 
-        Store store = storeRepository.findById(storeId)
+        Store store = storeRepository.findByStorePublicId(storePublicId)
                 .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_NOT_FOUND));
 
         User invitedBy = userRepository.findById(userId)
@@ -60,7 +61,7 @@ public class InvitationService {
         OffsetDateTime expiresAt = OffsetDateTime.now().plus(invitationProperties.getTtl());
 
         // 매장당 초대는 1개만 존재 -> 있으면 갱신하고 없으면 새로 생성
-        Optional<Invitation> existingInvitationOpt = invitationRepository.findByStoreStoreId(storeId);
+        Optional<Invitation> existingInvitationOpt = invitationRepository.findByStoreStoreId(store.getStoreId());
 
         String token = generateToken();
 
@@ -145,13 +146,16 @@ public class InvitationService {
         return InvitationAcceptResponse.from(saved);
     }
 
-    public InvitationItemResponse getActiveInvitation(Long userId, Long storeId) {
-        boolean isOwner = storeMemberRepository.hasRole(storeId, userId, StoreMemberRole.OWNER);
+    public InvitationItemResponse getActiveInvitation(Long userId, UUID storePublicId) {
+        boolean isOwner = storeMemberRepository.hasRoleByPublicId(storePublicId, userId, StoreMemberRole.OWNER);
         if (!isOwner) {
             throw new StoreException(StoreErrorCode.OWNER_PERMISSION_REQUIRED);
         }
 
-        Invitation invitation = invitationRepository.findByStoreStoreId(storeId)
+        Store store = storeRepository.findByStorePublicId(storePublicId)
+                .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_NOT_FOUND));
+
+        Invitation invitation = invitationRepository.findByStoreStoreId(store.getStoreId())
                 .orElseThrow(() -> new StoreException(StoreErrorCode.NO_ACTIVE_INVITATION));
 
         // ACTIVE + expiresAt 유효한 경우만 활성 초대
@@ -166,13 +170,16 @@ public class InvitationService {
     }
 
     @Transactional
-    public void revokeActiveInvitation(Long userId, Long storeId) {
-        boolean isOwner = storeMemberRepository.hasRole(storeId, userId, StoreMemberRole.OWNER);
+    public void revokeActiveInvitation(Long userId, UUID storePublicId) {
+        boolean isOwner = storeMemberRepository.hasRoleByPublicId(storePublicId, userId, StoreMemberRole.OWNER);
         if (!isOwner) {
             throw new StoreException(StoreErrorCode.OWNER_PERMISSION_REQUIRED);
         }
 
-        Invitation invitation = invitationRepository.findByStoreStoreId(storeId)
+        Store store = storeRepository.findByStorePublicId(storePublicId)
+                .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_NOT_FOUND));
+
+        Invitation invitation = invitationRepository.findByStoreStoreId(store.getStoreId())
                 .orElseThrow(() -> new StoreException(StoreErrorCode.NO_ACTIVE_INVITATION));
 
         if (invitation.getStatus() != InvitationStatus.ACTIVE) {

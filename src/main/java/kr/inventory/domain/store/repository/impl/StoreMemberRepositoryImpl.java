@@ -70,12 +70,53 @@ public class StoreMemberRepositoryImpl  implements StoreMemberRepositoryCustom  
     }
 
     @Override
+    public List<StoreMember> findAllByStorePublicIdWithUser(UUID storePublicId) {
+        return queryFactory
+                .selectFrom(storeMember)
+                .join(storeMember.user, user).fetchJoin()
+                .join(storeMember.store, store)
+                .where(store.storePublicId.eq(storePublicId))
+                .fetch();
+    }
+
+    @Override
+    public boolean isStoreMemberByPublicId(UUID storePublicId, Long userId) {
+        Integer count = queryFactory
+                .selectOne()
+                .from(storeMember)
+                .join(storeMember.store, store)
+                .where(
+                        store.storePublicId.eq(storePublicId),
+                        storeMember.user.userId.eq(userId),
+                        storeMember.status.eq(StoreMemberStatus.ACTIVE)
+                )
+                .fetchFirst();
+        return count != null;
+    }
+
+    @Override
     public boolean hasRole(Long storeId, Long userId, StoreMemberRole role) {
         Integer count = queryFactory
                 .selectOne()
                 .from(storeMember)
                 .where(
                         storeMember.store.storeId.eq(storeId),
+                        storeMember.user.userId.eq(userId),
+                        storeMember.status.eq(StoreMemberStatus.ACTIVE),
+                        storeMember.role.eq(role)
+                )
+                .fetchFirst();
+        return count != null;
+    }
+
+    @Override
+    public boolean hasRoleByPublicId(UUID storePublicId, Long userId, StoreMemberRole role) {
+        Integer count = queryFactory
+                .selectOne()
+                .from(storeMember)
+                .join(storeMember.store, store)
+                .where(
+                        store.storePublicId.eq(storePublicId),
                         storeMember.user.userId.eq(userId),
                         storeMember.status.eq(StoreMemberStatus.ACTIVE),
                         storeMember.role.eq(role)

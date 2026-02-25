@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -72,34 +73,42 @@ public class StoreService {
             .toList();
     }
 
-    public MyStoreResponse getStoreById(Long userId, Long storeId) {
+    public MyStoreResponse getStoreByPublicId(Long userId, UUID storePublicId) {
+        Store store = storeRepository.findByStorePublicId(storePublicId)
+            .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_NOT_FOUND));
+
         StoreMember member = storeMemberRepository
-            .findByStoreStoreIdAndUserUserId(storeId, userId)
+            .findByStoreStoreIdAndUserUserId(store.getStoreId(), userId)
             .orElseThrow(() -> new StoreException(StoreErrorCode.NOT_STORE_MEMBER));
 
         return MyStoreResponse.from(member);
     }
 
     @Transactional
-    public MyStoreResponse updateStoreName(Long userId, Long storeId, StoreNameUpdateRequest request) {
+    public MyStoreResponse updateStoreName(Long userId, UUID storePublicId, StoreNameUpdateRequest request) {
+        Store store = storeRepository.findByStorePublicId(storePublicId)
+            .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_NOT_FOUND));
+
         StoreMember member = storeMemberRepository
-            .findByStoreStoreIdAndUserUserId(storeId, userId)
+            .findByStoreStoreIdAndUserUserId(store.getStoreId(), userId)
             .orElseThrow(() -> new StoreException(StoreErrorCode.NOT_STORE_MEMBER));
 
         if (member.getRole() != StoreMemberRole.OWNER) {
             throw new StoreException(StoreErrorCode.OWNER_PERMISSION_REQUIRED);
         }
 
-        Store store = member.getStore();
         store.updateName(request.name());
 
         return MyStoreResponse.from(member);
     }
 
     @Transactional
-    public void setDefaultStore(Long userId, Long storeId) {
+    public void setDefaultStore(Long userId, UUID storePublicId) {
+        Store store = storeRepository.findByStorePublicId(storePublicId)
+            .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_NOT_FOUND));
+
         StoreMember member = storeMemberRepository
-            .findByStoreStoreIdAndUserUserId(storeId, userId)
+            .findByStoreStoreIdAndUserUserId(store.getStoreId(), userId)
             .orElseThrow(() -> new StoreException(StoreErrorCode.NOT_STORE_MEMBER));
 
         // 기존 대표 매장 해제

@@ -14,9 +14,15 @@ public interface StoreMemberRepositoryCustom {
 
     List<StoreMember> findAllByStoreStoreIdWithUser(Long storeId);
 
+    List<StoreMember> findAllByStorePublicIdWithUser(UUID storePublicId);
+
     boolean isStoreMember(Long storeId, Long userId);
 
+    boolean isStoreMemberByPublicId(UUID storePublicId, Long userId);
+
     boolean hasRole(Long storeId, Long userId, StoreMemberRole role);
+
+    boolean hasRoleByPublicId(UUID storePublicId, Long userId, StoreMemberRole role);
 
     Integer findMaxDisplayOrderByUserUserId(Long userId);
 

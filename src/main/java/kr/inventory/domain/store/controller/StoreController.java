@@ -14,6 +14,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/stores")
@@ -43,33 +44,33 @@ public class StoreController {
     }
 
     @Operation(summary = "매장 단건 조회")
-    @GetMapping("/{storeId}")
-    public ResponseEntity<MyStoreResponse> getStoreById(
+    @GetMapping("/{storePublicId}")
+    public ResponseEntity<MyStoreResponse> getStoreByPublicId(
         @AuthenticationPrincipal CustomUserDetails principal,
-        @PathVariable Long storeId
+        @PathVariable UUID storePublicId
     ) {
-        MyStoreResponse response = storeService.getStoreById(principal.getUserId(), storeId);
+        MyStoreResponse response = storeService.getStoreByPublicId(principal.getUserId(), storePublicId);
         return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "매장 상호명 변경")
-    @PatchMapping("/{storeId}/name")
+    @PatchMapping("/{storePublicId}/name")
     public ResponseEntity<MyStoreResponse> updateStoreName(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable Long storeId,
+            @PathVariable UUID storePublicId,
             @Valid @RequestBody StoreNameUpdateRequest request
     ) {
-        MyStoreResponse response = storeService.updateStoreName(principal.getUserId(), storeId, request);
+        MyStoreResponse response = storeService.updateStoreName(principal.getUserId(), storePublicId, request);
         return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "대표 매장 설정")
-    @PostMapping("/{storeId}/default")
+    @PostMapping("/{storePublicId}/default")
     public ResponseEntity<Void> setDefaultStore(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable Long storeId
+            @PathVariable UUID storePublicId
     ) {
-        storeService.setDefaultStore(principal.getUserId(), storeId);
+        storeService.setDefaultStore(principal.getUserId(), storePublicId);
         return ResponseEntity.ok().build();
     }
 }
