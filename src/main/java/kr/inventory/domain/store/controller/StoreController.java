@@ -62,4 +62,14 @@ public class StoreController {
         MyStoreResponse response = storeService.updateStoreName(principal.getUserId(), storeId, request);
         return ResponseEntity.ok(response);
     }
+
+    @Operation(summary = "대표 매장 설정")
+    @PostMapping("/{storeId}/default")
+    public ResponseEntity<Void> setDefaultStore(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @PathVariable Long storeId
+    ) {
+        storeService.setDefaultStore(principal.getUserId(), storeId);
+        return ResponseEntity.ok().build();
+    }
 }

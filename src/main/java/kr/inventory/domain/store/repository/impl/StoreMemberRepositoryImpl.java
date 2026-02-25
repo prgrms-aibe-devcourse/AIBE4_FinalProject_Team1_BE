@@ -83,4 +83,26 @@ public class StoreMemberRepositoryImpl  implements StoreMemberRepositoryCustom  
                 .fetchFirst();
         return count != null;
     }
+
+    @Override
+    public Integer findMaxDisplayOrderByUserUserId(Long userId) {
+        Integer maxOrder = queryFactory
+                .select(storeMember.displayOrder.max())
+                .from(storeMember)
+                .where(storeMember.user.userId.eq(userId))
+                .fetchOne();
+        return maxOrder != null ? maxOrder : -1;
+    }
+
+    @Override
+    public long unsetAllDefaultsByUserId(Long userId) {
+        return queryFactory
+                .update(storeMember)
+                .set(storeMember.isDefault, false)
+                .where(
+                        storeMember.user.userId.eq(userId),
+                        storeMember.isDefault.isTrue()
+                )
+                .execute();
+    }
 }

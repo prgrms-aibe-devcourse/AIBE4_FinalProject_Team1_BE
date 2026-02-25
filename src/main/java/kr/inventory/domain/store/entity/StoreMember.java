@@ -12,7 +12,10 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(
         name = "store_members",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"store_id", "user_id"})
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_store_user", columnNames = {"store_id", "user_id"}),
+                @UniqueConstraint(name = "uk_user_display_order", columnNames = {"user_id", "display_order"})
+        }
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -38,16 +41,28 @@ public class StoreMember extends AuditableEntity {
     @Column(nullable = false, length = 20)
     private StoreMemberStatus status;
 
-    public static StoreMember create(Store store, User user, StoreMemberRole role) {
+    @Column(nullable = false)
+    private Integer displayOrder;
+
+    @Column(nullable = false)
+    private Boolean isDefault;
+
+    public static StoreMember create(Store store, User user, StoreMemberRole role, Integer displayOrder, Boolean isDefault) {
         StoreMember member = new StoreMember();
         member.store = store;
         member.user = user;
         member.role = role;
         member.status = StoreMemberStatus.ACTIVE;
+        member.displayOrder = displayOrder;
+        member.isDefault = isDefault;
         return member;
     }
 
     public void updateStatus(StoreMemberStatus newStatus) {
         this.status = newStatus;
+    }
+
+    public void setAsDefault() {
+        this.isDefault = true;
     }
 }

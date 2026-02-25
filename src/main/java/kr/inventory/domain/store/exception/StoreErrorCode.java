@@ -27,7 +27,7 @@ public enum StoreErrorCode implements ErrorModel {
     INVITATION_REVOKED(HttpStatus.BAD_REQUEST, "I003", "취소된 초대입니다."),
     ALREADY_MEMBER(HttpStatus.BAD_REQUEST, "I004", "이미 해당 매장의 멤버입니다."),
     CODE_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "I005", "초대 코드 생성에 실패했습니다."),
-    INVALID_INVITATION_REQUEST(HttpStatus.BAD_REQUEST, "I007", "초대 수락 요청이 올바르지 않습니다. token 또는 (storeId + code) 중 하나만 입력해야 합니다."),
+    INVALID_INVITATION_REQUEST(HttpStatus.BAD_REQUEST, "I007", "초대 수락 요청이 올바르지 않습니다. token 또는 code 중 하나만 입력해야 합니다."),
     NO_ACTIVE_INVITATION(HttpStatus.NOT_FOUND, "I008", "활성화된 초대가 없습니다."),
 
     // 권한

@@ -50,7 +50,15 @@ public class StoreService {
         // 생성자를 OWNER로 등록
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
-        StoreMember owner = StoreMember.create(savedStore, user, StoreMemberRole.OWNER);
+
+        // displayOrder 계산
+        Integer maxDisplayOrder = storeMemberRepository.findMaxDisplayOrderByUserUserId(userId);
+        Integer displayOrder = maxDisplayOrder + 1;
+
+        // 첫 매장 여부 확인
+        boolean isFirstStore = (maxDisplayOrder == -1);
+
+        StoreMember owner = StoreMember.create(savedStore, user, StoreMemberRole.OWNER, displayOrder, isFirstStore);
         storeMemberRepository.save(owner);
 
         return StoreCreateResponse.from(savedStore, StoreMemberRole.OWNER);
@@ -86,5 +94,18 @@ public class StoreService {
         store.updateName(request.name());
 
         return MyStoreResponse.from(member);
+    }
+
+    @Transactional
+    public void setDefaultStore(Long userId, Long storeId) {
+        StoreMember member = storeMemberRepository
+            .findByStoreStoreIdAndUserUserId(storeId, userId)
+            .orElseThrow(() -> new StoreException(StoreErrorCode.NOT_STORE_MEMBER));
+
+        // 기존 대표 매장 해제
+        storeMemberRepository.unsetAllDefaultsByUserId(userId);
+
+        // 현재 매장을 대표 매장으로 설정
+        member.setAsDefault();
     }
 }

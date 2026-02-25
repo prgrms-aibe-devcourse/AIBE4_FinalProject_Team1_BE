@@ -2,9 +2,6 @@ package kr.inventory.global.util;
 
 /**
  * 사업자등록번호 정규화 및 포맷팅 유틸리티
- *
- * <p>저장 규칙: 숫자만 10자리 (예: 2088203460)
- * <p>표시 규칙: 하이픈 포함 (예: 208-82-03460)
  */
 public class BusinessRegistrationNumberUtil {
 
@@ -56,21 +53,6 @@ public class BusinessRegistrationNumberUtil {
             normalized.substring(3, 5),
             normalized.substring(5, 10)
         );
-    }
-
-    /**
-     * 사업자등록번호 유효성 검증 (정규화 가능 여부)
-     *
-     * @param input 입력된 사업자등록번호
-     * @return 유효하면 true, 그렇지 않으면 false
-     */
-    public static boolean isValid(String input) {
-        if (input == null || input.isBlank()) {
-            return false;
-        }
-
-        String digitsOnly = input.replaceAll("[^0-9]", "");
-        return digitsOnly.length() == NORMALIZED_LENGTH;
     }
 
     /**

@@ -17,4 +17,8 @@ public interface StoreMemberRepositoryCustom {
     boolean isStoreMember(Long storeId, Long userId);
 
     boolean hasRole(Long storeId, Long userId, StoreMemberRole role);
+
+    Integer findMaxDisplayOrderByUserUserId(Long userId);
+
+    long unsetAllDefaultsByUserId(Long userId);
 }
