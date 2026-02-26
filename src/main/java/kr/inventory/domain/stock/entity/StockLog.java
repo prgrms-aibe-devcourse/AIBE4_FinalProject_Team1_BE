@@ -55,17 +55,23 @@ public class StockLog extends CreatedAtEntity {
     @JoinColumn(name = "created_by_user_id")
     private User createdByUser;
 
-    public static StockLog create(
+    public static StockLog createInboundLog(
             Store store,
             Ingredient ingredient,
-            TransactionType transactionType,
-            BigDecimal changeQuantity
+            BigDecimal changeQuantity,
+            IngredientStockBatch stockBatch,
+            Long inboundId,
+            User createdByUser
     ) {
         StockLog log = new StockLog();
         log.store = store;
         log.ingredient = ingredient;
-        log.transactionType = transactionType;
+        log.transactionType = TransactionType.INBOUND;
         log.changeQuantity = changeQuantity;
+        log.stockBatch = stockBatch;
+        log.referenceType = ReferenceType.INBOUND;
+        log.referenceId = inboundId;
+        log.createdByUser = createdByUser;
         return log;
     }
 }

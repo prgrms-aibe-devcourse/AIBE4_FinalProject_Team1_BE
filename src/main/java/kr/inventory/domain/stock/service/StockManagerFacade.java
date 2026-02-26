@@ -4,10 +4,11 @@ import kr.inventory.domain.sales.entity.SalesOrder;
 import kr.inventory.domain.sales.exception.SalesErrorCode;
 import kr.inventory.domain.sales.exception.SalesException;
 import kr.inventory.domain.sales.repository.SalesOrderRepository;
-import kr.inventory.domain.stock.controller.dto.StockOrderDeductionRequest;
+import kr.inventory.domain.stock.controller.dto.request.StockOrderDeductionRequest;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,41 +20,42 @@ import java.util.UUID;
 @Slf4j
 @RequiredArgsConstructor
 public class StockManagerFacade {
-    private final TheoreticalUsageService theoreticalUsageService;
-    private final SalesOrderRepository salesOrderRepository;
-    private final StockService stockService;
-    private final StoreAccessValidator storeAccessValidator;
+	private final TheoreticalUsageService theoreticalUsageService;
+	private final SalesOrderRepository salesOrderRepository;
+	private final StockService stockService;
+	private final StoreAccessValidator storeAccessValidator;
 
-    @Transactional
-    public void processOrderStockDeduction(Long userId, UUID storePublicId, StockOrderDeductionRequest request) {
-        Long internalStoreId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+	@Transactional
+	public void processOrderStockDeduction(Long userId, UUID storePublicId, StockOrderDeductionRequest request) {
+		Long internalStoreId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
-        SalesOrder salesOrder = salesOrderRepository.findByIdAndStoreStoreIdWithLock(request.salesOrderId(), internalStoreId)
-                .orElseThrow(() -> new SalesException(SalesErrorCode.SALES_ORDER_NOT_FOUND));
+		SalesOrder salesOrder = salesOrderRepository.findByIdAndStoreStoreIdWithLock(request.salesOrderId(),
+				internalStoreId)
+			.orElseThrow(() -> new SalesException(SalesErrorCode.SALES_ORDER_NOT_FOUND));
 
-        if (salesOrder.isStockProcessed()) {
-            log.info("이미 재고가 차감된 주문입니다. 주문 ID: {}", request.salesOrderId());
-            return;
-        }
+		if (salesOrder.isStockProcessed()) {
+			log.info("이미 재고가 차감된 주문입니다. 주문 ID: {}", request.salesOrderId());
+			return;
+		}
 
-        Map<Long, BigDecimal> usageMap = theoreticalUsageService.calculateOrderUsage(salesOrder);
+		Map<Long, BigDecimal> usageMap = theoreticalUsageService.calculateOrderUsage(salesOrder);
 
-        Map<Long, BigDecimal> shortageMap = stockService.deductStockWithFEFO(internalStoreId, usageMap);
+		Map<Long, BigDecimal> shortageMap = stockService.deductStockWithFEFO(internalStoreId, usageMap);
 
-        if(!shortageMap.isEmpty()){
-            handleStockShortage(salesOrder.getSalesOrderId(), shortageMap);
-        }
+		if (!shortageMap.isEmpty()) {
+			handleStockShortage(salesOrder.getSalesOrderId(), shortageMap);
+		}
 
-        salesOrder.markAsStockProcessed();
-    }
+		salesOrder.markAsStockProcessed();
+	}
 
-    private void handleStockShortage(Long orderId, Map<Long, BigDecimal> shortageMap) {
-        shortageMap.forEach((ingredientId, amount) -> {
-            log.warn("재고 부족 발생 - 주문: {}, 식재료 ID: {}, 부족량: {}", orderId, ingredientId, amount);
+	private void handleStockShortage(Long orderId, Map<Long, BigDecimal> shortageMap) {
+		shortageMap.forEach((ingredientId, amount) -> {
+			log.warn("재고 부족 발생 - 주문: {}, 식재료 ID: {}, 부족량: {}", orderId, ingredientId, amount);
 
-            // TODO: [비즈니스 요구사항]
-            // 1. Shortage 테이블에 기록하여 추후 발주 데이터로 활용 필요
-            // 2. 관리자에게 '재고 부족' 알림 발송 로직 추가 필요
-        });
-    }
+			// TODO: [비즈니스 요구사항]
+			// 1. Shortage 테이블에 기록하여 추후 발주 데이터로 활용 필요
+			// 2. 관리자에게 '재고 부족' 알림 발송 로직 추가 필요
+		});
+	}
 }

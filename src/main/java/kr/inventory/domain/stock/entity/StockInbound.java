@@ -13,6 +13,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.UUID;
 
 @Entity
 @Table(name = "stock_inbounds")
@@ -23,6 +25,9 @@ public class StockInbound extends AuditableEntity {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long inboundId;
+
+	@Column(nullable = false, updatable = false)
+	private UUID inboundPublicId;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "store_id", nullable = false)
@@ -50,11 +55,21 @@ public class StockInbound extends AuditableEntity {
 
 	private OffsetDateTime confirmedAt;
 
-	public static StockInbound create(Store store, Vendor vendor) {
+	public static StockInbound create(Store store, Vendor vendor, Document sourceDocument,
+		PurchaseOrder sourcePurchaseOrder) {
 		StockInbound inbound = new StockInbound();
 		inbound.store = store;
+		inbound.inboundPublicId = UUID.randomUUID();
 		inbound.vendor = vendor;
+		inbound.sourceDocument = sourceDocument;
+		inbound.sourcePurchaseOrder = sourcePurchaseOrder;
 		inbound.status = InboundStatus.DRAFT;
 		return inbound;
+	}
+
+	public void confirm(User confirmedByUser) {
+		this.status = InboundStatus.CONFIRMED;
+		this.confirmedByUser = confirmedByUser;
+		this.confirmedAt = OffsetDateTime.now(ZoneOffset.UTC);
 	}
 }

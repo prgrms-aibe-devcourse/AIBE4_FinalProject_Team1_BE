@@ -20,8 +20,8 @@ import kr.inventory.domain.document.service.GeminiService;
 public class PdfOcrProcessor extends AbstractGeminiOcrProcessor {
 
 	public PdfOcrProcessor(GeminiService geminiService,
-		ObjectMapper objectMapper) {
-		super(geminiService, objectMapper);
+		ObjectMapper objectMapper, OcrPromptProvider ocrPromptProvider) {
+		super(geminiService, objectMapper, ocrPromptProvider);
 	}
 
 	@Override
