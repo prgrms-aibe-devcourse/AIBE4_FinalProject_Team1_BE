@@ -1,4 +1,4 @@
-package kr.inventory.domain.stock.controller.dto;
+package kr.inventory.domain.stock.controller.dto.request;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;

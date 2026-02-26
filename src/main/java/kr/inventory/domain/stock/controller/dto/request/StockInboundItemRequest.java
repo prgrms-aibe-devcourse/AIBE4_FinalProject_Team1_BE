@@ -1,4 +1,4 @@
-package kr.inventory.domain.stock.controller.dto;
+package kr.inventory.domain.stock.controller.dto.request;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
