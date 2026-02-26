@@ -61,31 +61,54 @@ async function fetchMenuData() {
 }
 
 /**
- * 메뉴 리스트 화면 렌더링
+ * 메뉴 리스트 화면 렌더링 (XSS 방지: innerHTML로 백엔드 값을 직접 넣지 않음)
  */
 function renderMenuGrid() {
     const grid = document.getElementById('menu-grid');
     if (!grid) return;
 
     grid.innerHTML = '';
+
     menuData.forEach(item => {
         const card = document.createElement('div');
         card.className = 'menu-card flex bg-white rounded-2xl p-4 border border-gray-100 shadow-sm gap-4 items-center';
-        card.innerHTML = `
-            <div class="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center text-3xl shadow-inner shrink-0">
-                ${item.icon}
-            </div>
-            <div class="flex-1">
-                <h3 class="font-bold text-gray-900 text-base">${item.name}</h3>
-                <p class="text-xs text-gray-400 mt-1">${item.desc}</p>
-                <p class="text-sm font-black text-rose-600 mt-2">${item.price.toLocaleString()}원</p>
-            </div>
-            <button onclick="addToCart('${item.id}')" class="bg-gray-900 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-lg active:bg-rose-600 transition-all">
-                <i data-lucide="plus" class="w-5 h-5"></i>
-            </button>
-        `;
+
+        // 아이콘 (현재 고정 문자열이라 안전하지만, 일관되게 textContent 사용)
+        const iconWrap = document.createElement('div');
+        iconWrap.className = 'w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center text-3xl shadow-inner shrink-0';
+        iconWrap.textContent = item.icon ?? '';
+
+        const body = document.createElement('div');
+        body.className = 'flex-1';
+
+        const title = document.createElement('h3');
+        title.className = 'font-bold text-gray-900 text-base';
+        title.textContent = item.name ?? '';
+
+        const desc = document.createElement('p');
+        desc.className = 'text-xs text-gray-400 mt-1';
+        desc.textContent = item.desc ?? '';
+
+        const price = document.createElement('p');
+        price.className = 'text-sm font-black text-rose-600 mt-2';
+        price.textContent = `${(item.price ?? 0).toLocaleString()}원`;
+
+        body.append(title, desc, price);
+
+        // 버튼 - 인라인 onclick 제거(문자열 주입 위험/깨짐 방지)
+        const btn = document.createElement('button');
+        btn.className = 'bg-gray-900 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-lg active:bg-rose-600 transition-all';
+        btn.addEventListener('click', () => addToCart(item.id));
+
+        const plusIcon = document.createElement('i');
+        plusIcon.setAttribute('data-lucide', 'plus');
+        plusIcon.className = 'w-5 h-5';
+        btn.appendChild(plusIcon);
+
+        card.append(iconWrap, body, btn);
         grid.appendChild(card);
     });
+
     lucide.createIcons();
 }
 
@@ -186,7 +209,7 @@ function updateUI() {
 
     const cartSum = cart.reduce((acc, cur) => acc + (cur.price * cur.quantity), 0);
 
-    if(cartTotalEl) cartTotalEl.innerText = cartSum.toLocaleString() + '원';
+    if (cartTotalEl) cartTotalEl.innerText = cartSum.toLocaleString() + '원';
 
     // 결제 버튼 활성화 상태 제어 (장바구니에 메뉴가 1개 이상일 때)
     if (payBtn) {
@@ -206,7 +229,7 @@ function updateUI() {
 }
 
 /**
- * 장바구니 상세 내역 리스트 렌더링
+ * 장바구니 상세 내역 리스트 렌더링 (XSS 방지: innerHTML로 백엔드 값을 직접 넣지 않음)
  */
 function renderCartDrawerList() {
     const container = document.getElementById('cart-list');
@@ -214,34 +237,65 @@ function renderCartDrawerList() {
 
     if (cart.length === 0) {
         container.innerHTML = `
-            <div class="flex flex-col items-center justify-center py-10 opacity-30">
-                <i data-lucide="shopping-cart" class="w-12 h-12 mb-2"></i>
-                <p class="text-sm">장바구니가 비어있습니다.</p>
-            </div>
-        `;
+      <div class="flex flex-col items-center justify-center py-10 opacity-30">
+        <i data-lucide="shopping-cart" class="w-12 h-12 mb-2"></i>
+        <p class="text-sm">장바구니가 비어있습니다.</p>
+      </div>
+    `;
+        lucide.createIcons();
         return;
     }
 
     container.innerHTML = '';
+
     cart.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'flex items-center justify-between py-2';
-        div.innerHTML = `
-            <div class="flex items-center gap-4">
-                <span class="text-2xl">${item.icon}</span>
-                <div>
-                    <p class="text-sm font-bold text-gray-800">${item.name}</p>
-                    <p class="text-xs text-rose-600 font-bold">${(item.price * item.quantity).toLocaleString()}원</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-2 bg-gray-50 rounded-xl p-1.5 border border-gray-100">
-                <button onclick="adjustCartQty('${item.id}', -1)" class="w-7 h-7 flex items-center justify-center bg-white rounded-lg border border-gray-200 text-sm font-bold active:bg-gray-100">-</button>
-                <span class="text-sm font-black w-6 text-center">${item.quantity}</span>
-                <button onclick="adjustCartQty('${item.id}', 1)" class="w-7 h-7 flex items-center justify-center bg-white rounded-lg border border-gray-200 text-sm font-bold active:bg-gray-100">+</button>
-            </div>
-        `;
-        container.appendChild(div);
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between py-2';
+
+        const left = document.createElement('div');
+        left.className = 'flex items-center gap-4';
+
+        const icon = document.createElement('span');
+        icon.className = 'text-2xl';
+        icon.textContent = item.icon ?? '';
+
+        const info = document.createElement('div');
+
+        const name = document.createElement('p');
+        name.className = 'text-sm font-bold text-gray-800';
+        name.textContent = item.name ?? '';
+
+        const subtotal = document.createElement('p');
+        subtotal.className = 'text-xs text-rose-600 font-bold';
+        subtotal.textContent = `${((item.price ?? 0) * (item.quantity ?? 0)).toLocaleString()}원`;
+
+        info.append(name, subtotal);
+        left.append(icon, info);
+
+        const right = document.createElement('div');
+        right.className = 'flex items-center gap-2 bg-gray-50 rounded-xl p-1.5 border border-gray-100';
+
+        const minus = document.createElement('button');
+        minus.className = 'w-7 h-7 flex items-center justify-center bg-white rounded-lg border border-gray-200 text-sm font-bold active:bg-gray-100';
+        minus.textContent = '-';
+        minus.addEventListener('click', () => adjustCartQty(item.id, -1));
+
+        const qty = document.createElement('span');
+        qty.className = 'text-sm font-black w-6 text-center';
+        qty.textContent = String(item.quantity ?? 0);
+
+        const plus = document.createElement('button');
+        plus.className = 'w-7 h-7 flex items-center justify-center bg-white rounded-lg border border-gray-200 text-sm font-bold active:bg-gray-100';
+        plus.textContent = '+';
+        plus.addEventListener('click', () => adjustCartQty(item.id, 1));
+
+        right.append(minus, qty, plus);
+
+        row.append(left, right);
+        container.appendChild(row);
     });
+
+    lucide.createIcons();
 }
 
 /**
