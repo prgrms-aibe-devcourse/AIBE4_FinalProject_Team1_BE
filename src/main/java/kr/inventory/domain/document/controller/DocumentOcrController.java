@@ -41,13 +41,13 @@ public class DocumentOcrController {
 		return ResponseEntity.ok(response);
 	}
 
-	@Operation(summary = "등록된 파일 조회")
-	@GetMapping("/{documentId}/files")
-	public ResponseEntity<DocumentResponse> getDocumentFile(
-		@PathVariable Long documentId,
+	@Operation(summary = "등록된 파일목록 조회")
+	@GetMapping("stores/{storeId}/documents")
+	public ResponseEntity<List<DocumentResponse>> getDocuments(
+		@PathVariable("storeId") UUID storePublicId,
 		@AuthenticationPrincipal CustomUserDetails principal) {
 
-		String url = documentService.getDocumentFileUrl(documentId, principal.getUserId());
-		return ResponseEntity.ok(new DocumentResponse(url));
+		List<DocumentResponse> responses = documentService.getDocuments(storePublicId, principal.getUserId());
+		return ResponseEntity.ok(responses);
 	}
 }

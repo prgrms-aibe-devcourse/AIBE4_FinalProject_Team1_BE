@@ -34,10 +34,6 @@ public class Document extends AuditableEntity {
 	@Column(nullable = false, columnDefinition = "text")
 	private String filePath;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "uploaded_by_user_id")
-	private User uploadedByUser;
-
 	@Column(nullable = false)
 	private OffsetDateTime uploadedAt;
 
@@ -45,20 +41,15 @@ public class Document extends AuditableEntity {
 		Store store,
 		String fileName,
 		String filePath,
-		String contentType,
-		User uploadedByUser
+		String contentType
 	) {
 		Document document = new Document();
 		document.store = store;
 		document.fileName = fileName;
 		document.filePath = filePath;
 		document.contentType = contentType;
-		document.uploadedByUser = uploadedByUser;
 		document.uploadedAt = OffsetDateTime.now(ZoneOffset.UTC);
 		return document;
 	}
 
-	public void updateFileKey(String filePath) {
-		this.filePath = filePath;
-	}
 }

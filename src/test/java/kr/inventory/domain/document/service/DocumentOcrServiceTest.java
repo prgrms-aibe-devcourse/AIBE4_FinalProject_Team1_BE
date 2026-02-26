@@ -85,6 +85,6 @@ class DocumentOcrServiceTest {
 
 		// then
 		verify(s3StorageService, times(1)).upload(any(MultipartFile.class), anyString());
-		verify(documentService, times(1)).saveDocument(eq(store), eq(user), eq(file), anyString());
+		verify(documentService, times(1)).saveDocument(eq(store), eq(file), anyString());
 	}
 }

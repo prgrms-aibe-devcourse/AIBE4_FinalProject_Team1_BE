@@ -8,9 +8,6 @@ import kr.inventory.domain.store.exception.StoreErrorCode;
 import kr.inventory.domain.store.exception.StoreException;
 import kr.inventory.domain.store.repository.StoreRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
-import kr.inventory.domain.user.entity.User;
-import kr.inventory.domain.user.exception.UserErrorCode;
-import kr.inventory.domain.user.exception.UserException;
 import kr.inventory.domain.user.repository.UserRepository;
 import kr.inventory.global.config.infrastructure.S3StorageService;
 import kr.inventory.global.config.infrastructure.exception.FileError;
@@ -44,8 +41,6 @@ public class DocumentOcrService {
 		List<MultipartFile> files) {
 		Store store = storeRepository.findById(storeAccessValidator.validateAndGetStoreId(userId, storeId))
 			.orElseThrow(() -> new StoreException(StoreErrorCode.STORE_NOT_FOUND));
-		User user = userRepository.findById(userId)
-			.orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
 		List<ReceiptResponse> results = new ArrayList<>();
 
@@ -67,7 +62,7 @@ public class DocumentOcrService {
 				String filePath = "document/" + FileUtil.buildFileName(file.getOriginalFilename());
 				s3StorageService.upload(file, filePath);
 
-				documentService.saveDocument(store, user, file, filePath);
+				documentService.saveDocument(store, file, filePath);
 
 				results.add(data);
 			} catch (Exception e) {
