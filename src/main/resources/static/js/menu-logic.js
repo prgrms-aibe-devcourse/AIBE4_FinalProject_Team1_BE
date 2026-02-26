@@ -2,20 +2,18 @@
  * 스마트 QR 메뉴판 비즈니스 로직
  * - 메뉴 렌더링 (백엔드 API 연동)
  * - 장바구니 관리 (SessionStorage)
- * - 주문 전송 및 최종 결제 연동
+ * - 결제 연동 (주문 단계 생략 버전)
  */
 
-// 1. 초기 메뉴 데이터 (API 로드 전 기본값 또는 빈 배열)
+// 1. 초기 메뉴 데이터
 let menuData = [];
 
 // 2. 전역 상태 관리
 let cart = JSON.parse(sessionStorage.getItem('current_cart') || '[]');
-let orderedItems = JSON.parse(sessionStorage.getItem('ordered_history') || '[]');
 
-// URL에서 storePublicId 추출 (예: /qr_menu_order.html?storeId=...)
+// URL에서 storePublicId 추출
 const urlParams = new URLSearchParams(window.location.search);
-const storePublicId = "80b914dc-fd48-4b60-9f12-01ce4c116593"
-// const storePublicId = urlParams.get('storeId') || 'default-store-id'; // 테스트용 기본값 설정 필요 시 수정
+const storePublicId = "80b914dc-fd48-4b60-9f12-01ce4c116593";
 
 /**
  * 앱 초기화
@@ -28,10 +26,8 @@ async function init() {
 }
 
 /**
- * 백엔드 API에서 메뉴 데이터 가져오기
+ * 백엔드 API에서 메뉴 데이터 가져오기 (수정하지 않음)
  */
-// const API_BASE = "http://localhost:8080";
-
 async function fetchMenuData() {
     try {
         const url = `/api/menus/${storePublicId}/customer`;
@@ -40,7 +36,6 @@ async function fetchMenuData() {
         const response = await fetch(url, {
             method: "GET",
             headers: { "Accept": "application/json" },
-            // credentials: "include", // 쿠키/세션 쓰면 필요
         });
 
         if (!response.ok) {
@@ -61,7 +56,7 @@ async function fetchMenuData() {
     } catch (error) {
         console.error("Menu fetch error:", error);
         const grid = document.getElementById("menu-grid");
-        if (grid) grid.innerHTML = '<p class="text-center text-gray-500">메뉴를 불러올 수 없습니다.</p>';
+        if (grid) grid.innerHTML = '<p class="text-center text-gray-500 py-10">메뉴를 불러올 수 없습니다.</p>';
     }
 }
 
@@ -91,7 +86,7 @@ function renderMenuGrid() {
         `;
         grid.appendChild(card);
     });
-    lucide.createIcons(); // 동적으로 추가된 아이콘 렌더링
+    lucide.createIcons();
 }
 
 /**
@@ -138,47 +133,22 @@ function clearCart() {
 }
 
 /**
- * 주문 전송 (여러 번 가능)
- */
-function placeOrder() {
-    if (cart.length === 0) return;
-
-    if (confirm("주방으로 주문을 전송하시겠습니까?")) {
-        // 주문 내역 누적
-        cart.forEach(cartItem => {
-            const existing = orderedItems.find(o => o.id === cartItem.id);
-            if (existing) {
-                existing.quantity += cartItem.quantity;
-            } else {
-                orderedItems.push({...cartItem});
-            }
-        });
-
-        // 장바구니 비우기 및 UI 갱신
-        cart = [];
-        saveState();
-        updateUI();
-        alert("주문이 성공적으로 접수되었습니다!");
-    }
-}
-
-/**
- * 최종 결제하기 (백엔드 API 호출)
+ * 최종 결제하기 (장바구니의 내용을 바로 서버로 전송)
  */
 async function goToPayment() {
-    if (orderedItems.length === 0) {
-        alert("주문한 내역이 없습니다.");
+    if (cart.length === 0) {
+        alert("장바구니에 담긴 메뉴가 없습니다.");
         return;
     }
 
-    const total = orderedItems.reduce((acc, cur) => acc + (cur.price * cur.quantity), 0);
+    const total = cart.reduce((acc, cur) => acc + (cur.price * cur.quantity), 0);
 
     if (confirm(`최종 결제 금액은 ${total.toLocaleString()}원입니다.\n결제를 진행하시겠습니까?`)) {
 
         // 서버 전송용 데이터 구성
         const paymentPayload = {
-            tableId: "05", // 실제로는 URL 파라미터나 세션에서 가져와야 함
-            orderList: orderedItems,
+            tableId: "05",
+            orderList: cart, // 이제 확정 내역이 아닌 장바구니(cart)를 보냄
             totalAmount: total,
             timestamp: new Date().toISOString()
         };
@@ -186,20 +156,11 @@ async function goToPayment() {
         console.log("결제 API 요청 데이터:", paymentPayload);
 
         try {
-            /** * [Spring Boot API 연동 예시]
-             * const response = await fetch('/api/payment/execute', {
-             * method: 'POST',
-             * headers: { 'Content-Type': 'application/json' },
-             * body: JSON.stringify(paymentPayload)
-             * });
-             * if (response.ok) { ... }
-             */
-
+            // 여기에 Spring Boot 결제 API 연동 (fetch 호출)
             alert("결제가 완료되었습니다. 이용해주셔서 감사합니다!");
 
-            // 모든 상태 초기화
+            // 결제 성공 후 장바구니 초기화
             cart = [];
-            orderedItems = [];
             saveState();
             window.location.reload();
         } catch (e) {
@@ -214,7 +175,6 @@ async function goToPayment() {
  */
 function saveState() {
     sessionStorage.setItem('current_cart', JSON.stringify(cart));
-    sessionStorage.setItem('ordered_history', JSON.stringify(orderedItems));
 }
 
 /**
@@ -222,71 +182,63 @@ function saveState() {
  */
 function updateUI() {
     const cartTotalEl = document.getElementById('cart-total');
-    const orderedTotalEl = document.getElementById('ordered-total');
-    const orderBtn = document.getElementById('order-btn');
     const payBtn = document.getElementById('pay-btn');
 
     const cartSum = cart.reduce((acc, cur) => acc + (cur.price * cur.quantity), 0);
-    const orderSum = orderedItems.reduce((acc, cur) => acc + (cur.price * cur.quantity), 0);
 
     if(cartTotalEl) cartTotalEl.innerText = cartSum.toLocaleString() + '원';
-    if(orderedTotalEl) orderedTotalEl.innerText = orderSum.toLocaleString() + '원';
 
-    // 버튼 활성화 상태 제어
-    if (orderBtn) toggleBtnState(orderBtn, cart.length > 0);
-    if (payBtn) toggleBtnState(payBtn, orderedItems.length > 0);
+    // 결제 버튼 활성화 상태 제어 (장바구니에 메뉴가 1개 이상일 때)
+    if (payBtn) {
+        if (cart.length > 0) {
+            payBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            payBtn.disabled = false;
+        } else {
+            payBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            payBtn.disabled = true;
+        }
+    }
 
     // 상세 내역 리스트 갱신
-    renderDrawerList(cart, 'cart-list', true);
-    renderDrawerList(orderedItems, 'ordered-list', false);
+    renderCartDrawerList();
 
     lucide.createIcons();
 }
 
-function toggleBtnState(btn, isActive) {
-    if (!btn) return;
-    if (isActive) {
-        btn.classList.remove('opacity-50', 'cursor-not-allowed');
-        btn.disabled = false;
-    } else {
-        btn.classList.add('opacity-50', 'cursor-not-allowed');
-        btn.disabled = true;
-    }
-}
-
 /**
- * 드로어(상세내역) 리스트 렌더링
+ * 장바구니 상세 내역 리스트 렌더링
  */
-function renderDrawerList(items, containerId, isCart) {
-    const container = document.getElementById(containerId);
+function renderCartDrawerList() {
+    const container = document.getElementById('cart-list');
     if (!container) return;
 
-    if (items.length === 0) {
-        container.innerHTML = `<p class="text-sm text-gray-400 text-center py-4">${isCart ? '담은 메뉴가 없습니다.' : '주문 내역이 없습니다.'}</p>`;
+    if (cart.length === 0) {
+        container.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-10 opacity-30">
+                <i data-lucide="shopping-cart" class="w-12 h-12 mb-2"></i>
+                <p class="text-sm">장바구니가 비어있습니다.</p>
+            </div>
+        `;
         return;
     }
 
     container.innerHTML = '';
-    items.forEach(item => {
+    cart.forEach(item => {
         const div = document.createElement('div');
         div.className = 'flex items-center justify-between py-2';
         div.innerHTML = `
-            <div class="flex items-center gap-3">
-                <span class="text-xl">${item.icon}</span>
+            <div class="flex items-center gap-4">
+                <span class="text-2xl">${item.icon}</span>
                 <div>
                     <p class="text-sm font-bold text-gray-800">${item.name}</p>
-                    <p class="text-xs text-gray-400">${(item.price * item.quantity).toLocaleString()}원</p>
+                    <p class="text-xs text-rose-600 font-bold">${(item.price * item.quantity).toLocaleString()}원</p>
                 </div>
             </div>
-            ${isCart ? `
-                <div class="flex items-center gap-2 bg-gray-50 rounded-lg p-1">
-                    <button onclick="adjustCartQty('${item.id}', -1)" class="w-6 h-6 flex items-center justify-center bg-white rounded border border-gray-200 text-xs">-</button>
-                    <span class="text-xs font-bold w-4 text-center">${item.quantity}</span>
-                    <button onclick="adjustCartQty('${item.id}', 1)" class="w-6 h-6 flex items-center justify-center bg-white rounded border border-gray-200 text-xs">+</button>
-                </div>
-            ` : `
-                <span class="text-sm font-bold text-gray-500">${item.quantity}개</span>
-            `}
+            <div class="flex items-center gap-2 bg-gray-50 rounded-xl p-1.5 border border-gray-100">
+                <button onclick="adjustCartQty('${item.id}', -1)" class="w-7 h-7 flex items-center justify-center bg-white rounded-lg border border-gray-200 text-sm font-bold active:bg-gray-100">-</button>
+                <span class="text-sm font-black w-6 text-center">${item.quantity}</span>
+                <button onclick="adjustCartQty('${item.id}', 1)" class="w-7 h-7 flex items-center justify-center bg-white rounded-lg border border-gray-200 text-sm font-bold active:bg-gray-100">+</button>
+            </div>
         `;
         container.appendChild(div);
     });
