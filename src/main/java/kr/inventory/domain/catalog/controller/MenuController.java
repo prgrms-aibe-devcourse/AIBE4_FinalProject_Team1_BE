@@ -70,4 +70,11 @@ public class MenuController {
         menuService.deleteMenu(principal.getUserId(), storePublicId, menuPublicId);
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(summary = "매장 손님용 메뉴 목록 조회", description = "매장의 모든 메뉴를 조회합니다.")
+    @GetMapping("/customer")
+    public ResponseEntity<List<MenuResponse>> customerGetMenus(
+            @PathVariable UUID storePublicId) {
+        return ResponseEntity.ok(menuService.customerGetMenus(storePublicId));
+    }
 }
