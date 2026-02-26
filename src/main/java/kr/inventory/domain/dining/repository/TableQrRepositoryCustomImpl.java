@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.Optional;
 
+import static kr.inventory.domain.dining.entity.QTableQr.tableQr;
+
 @RequiredArgsConstructor
 public class TableQrRepositoryCustomImpl implements TableQrRepositoryCustom{
     private final JPAQueryFactory queryFactory;
