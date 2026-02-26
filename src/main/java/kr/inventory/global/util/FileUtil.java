@@ -13,10 +13,9 @@ public class FileUtil {
 	private static final String[] ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "pdf", "xlsx", "xls"};
 
 	public static String buildFileName(String originalFileName) {
-		String extension = StringUtils.getFilenameExtension(originalFileName);
 		String uuid = UUID.randomUUID().toString();
 
-		return uuid + "_" + originalFileName + "." + extension;
+		return uuid + "_" + originalFileName;
 	}
 
 	public static void validateFileExtension(String fileName) {
