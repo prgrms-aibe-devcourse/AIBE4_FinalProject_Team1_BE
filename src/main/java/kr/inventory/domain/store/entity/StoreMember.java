@@ -9,13 +9,13 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-
 @Entity
 @Table(
         name = "store_members",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"store_id", "user_id"})
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_store_user", columnNames = {"store_id", "user_id"}),
+                @UniqueConstraint(name = "uk_user_display_order", columnNames = {"user_id", "display_order"})
+        }
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -42,23 +42,27 @@ public class StoreMember extends AuditableEntity {
     private StoreMemberStatus status;
 
     @Column(nullable = false)
-    private OffsetDateTime joinedAt;
+    private Integer displayOrder;
 
-    public static StoreMember create(Store store, User user, StoreMemberRole role) {
+    @Column(nullable = false)
+    private Boolean isDefault;
+
+    public static StoreMember create(Store store, User user, StoreMemberRole role, Integer displayOrder, Boolean isDefault) {
         StoreMember member = new StoreMember();
         member.store = store;
         member.user = user;
         member.role = role;
         member.status = StoreMemberStatus.ACTIVE;
-        member.joinedAt = OffsetDateTime.now(ZoneOffset.UTC);
+        member.displayOrder = displayOrder;
+        member.isDefault = isDefault;
         return member;
-    }
-
-    public void updateRole(StoreMemberRole newRole) {
-        this.role = newRole;
     }
 
     public void updateStatus(StoreMemberStatus newStatus) {
         this.status = newStatus;
+    }
+
+    public void setAsDefault() {
+        this.isDefault = true;
     }
 }
