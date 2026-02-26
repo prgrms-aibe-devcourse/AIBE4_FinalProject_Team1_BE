@@ -19,8 +19,8 @@ import kr.inventory.domain.document.service.GeminiService;
 public class ExcelOcrProcessor extends AbstractGeminiOcrProcessor {
 
 	public ExcelOcrProcessor(GeminiService geminiService,
-		ObjectMapper objectMapper) {
-		super(geminiService, objectMapper);
+		ObjectMapper objectMapper, OcrPromptProvider ocrPromptProvider) {
+		super(geminiService, objectMapper, ocrPromptProvider);
 	}
 
 	@Override

@@ -101,6 +101,9 @@ dependencies {
     // Apache POI
     // Source: https://mvnrepository.com/artifact/org.apache.poi/poi
     implementation("org.apache.poi:poi:5.5.1")
+
+    // AWS S3
+    implementation 'software.amazon.awssdk:s3:2.25.0'
 }
 
 jacoco {
