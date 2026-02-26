@@ -33,7 +33,7 @@ public class TableQrAdminController {
             @PathVariable UUID storePublicId,
             @RequestBody @Valid TableQrIssueRequest request
     ) {
-        TableQrIssueResponse res = tableQrManagerFacade.issueOrRotate(
+        TableQrIssueResponse res = tableQrManagerFacade.issueTableQr(
                 principal.getUserId(),
                 storePublicId,
                 request.tablePublicId()

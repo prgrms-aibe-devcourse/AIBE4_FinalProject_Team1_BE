@@ -37,6 +37,9 @@ public class TableQr extends AuditableEntity {
     @JoinColumn(name = "table_id", nullable = false)
     private DiningTable table;
 
+    @Column(name = "qr_image_url", length = 512)
+    private String qrImageUrl;
+
     @Column(name = "entry_token_hash", nullable = false, length = 128)
     private String entryTokenHash;
 
@@ -55,7 +58,7 @@ public class TableQr extends AuditableEntity {
         qr.table = table;
         qr.entryTokenHash = entryTokenHash;
         qr.rotationVersion = rotationVersion;
-        qr.status = TableQrStatus.ACTIVE;
+        qr.status = TableQrStatus.PENDING;
         return qr;
     }
 
@@ -67,5 +70,14 @@ public class TableQr extends AuditableEntity {
 
     public boolean isActive() {
         return this.status == TableQrStatus.ACTIVE;
+    }
+
+    public void complete(String qrImageUrl) {
+        this.qrImageUrl = qrImageUrl;
+        this.status = TableQrStatus.ACTIVE;
+    }
+
+    public void updateImageUrl(String qrImageUrl) {
+        this.qrImageUrl = qrImageUrl;
     }
 }
