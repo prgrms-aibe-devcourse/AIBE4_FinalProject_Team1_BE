@@ -1,10 +1,12 @@
 package kr.inventory.domain.stock.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import kr.inventory.domain.auth.security.CustomUserDetails;
-import kr.inventory.domain.stock.controller.dto.StocktakeCreateRequest;
-import kr.inventory.domain.stock.controller.dto.StocktakeItemRequest;
+import kr.inventory.domain.stock.controller.dto.request.StocktakeCreateRequest;
+import kr.inventory.domain.stock.controller.dto.request.StocktakeItemRequest;
 import kr.inventory.domain.stock.service.StocktakeService;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,44 +33,44 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(StocktakeController.class)
 class StocktakeControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+	@Autowired
+	private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+	@Autowired
+	private ObjectMapper objectMapper;
 
-    @MockitoBean
-    private StocktakeService stocktakeService;
+	@MockitoBean
+	private StocktakeService stocktakeService;
 
-    private final UUID storePublicId = UUID.randomUUID();
-    private final Long userId = 1L;
+	private final UUID storePublicId = UUID.randomUUID();
+	private final Long userId = 1L;
 
-    @Test
-    @DisplayName("새로운 실사 시트를 성공적으로 생성한다.")
-    void createSheet_Success() throws Exception {
-        // given
-        StocktakeItemRequest item = new StocktakeItemRequest(10L, new BigDecimal("50.0"));
-        StocktakeCreateRequest request = new StocktakeCreateRequest("2026-02-14 정기 실사", List.of(item));
+	@Test
+	@DisplayName("새로운 실사 시트를 성공적으로 생성한다.")
+	void createSheet_Success() throws Exception {
+		// given
+		StocktakeItemRequest item = new StocktakeItemRequest(10L, new BigDecimal("50.0"));
+		StocktakeCreateRequest request = new StocktakeCreateRequest("2026-02-14 정기 실사", List.of(item));
 
-        CustomUserDetails userDetails = createMockUser();
-        given(stocktakeService.createStocktakeSheet(eq(userId), eq(storePublicId), any(StocktakeCreateRequest.class)))
-                .willReturn(100L);
+		CustomUserDetails userDetails = createMockUser();
+		given(stocktakeService.createStocktakeSheet(eq(userId), eq(storePublicId), any(StocktakeCreateRequest.class)))
+			.willReturn(100L);
 
-        // when & then
-        mockMvc.perform(post("/api/stocktakes/{storePublicId}", storePublicId)
-                        .with(user(userDetails))
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON_VALUE)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(content().string("100"));
-    }
+		// when & then
+		mockMvc.perform(post("/api/stocktakes/{storePublicId}", storePublicId)
+				.with(user(userDetails))
+				.with(csrf())
+				.contentType(MediaType.APPLICATION_JSON_VALUE)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isOk())
+			.andExpect(content().string("100"));
+	}
 
-    private CustomUserDetails createMockUser() {
-        return new CustomUserDetails(
-                userId,
-                List.of(new SimpleGrantedAuthority("ROLE_OWNER")),
-                Map.of()
-        );
-    }
+	private CustomUserDetails createMockUser() {
+		return new CustomUserDetails(
+			userId,
+			List.of(new SimpleGrantedAuthority("ROLE_OWNER")),
+			Map.of()
+		);
+	}
 }
