@@ -73,4 +73,15 @@ public class MenuService {
         }
         return menu;
     }
+
+    public List<MenuResponse> customerGetMenus(UUID storePublicId) {
+        Store store = storeRepository.findByStorePublicId(storePublicId)
+                .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_NOT_FOUND));
+
+        Long storeId = store.getStoreId();
+
+        return menuRepository.findAllByStoreStoreId(storeId).stream()
+                .map(MenuResponse::from)
+                .toList();
+    }
 }

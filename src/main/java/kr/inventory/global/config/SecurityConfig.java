@@ -33,6 +33,7 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/qr_menu_order.html", "/js/**").permitAll()
                         .requestMatchers("/", "/error", "/favicon.ico").permitAll()
                         .requestMatchers("/login/**", "/api/auth/**").permitAll()
                         .requestMatchers("/api/users/**").authenticated()
