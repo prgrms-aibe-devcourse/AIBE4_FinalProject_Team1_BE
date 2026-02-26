@@ -10,4 +10,5 @@ import java.util.UUID;
 public interface DiningTableRepository extends JpaRepository<DiningTable, Long> {
     Optional<DiningTable> findByStore_StoreIdAndTablePublicId(Long storeId, UUID tablePublicId);
     List<DiningTable> findAllByStore_StoreId(Long storeId);
+    List<DiningTable> findAllByStore_StoreIdAndTablePublicIdIn(Long storeId, List<UUID> tablePublicIds);
 }

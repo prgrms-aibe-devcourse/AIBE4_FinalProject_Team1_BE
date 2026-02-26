@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface TableQrRepository extends JpaRepository<TableQr, Long> {
+public interface TableQrRepository extends JpaRepository<TableQr, Long>, TableQrRepositoryCustom {
 
     Optional<TableQr> findByTable_Store_StoreIdAndQrPublicId(Long storeId, UUID qrPublicId);
 
