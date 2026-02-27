@@ -27,4 +27,18 @@ public class TableQrRepositoryCustomImpl implements TableQrRepositoryCustom{
                         .fetchOne()
         );
     }
+
+    @Override
+    public Optional<TableQr> findActiveQrByTable_TableId(Long tableId) {
+        TableQr result = queryFactory
+                .selectFrom(tableQr)
+                .where(
+                        tableQr.table.tableId.eq(tableId),
+                        tableQr.revokedAt.isNull()
+                )
+                .orderBy(tableQr.rotationVersion.desc())
+                .fetchFirst();
+
+        return Optional.ofNullable(result);
+    }
 }

@@ -18,4 +18,6 @@ public interface TableQrRepository extends JpaRepository<TableQr, Long>, TableQr
             String entryTokenHash,
             TableQrStatus status
     );
+
+    Optional<TableQr> findActiveQrByTable_TableId(Long tableId);
 }
