@@ -8,7 +8,7 @@ import kr.inventory.domain.dining.exception.TableException;
 import kr.inventory.domain.dining.repository.DiningTableRepository;
 import kr.inventory.domain.dining.repository.TableQrRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
-import kr.inventory.global.config.infrastructure.S3StorageService;
+import kr.inventory.global.config.S3StorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

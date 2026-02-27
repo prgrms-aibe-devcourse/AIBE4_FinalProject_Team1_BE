@@ -1,9 +1,9 @@
 package kr.inventory.domain.sales.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import kr.inventory.domain.catalog.entity.Menu;
-import kr.inventory.domain.catalog.entity.enums.MenuStatus;
-import kr.inventory.domain.catalog.repository.MenuRepository;
+import kr.inventory.domain.reference.entity.Menu;
+import kr.inventory.domain.reference.entity.enums.MenuStatus;
+import kr.inventory.domain.reference.repository.MenuRepository;
 import kr.inventory.domain.dining.entity.DiningTable;
 import kr.inventory.domain.dining.entity.TableSession;
 import kr.inventory.domain.dining.entity.enums.TableSessionStatus;

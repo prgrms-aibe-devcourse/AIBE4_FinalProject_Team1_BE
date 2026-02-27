@@ -10,6 +10,7 @@ import kr.inventory.domain.vendor.entity.Vendor;
 import kr.inventory.domain.vendor.entity.enums.VendorStatus;
 import kr.inventory.domain.vendor.repository.VendorRepositoryCustom;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;

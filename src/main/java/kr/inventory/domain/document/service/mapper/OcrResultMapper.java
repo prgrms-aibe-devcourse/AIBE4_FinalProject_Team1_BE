@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Component;
 
-import kr.inventory.domain.catalog.repository.IngredientRepository;
+import kr.inventory.domain.reference.repository.IngredientRepository;
 import kr.inventory.domain.document.controller.dto.ocr.RawReceiptData;
 import kr.inventory.domain.document.controller.dto.ocr.ReceiptResponse;
 import kr.inventory.domain.document.service.processor.OcrValidator;
