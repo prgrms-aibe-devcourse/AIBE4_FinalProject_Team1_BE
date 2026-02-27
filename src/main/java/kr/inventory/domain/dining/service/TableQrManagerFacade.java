@@ -30,7 +30,7 @@ public class TableQrManagerFacade {
     private final StorageService storageService;
     private final QrGenerator qrGenerator;
 
-    @Value("${app.order.base-url:http:localhost.index.html}")
+    @Value("${app.order.base-url:http://localhost:8080}")
     private String orderBaseUrl;
 
     public List<TableQrIssueResponse> issueTableQrs(Long userId, UUID storePublicId, List<UUID> tablePublicIds) {
@@ -57,7 +57,7 @@ public class TableQrManagerFacade {
         TableQr qr = TableQr.create(table, entryTokenHash, nextVersion);
         tableQrRepository.save(qr);
 
-        String qrContent = String.format("%s/s/%s/t/%s?token=%s",
+        String qrContent = String.format("%s/qr_menu_order.html?s=%s&t=%s&token=%s",
                 orderBaseUrl, storePublicId, table.getTablePublicId(), entryToken);
 
         byte[] imageBytes = qrGenerator.generate(qrContent, 300, 300);
