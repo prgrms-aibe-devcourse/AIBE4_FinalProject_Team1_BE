@@ -7,5 +7,5 @@ import org.springframework.web.multipart.MultipartFile;
 public interface OcrProcessor {
 	boolean supports(MultipartFile file);
 
-	ReceiptResponse process(MultipartFile file);
+	ReceiptResponse process(MultipartFile file, Long storeId);
 }

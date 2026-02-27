@@ -2,6 +2,8 @@ package kr.inventory.domain.stock.service;
 
 import kr.inventory.domain.catalog.repository.IngredientRepository;
 import kr.inventory.domain.document.entity.Document;
+import kr.inventory.domain.document.exception.DocumentError;
+import kr.inventory.domain.document.exception.DocumentException;
 import kr.inventory.domain.document.repository.DocumentRepository;
 import kr.inventory.domain.purchase.entity.PurchaseOrder;
 import kr.inventory.domain.purchase.repository.PurchaseOrderRepository;
@@ -20,6 +22,7 @@ import kr.inventory.domain.stock.repository.StockInboundRepository;
 import kr.inventory.domain.stock.repository.StockLogRepository;
 import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.repository.StoreRepository;
+import kr.inventory.domain.store.service.StoreAccessValidator;
 import kr.inventory.domain.user.entity.User;
 import kr.inventory.domain.user.repository.UserRepository;
 import kr.inventory.domain.vendor.entity.Vendor;
@@ -43,6 +46,7 @@ public class StockInboundService {
 	private final StockInboundItemRepository stockInboundItemRepository;
 	private final IngredientStockBatchRepository ingredientStockBatchRepository;
 	private final StockLogRepository stockLogRepository;
+	private final StoreAccessValidator storeAccessValidator;
 	private final StoreRepository storeRepository;
 	private final VendorRepository vendorRepository;
 	private final IngredientRepository ingredientRepository;
@@ -50,17 +54,20 @@ public class StockInboundService {
 	private final DocumentRepository documentRepository;
 	private final PurchaseOrderRepository purchaseOrderRepository;
 
-	public StockInboundResponse createInbound(StockInboundRequest request) {
-		Store store = storeRepository.findById(request.storeId())
+	public StockInboundResponse createInbound(Long userId, UUID storePublicId, StockInboundRequest request) {
+		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+		Store store = storeRepository.findById(storeId)
 			.orElseThrow(() -> new StockException(StockErrorCode.STORE_NOT_FOUND));
+
 		Vendor vendor = request.vendorId() != null ? vendorRepository.findById(request.vendorId())
 			.orElseThrow(() -> new StockException(StockErrorCode.VENDOR_NOT_FOUND)) : null;
-		Document sourceDocument =
-			request.sourceDocumentId() != null ? documentRepository.findById(request.sourceDocumentId())
-				.orElse(null) : null;
-		PurchaseOrder sourcePurchaseOrder =
-			request.sourcePurchaseOrderId() != null ? purchaseOrderRepository.findById(request.sourcePurchaseOrderId())
-				.orElse(null) : null;
+
+		Document sourceDocument = documentRepository.findById(request.sourceDocumentId())
+			.orElseThrow(() -> new DocumentException(
+				DocumentError.DOCUMENT_NOT_FOUND));
+
+		PurchaseOrder sourcePurchaseOrder = purchaseOrderRepository.findById(request.sourcePurchaseOrderId())
+			.orElseThrow();
 
 		StockInbound inbound = StockInbound.create(store, vendor, sourceDocument, sourcePurchaseOrder);
 		stockInboundRepository.save(inbound);
