@@ -6,6 +6,7 @@ import kr.inventory.domain.document.controller.dto.ocr.RawReceiptData;
 import kr.inventory.domain.document.controller.dto.ocr.ReceiptResponse;
 import kr.inventory.domain.document.exception.OcrException;
 import kr.inventory.domain.document.service.GeminiService;
+import kr.inventory.domain.document.service.mapper.OcrResultMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,9 +22,10 @@ public abstract class AbstractGeminiOcrProcessor implements OcrProcessor {
 	private final GeminiService geminiService;
 	private final ObjectMapper objectMapper;
 	private final OcrPromptProvider ocrPromptProvider;
+	private final OcrResultMapper ocrResultMapper;
 
 	@Override
-	public ReceiptResponse process(MultipartFile file) {
+	public ReceiptResponse process(MultipartFile file, Long storeId) {
 		long start = System.currentTimeMillis();
 		long apiStart = System.currentTimeMillis();
 		log.info("Processing {} with Gemini: {}", file.getContentType(), file.getOriginalFilename());
@@ -47,7 +49,7 @@ public abstract class AbstractGeminiOcrProcessor implements OcrProcessor {
 
 			RawReceiptData raw = objectMapper.readValue(cleanJson, RawReceiptData.class);
 
-			return convertToValidatedReceiptData(raw);
+			return ocrResultMapper.mapToReceiptResponse(raw, storeId);
 
 		} catch (OcrException e) {
 			log.error("OCR Exception for file {}: {}", file.getOriginalFilename(),
@@ -58,10 +60,6 @@ public abstract class AbstractGeminiOcrProcessor implements OcrProcessor {
 				e.getMessage());
 			return ReceiptResponse.empty("데이터를 불러오는 중 오류가 발생했습니다.");
 		}
-	}
-
-	private ReceiptResponse convertToValidatedReceiptData(RawReceiptData raw) {
-		return ReceiptResponse.fromRaw(raw);
 	}
 
 	private String cleanJsonString(String json) {

@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/inbounds")
+@RequestMapping("/api/inbounds/{storePublicId}")
 @RequiredArgsConstructor
 public class StockInboundController {
 
@@ -25,14 +25,19 @@ public class StockInboundController {
 
 	@PostMapping
 	public ResponseEntity<StockInboundResponse> createInbound(
+		@AuthenticationPrincipal CustomUserDetails userDetails,
+		@PathVariable("storePublicId") UUID storePublicId,
 		@RequestBody @Valid StockInboundRequest request
 	) {
-		StockInboundResponse response = stockInboundService.createInbound(request);
+		StockInboundResponse response = stockInboundService.createInbound(userDetails.getUserId(), storePublicId,
+			request);
 		return ResponseEntity.ok(response);
 	}
 
 	@GetMapping("/{inboundId}")
 	public ResponseEntity<StockInboundResponse> getInbound(
+		@AuthenticationPrincipal CustomUserDetails userDetails,
+		@PathVariable("storePublicId") UUID storePublicId,
 		@PathVariable("inboundId") UUID inboundPublicId
 	) {
 		StockInboundResponse response = stockInboundService.getInbound(inboundPublicId);
@@ -41,10 +46,11 @@ public class StockInboundController {
 
 	@GetMapping
 	public ResponseEntity<Page<StockInboundResponse>> getInbounds(
-		@RequestParam("storeId") Long storeId,
+		@AuthenticationPrincipal CustomUserDetails userDetails,
+		@PathVariable("storePublicId") Long storePublicId,
 		@PageableDefault(size = 20) Pageable pageable
 	) {
-		Page<StockInboundResponse> response = stockInboundService.getInbounds(storeId, pageable);
+		Page<StockInboundResponse> response = stockInboundService.getInbounds(storePublicId, pageable);
 		return ResponseEntity.ok(response);
 	}
 

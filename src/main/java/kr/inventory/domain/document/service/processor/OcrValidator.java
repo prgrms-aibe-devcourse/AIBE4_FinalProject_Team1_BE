@@ -2,7 +2,9 @@ package kr.inventory.domain.document.service.processor;
 
 import java.math.BigDecimal;
 
+import kr.inventory.domain.catalog.repository.IngredientRepository;
 import kr.inventory.domain.document.controller.dto.ocr.ReceiptResponse;
+import kr.inventory.domain.vendor.repository.VendorRepository;
 import kr.inventory.global.util.UnitConverter;
 
 public class OcrValidator {
@@ -45,5 +47,33 @@ public class OcrValidator {
 		} catch (Exception e) {
 			return ReceiptResponse.Field.warning(totalStr, "금액 형식 오류");
 		}
+	}
+
+	public static ReceiptResponse.Field<Long> validateVendor(
+		String rawVendorName,
+		Long storeId,
+		VendorRepository vendorRepository
+	) {
+		if (rawVendorName == null || rawVendorName.isBlank()) {
+			return ReceiptResponse.Field.fail("거래처 정보 누락");
+		}
+
+		return vendorRepository.findMostSimilarVendor(storeId, rawVendorName)
+			.map(vendor -> ReceiptResponse.Field.success(vendor.getVendorId()))
+			.orElseGet(() -> ReceiptResponse.Field.warning(null, "유사한 거래처 없음: " + rawVendorName));
+	}
+
+	public static ReceiptResponse.Field<Long> validateIngredient(
+		String rawName,
+		Long storeId,
+		IngredientRepository ingredientRepository
+	) {
+		if (rawName == null || rawName.isBlank()) {
+			return ReceiptResponse.Field.fail("상품명 정보 없음");
+		}
+
+		return ingredientRepository.findMostSimilarIngredient(storeId, rawName)
+			.map(ing -> ReceiptResponse.Field.success(ing.getIngredientId()))
+			.orElseGet(() -> ReceiptResponse.Field.warning(null, "미등록 상품"));
 	}
 }

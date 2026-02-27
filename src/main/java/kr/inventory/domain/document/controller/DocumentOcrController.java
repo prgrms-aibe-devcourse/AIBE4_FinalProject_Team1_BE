@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/documents/{storePublicId}")
 @RequiredArgsConstructor
 @Tag(name = "Document OCR API", description = "OCR")
 public class DocumentOcrController {
@@ -28,9 +28,9 @@ public class DocumentOcrController {
 	private final DocumentService documentService;
 
 	@Operation(summary = "OCR 포함 파일 처리")
-	@PostMapping(value = "stores/{storeId}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@PostMapping(value = "/ocr", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<OcrResultResponse> processOcr(
-		@PathVariable("storeId") UUID storePublicId,
+		@PathVariable("storePublicId") UUID storePublicId,
 		@AuthenticationPrincipal CustomUserDetails principal,
 		@RequestPart("files") List<MultipartFile> files
 	) {
@@ -42,9 +42,9 @@ public class DocumentOcrController {
 	}
 
 	@Operation(summary = "등록된 파일목록 조회")
-	@GetMapping("stores/{storeId}/documents")
+	@GetMapping()
 	public ResponseEntity<List<DocumentResponse>> getDocuments(
-		@PathVariable("storeId") UUID storePublicId,
+		@PathVariable("storePublicId") UUID storePublicId,
 		@AuthenticationPrincipal CustomUserDetails principal) {
 
 		List<DocumentResponse> responses = documentService.getDocuments(storePublicId, principal.getUserId());
