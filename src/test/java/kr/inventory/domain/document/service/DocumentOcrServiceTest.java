@@ -1,8 +1,6 @@
 package kr.inventory.domain.document.service;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -77,7 +75,7 @@ class DocumentOcrServiceTest {
 		given(userRepository.findById(userId)).willReturn(Optional.of(user));
 		given(processors.stream()).willReturn(List.of(ocrProcessor).stream());
 		given(ocrProcessor.supports(any(MultipartFile.class))).willReturn(true);
-		given(ocrProcessor.process(any(MultipartFile.class))).willReturn(receiptData);
+		given(ocrProcessor.process(any(MultipartFile.class), anyLong())).willReturn(receiptData);
 		given(s3StorageService.upload(any(MultipartFile.class), anyString())).willReturn("http://s3-url/test.jpg");
 
 		// when

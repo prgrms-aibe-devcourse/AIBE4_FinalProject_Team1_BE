@@ -55,7 +55,7 @@ public class DocumentOcrService {
 			}
 
 			try {
-				ReceiptResponse data = processor.process(file);
+				ReceiptResponse data = processor.process(file, store.getStoreId());
 				log.info("OCR processing completed for file: {}",
 					file.getOriginalFilename());
 

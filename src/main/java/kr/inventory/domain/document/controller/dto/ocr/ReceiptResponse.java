@@ -4,59 +4,59 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import kr.inventory.domain.document.service.processor.OcrValidator;
-
 public record ReceiptResponse(
-	Field<String> vendorName,
+	VendorField vendor,
 	Field<String> date,
 	Field<String> amount,
 	List<Item> items
 ) {
 
 	public static ReceiptResponse of(
-		Field<String> vendorName,
+		VendorField vendor,
 		Field<String> date,
 		Field<String> amount,
 		List<Item> items
 	) {
 		return new ReceiptResponse(
-			Objects.requireNonNull(vendorName),
+			Objects.requireNonNull(vendor),
 			Objects.requireNonNull(date),
 			Objects.requireNonNull(amount),
 			items == null ? Collections.emptyList() : List.copyOf(items)
 		);
 	}
 
-	public static ReceiptResponse fromRaw(RawReceiptData raw) {
-
-		List<Item> validatedItems = raw.items().stream()
-			.map(Item::fromRaw)
-			.toList();
-
+	public static ReceiptResponse empty(String msg) {
+		Field<String> errorField = Field.fail(msg);
 		return of(
-			OcrValidator.validate(raw.vendorName(), "공급처"),
-			OcrValidator.validate(raw.date(), "날짜"),
-			OcrValidator.validate(raw.amount(), "총액"),
-			validatedItems
+			new VendorField(Field.fail(msg), Field.fail(msg)),
+			errorField,
+			errorField,
+			Collections.emptyList()
 		);
 	}
 
-	public static ReceiptResponse empty(String msg) {
-		Field<String> errorField = Field.fail(msg);
-		return of(errorField, errorField, errorField, Collections.emptyList());
+	public record VendorField(
+		Field<Long> id,
+		Field<String> name
+	) {
+	}
+
+	public record IngredientField(
+		Field<Long> id,
+		Field<String> name
+	) {
 	}
 
 	public record Item(
-		Field<String> name,
+		IngredientField ingredient,
 		Field<String> quantity,
 		Field<String> rawCapacity,
 		Field<String> costPrice,
 		Field<String> totalPrice,
 		Field<String> expirationDate
 	) {
-
 		public static Item of(
-			Field<String> name,
+			IngredientField ingredient,
 			Field<String> quantity,
 			Field<String> rawCapacity,
 			Field<String> costPrice,
@@ -64,7 +64,7 @@ public record ReceiptResponse(
 			Field<String> expirationDate
 		) {
 			return new Item(
-				Objects.requireNonNull(name),
+				Objects.requireNonNull(ingredient),
 				Objects.requireNonNull(quantity),
 				rawCapacity,
 				costPrice,
@@ -72,41 +72,13 @@ public record ReceiptResponse(
 				expirationDate
 			);
 		}
-
-		public static Item fromRaw(RawReceiptData.RawItem item) {
-
-			Field<String> name =
-				OcrValidator.validate(item.name(), "상품명");
-
-			Field<String> qty =
-				OcrValidator.validate(item.quantity(), "수량");
-
-			Field<String> cost =
-				OcrValidator.validate(item.costPrice(), "단가");
-
-			Field<String> rawTotal =
-				OcrValidator.validate(item.totalPrice(), "총액");
-
-			Field<String> validatedTotal =
-				OcrValidator.validateTotal(
-					qty.value(),
-					cost.value(),
-					rawTotal.value()
-				);
-
-			return of(
-				name,
-				qty,
-				OcrValidator.validateCapacity(item.rawCapacity()),
-				cost,
-				validatedTotal,
-				OcrValidator.validate(item.expirationDate(), "유통기한")
-			);
-		}
 	}
 
-	public record Field<T>(T value, Status status, String message) {
-
+	public record Field<T>(
+		T value,
+		Status status,
+		String message
+	) {
 		public enum Status {
 			GREEN,
 			YELLOW,
