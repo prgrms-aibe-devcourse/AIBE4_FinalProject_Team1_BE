@@ -50,9 +50,13 @@
             <div>
                 <h1 class="text-2xl font-black text-gray-900 flex items-center gap-2">
                     <i data-lucide="utensils" class="text-rose-600 w-7 h-7"></i>
-                    맛있는 키친
+                    <span id="store-name">맛있는 키친</span>
                 </h1>
-                <p class="text-sm text-gray-500 mt-1 font-medium">Table 05 <span class="mx-2 text-gray-300">|</span> 오늘 최고의 맛을 전합니다</p>
+                <p class="text-sm text-gray-500 mt-1 font-medium">
+                    <span id="table-name">Table</span>
+                    <span class="mx-2 text-gray-300">|</span>
+                    <span id="subtitle">오늘 최고의 맛을 전합니다</span>
+                </p>
             </div>
         </div>
     </header>
@@ -63,6 +67,9 @@
             <span class="w-1.5 h-6 bg-rose-600 rounded-full"></span>
             전체 메뉴
         </h2>
+
+        <div id="error-box" class="hidden mb-4 p-4 rounded-2xl bg-rose-50 border border-rose-100 text-rose-700 text-sm font-medium"></div>
+
         <div id="menu-grid" class="grid grid-cols-1 gap-4">
             <!-- JS에서 메뉴 주입 -->
         </div>
@@ -85,7 +92,6 @@
             </button>
         </div>
 
-        <!-- 주문 버튼을 삭제하고 결제 버튼을 강조된 디자인으로 변경 -->
         <button onclick="goToPayment()" id="pay-btn" class="w-full bg-rose-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-rose-200 active:scale-95 transition-all flex items-center justify-center gap-2 opacity-50 cursor-not-allowed" disabled>
             <i data-lucide="credit-card" class="w-5 h-5"></i>
             결제하기
