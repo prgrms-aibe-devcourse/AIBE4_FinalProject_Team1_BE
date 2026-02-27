@@ -84,6 +84,10 @@ cloud:
       bucket: ${S3_BUCKET}
     region:
       static: ap-northeast-2
+    credentials:
+      use-default: true
+    stack:
+      auto: false
 
 nts:
   api:
