@@ -27,7 +27,7 @@ public class StockInbound extends AuditableEntity {
 	private Long inboundId;
 
 	@Column(nullable = false, updatable = false)
-	private UUID inboundPublicId;
+	private UUID inboundPublicId = UUID.randomUUID();
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "store_id", nullable = false)
@@ -59,7 +59,6 @@ public class StockInbound extends AuditableEntity {
 		PurchaseOrder sourcePurchaseOrder) {
 		StockInbound inbound = new StockInbound();
 		inbound.store = store;
-		inbound.inboundPublicId = UUID.randomUUID();
 		inbound.vendor = vendor;
 		inbound.sourceDocument = sourceDocument;
 		inbound.sourcePurchaseOrder = sourcePurchaseOrder;

@@ -13,13 +13,14 @@ import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import kr.inventory.domain.document.service.GeminiService;
+import kr.inventory.domain.document.service.mapper.OcrResultMapper;
 
 @Component
 public class ImageOcrProcessor extends AbstractGeminiOcrProcessor {
 
 	public ImageOcrProcessor(GeminiService geminiService,
-		ObjectMapper objectMapper, OcrPromptProvider ocrPromptProvider) {
-		super(geminiService, objectMapper, ocrPromptProvider);
+		ObjectMapper objectMapper, OcrPromptProvider ocrPromptProvider, OcrResultMapper ocrResultMapper) {
+		super(geminiService, objectMapper, ocrPromptProvider, ocrResultMapper);
 	}
 
 	@Override
