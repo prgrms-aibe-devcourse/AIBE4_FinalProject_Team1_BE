@@ -1,16 +1,11 @@
 package kr.inventory.global.config.infrastructure;
 
-import java.io.IOException;
-import java.time.Duration;
-import java.util.UUID;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
 import kr.inventory.global.config.infrastructure.exception.FileError;
 import kr.inventory.global.config.infrastructure.exception.FileException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -20,6 +15,10 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
+
+import java.io.IOException;
+import java.time.Duration;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -53,6 +52,25 @@ public class S3StorageService {
 			throw new FileException(FileError.STORAGE_UPLOAD_FAILURE);
 		}
 	}
+
+    public String upload(byte[] bytes, String path, String contentType) {
+        try {
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(path)
+                    .contentType(contentType)
+                    .build();
+
+            s3Client.putObject(putObjectRequest, RequestBody.fromBytes(bytes));
+
+            return s3Client.utilities().getUrl(GetUrlRequest.builder()
+                    .bucket(bucket)
+                    .key(path)
+                    .build()).toString();
+        } catch (Exception e) {
+            throw new FileException(FileError.STORAGE_UPLOAD_FAILURE);
+        }
+    }
 
 	public void delete(String fileUrl) {
 		String key = fileUrl.substring(fileUrl.lastIndexOf(bucket) + bucket.length() + 1);

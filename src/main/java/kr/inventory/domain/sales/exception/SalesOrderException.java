@@ -5,8 +5,8 @@ import kr.inventory.global.exception.ErrorModel;
 import lombok.Getter;
 
 @Getter
-public class SalesException extends BusinessException {
-    public SalesException(ErrorModel errorModel) {
+public class SalesOrderException extends BusinessException {
+    public SalesOrderException(ErrorModel errorModel) {
         super(errorModel);
     }
 }

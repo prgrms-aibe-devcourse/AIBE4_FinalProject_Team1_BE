@@ -1,4 +1,4 @@
-package kr.inventory.domain.vendor.controller.dto;
+package kr.inventory.domain.vendor.controller.dto.response;
 
 import kr.inventory.domain.vendor.entity.Vendor;
 import kr.inventory.domain.vendor.entity.enums.VendorStatus;
