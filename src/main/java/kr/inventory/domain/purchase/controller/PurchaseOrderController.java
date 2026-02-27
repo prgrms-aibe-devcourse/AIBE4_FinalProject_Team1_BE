@@ -10,6 +10,7 @@ import kr.inventory.domain.purchase.controller.dto.request.PurchaseOrderUpdateRe
 import kr.inventory.domain.purchase.controller.dto.response.PurchaseOrderDetailResponse;
 import kr.inventory.domain.purchase.controller.dto.response.PurchaseOrderSummaryResponse;
 import kr.inventory.domain.purchase.service.PurchaseOrderService;
+import kr.inventory.global.config.swagger.PurchaseApiDocs;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -36,7 +37,7 @@ public class PurchaseOrderController {
     private final PurchaseOrderService purchaseOrderService;
 
     @PostMapping
-    @Operation(summary = "발주서 초안 생성")
+    @Operation(summary = "발주서 초안 생성", description = PurchaseApiDocs.CREATE_DRAFT)
     public ResponseEntity<PurchaseOrderDetailResponse> create(
             @AuthenticationPrincipal CustomUserDetails principal,
             @Valid @RequestBody PurchaseOrderCreateRequest request
@@ -46,7 +47,7 @@ public class PurchaseOrderController {
     }
 
     @GetMapping
-    @Operation(summary = "발주서 목록 조회")
+    @Operation(summary = "발주서 목록 조회", description = PurchaseApiDocs.LIST)
     public ResponseEntity<List<PurchaseOrderSummaryResponse>> getList(
             @AuthenticationPrincipal CustomUserDetails principal,
             @RequestParam Long storeId
@@ -56,7 +57,7 @@ public class PurchaseOrderController {
     }
 
     @GetMapping("/{purchaseOrderId}")
-    @Operation(summary = "발주서 상세 조회")
+    @Operation(summary = "발주서 상세 조회", description = PurchaseApiDocs.DETAIL)
     public ResponseEntity<PurchaseOrderDetailResponse> getDetail(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable Long purchaseOrderId
@@ -66,7 +67,7 @@ public class PurchaseOrderController {
     }
 
     @PutMapping("/{purchaseOrderId}")
-    @Operation(summary = "발주서 초안 수정")
+    @Operation(summary = "발주서 초안 수정", description = PurchaseApiDocs.UPDATE_DRAFT)
     public ResponseEntity<PurchaseOrderDetailResponse> update(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable Long purchaseOrderId,
@@ -77,7 +78,7 @@ public class PurchaseOrderController {
     }
 
     @PostMapping("/{purchaseOrderId}/submit")
-    @Operation(summary = "발주서 제출")
+    @Operation(summary = "발주서 제출", description = PurchaseApiDocs.SUBMIT)
     public ResponseEntity<PurchaseOrderDetailResponse> submit(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable Long purchaseOrderId
@@ -87,7 +88,7 @@ public class PurchaseOrderController {
     }
 
     @PostMapping("/{purchaseOrderId}/confirm")
-    @Operation(summary = "발주서 확정")
+    @Operation(summary = "발주서 확정", description = PurchaseApiDocs.CONFIRM)
     public ResponseEntity<PurchaseOrderDetailResponse> confirm(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable Long purchaseOrderId
@@ -97,7 +98,7 @@ public class PurchaseOrderController {
     }
 
     @PostMapping("/{purchaseOrderId}/cancel")
-    @Operation(summary = "발주서 취소")
+    @Operation(summary = "발주서 취소", description = PurchaseApiDocs.CANCEL)
     public ResponseEntity<PurchaseOrderDetailResponse> cancel(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable Long purchaseOrderId
@@ -107,7 +108,7 @@ public class PurchaseOrderController {
     }
 
     @GetMapping("/{purchaseOrderId}/pdf")
-    @Operation(summary = "발주서 PDF 다운로드")
+    @Operation(summary = "발주서 PDF 다운로드", description = PurchaseApiDocs.DOWNLOAD_PDF)
     public ResponseEntity<byte[]> downloadPdf(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable Long purchaseOrderId

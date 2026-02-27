@@ -18,6 +18,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 @Component
+/** 발주서 엔티티를 PDF 문서로 렌더링하는 서비스 구현체다. */
 public class PurchaseOrderPdfServiceImpl implements PurchaseOrderPdfService {
 
     private static final int TITLE_FONT_SIZE = 16;
@@ -26,22 +27,27 @@ public class PurchaseOrderPdfServiceImpl implements PurchaseOrderPdfService {
     private static final int ITEM_FONT_SIZE = 11;
 
     @Override
+    /** 발주서 정보를 바탕으로 PDF 파일 바이트 배열을 생성한다. */
     public byte[] generate(PurchaseOrder purchaseOrder) {
         try (PDDocument document = new PDDocument();
              ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             PDPage page = createPage(document);
             PDType1Font defaultFont = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
 
-            try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
-                float cursorY = renderHeader(contentStream, defaultFont, purchaseOrder, PurchaseOrderConstant.PDF_START_Y);
-                cursorY = renderItems(contentStream, defaultFont, purchaseOrder, cursorY);
-                renderTotal(contentStream, defaultFont, purchaseOrder, cursorY);
-            }
+            renderPageContent(document, page, defaultFont, purchaseOrder);
 
             document.save(outputStream);
             return outputStream.toByteArray();
         } catch (IOException exception) {
             throw new PurchaseOrderException(PurchaseOrderErrorCode.PDF_GENERATION_FAILED);
+        }
+    }
+
+    private void renderPageContent(PDDocument document, PDPage page, PDType1Font defaultFont, PurchaseOrder purchaseOrder) throws IOException {
+        try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
+            float cursorY = renderHeader(contentStream, defaultFont, purchaseOrder, PurchaseOrderConstant.PDF_START_Y);
+            cursorY = renderItems(contentStream, defaultFont, purchaseOrder, cursorY);
+            renderTotal(contentStream, defaultFont, purchaseOrder, cursorY);
         }
     }
 

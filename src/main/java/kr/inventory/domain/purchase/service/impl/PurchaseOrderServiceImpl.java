@@ -32,6 +32,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional
+/** 발주서의 생성·상태 전이·PDF 다운로드를 처리하는 서비스 구현체다. */
 public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
     private final PurchaseOrderRepository purchaseOrderRepository;
@@ -44,6 +45,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final VendorRepository vendorRepository;
 
     @Override
+    /** 거래처와 품목 정보를 기반으로 발주서 DRAFT를 생성한다. */
     public PurchaseOrderDetailResponse createDraft(Long userId, PurchaseOrderCreateRequest request) {
         Store store = storeRepository.findById(request.storeId())
                 .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.STORE_NOT_FOUND));
@@ -59,6 +61,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
     @Override
     @Transactional(readOnly = true)
+    /** 특정 매장의 발주서 목록을 최신순으로 조회한다. */
     public List<PurchaseOrderSummaryResponse> getPurchaseOrders(Long userId, Long storeId) {
         purchaseOrderValidator.requireManagerOrAbove(storeId, userId);
         return purchaseOrderRepository.findAllByStoreStoreIdOrderByPurchaseOrderIdDesc(storeId).stream()
@@ -68,6 +71,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
     @Override
     @Transactional(readOnly = true)
+    /** 단건 발주서 상세 정보를 조회한다. */
     public PurchaseOrderDetailResponse getPurchaseOrder(Long userId, Long purchaseOrderId) {
         PurchaseOrder purchaseOrder = getPurchaseOrderOrThrow(purchaseOrderId);
         purchaseOrderValidator.requireManagerOrAbove(purchaseOrder.getStore().getStoreId(), userId);
@@ -75,6 +79,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     }
 
     @Override
+    /** DRAFT 상태 발주서의 거래처와 품목을 수정한다. */
     public PurchaseOrderDetailResponse updateDraft(Long userId, Long purchaseOrderId, PurchaseOrderUpdateRequest request) {
         PurchaseOrder purchaseOrder = getPurchaseOrderOrThrow(purchaseOrderId);
         purchaseOrderValidator.requireManagerOrAbove(purchaseOrder.getStore().getStoreId(), userId);
@@ -89,6 +94,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     }
 
     @Override
+    /** 발주서를 제출 상태로 전환하고 주문번호를 발급한다. */
     public PurchaseOrderDetailResponse submit(Long userId, Long purchaseOrderId) {
         PurchaseOrder purchaseOrder = getPurchaseOrderOrThrow(purchaseOrderId);
         purchaseOrderValidator.requireManagerOrAbove(purchaseOrder.getStore().getStoreId(), userId);
@@ -102,6 +108,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     }
 
     @Override
+    /** OWNER 권한으로 제출된 발주서를 확정한다. */
     public PurchaseOrderDetailResponse confirm(Long userId, Long purchaseOrderId) {
         PurchaseOrder purchaseOrder = getPurchaseOrderOrThrow(purchaseOrderId);
         StoreMemberRole role = purchaseOrderValidator.requireManagerOrAbove(purchaseOrder.getStore().getStoreId(), userId);
@@ -113,6 +120,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     }
 
     @Override
+    /** 취소 가능한 발주서를 취소 상태로 전환한다. */
     public PurchaseOrderDetailResponse cancel(Long userId, Long purchaseOrderId) {
         PurchaseOrder purchaseOrder = getPurchaseOrderOrThrow(purchaseOrderId);
         purchaseOrderValidator.requireManagerOrAbove(purchaseOrder.getStore().getStoreId(), userId);
@@ -124,6 +132,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
     @Override
     @Transactional(readOnly = true)
+    /** 발주서 상세를 PDF로 생성해 반환한다. */
     public byte[] downloadPdf(Long userId, Long purchaseOrderId) {
         PurchaseOrder purchaseOrder = getPurchaseOrderOrThrow(purchaseOrderId);
         purchaseOrderValidator.requireManagerOrAbove(purchaseOrder.getStore().getStoreId(), userId);
