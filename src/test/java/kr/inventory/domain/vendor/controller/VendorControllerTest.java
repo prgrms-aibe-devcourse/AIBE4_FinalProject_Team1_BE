@@ -2,9 +2,9 @@ package kr.inventory.domain.vendor.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inventory.domain.auth.security.CustomUserDetails;
-import kr.inventory.domain.vendor.controller.dto.VendorCreateRequest;
-import kr.inventory.domain.vendor.controller.dto.VendorResponse;
-import kr.inventory.domain.vendor.controller.dto.VendorUpdateRequest;
+import kr.inventory.domain.vendor.controller.dto.request.VendorCreateRequest;
+import kr.inventory.domain.vendor.controller.dto.response.VendorResponse;
+import kr.inventory.domain.vendor.controller.dto.request.VendorUpdateRequest;
 import kr.inventory.domain.vendor.entity.enums.VendorStatus;
 import kr.inventory.domain.vendor.service.VendorService;
 import org.junit.jupiter.api.DisplayName;

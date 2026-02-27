@@ -23,16 +23,46 @@ public class SalesOrderItem extends CreatedAtEntity {
     @JoinColumn(name = "sales_order_id", nullable = false)
     private SalesOrder salesOrder;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "menu_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "menu_id", nullable = false)
     private Menu menu;
 
-    @Column(length = 120)
-    private String menuNameRaw;
+    /**
+     * 메뉴명 스냅샷
+     * 주문 시점의 메뉴명 저장
+     */
+    @Column(nullable = false, length = 120)
+    private String menuName;
+
+    /**
+     * 단가 스냅샷
+     * 주문 시점의 Menu.basePrice 저장
+     */
+    @Column(nullable = false, precision = 14, scale = 2)
+    private BigDecimal price;
 
     @Column(nullable = false)
     private Integer quantity;
 
+    /**
+     * 소계 (price * quantity)
+     */
     @Column(nullable = false, precision = 14, scale = 2)
-    private BigDecimal lineAmount;
+    private BigDecimal subtotal;
+
+
+    public static SalesOrderItem create(
+            SalesOrder salesOrder,
+            Menu menu,
+            Integer quantity
+    ) {
+        SalesOrderItem item = new SalesOrderItem();
+        item.salesOrder = salesOrder;
+        item.menu = menu;
+        item.menuName = menu.getName();
+        item.price = menu.getBasePrice();
+        item.quantity = quantity;
+        item.subtotal = menu.getBasePrice().multiply(BigDecimal.valueOf(quantity));
+        return item;
+    }
 }

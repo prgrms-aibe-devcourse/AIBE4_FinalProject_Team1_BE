@@ -223,32 +223,61 @@ async function goToPayment() {
 
     const total = cart.reduce((acc, cur) => acc + (cur.price * cur.quantity), 0);
 
-    if (confirm(`최종 결제 금액은 ${total.toLocaleString()}원입니다.\n결제를 진행하시겠습니까?`)) {
-        const paymentPayload = {
-            storePublicId,
-            tablePublicId,
+    if (!confirm(`최종 결제 금액은 ${total.toLocaleString()}원입니다.\n결제를 진행하시겠습니까?`)) {
+        return;
+    }
 
-            token: entryToken,
+    // ✅ 백엔드 DTO에 맞게 "items"만(그리고 식별자들) 보내는 형태로 정리
+    const paymentPayload = {
+        storePublicId,
+        tablePublicId,
+        token: entryToken, // 백엔드가 필요 없다면 제거 가능 (현재 프론트 로직상 유지)
+        items: cart.map((item) => ({
+            menuPublicId: item.id,
+            quantity: item.quantity,
+        })),
+    };
 
-            // 데모: 그대로 보내지만, 나중엔 menuPublicId+qty만 보내도록 바꾸는게 정석
-            orderList: cart,
-            totalAmount: total,
-            timestamp: new Date().toISOString()
-        };
+    console.log("결제 API 요청:", paymentPayload);
 
-        console.log("결제 API 요청 데이터:", paymentPayload);
+    try {
+        const idempotencyKey =
+            (window.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
-        try {
-            // TODO: 다음 단계에서 실제 결제 API 연동
-            alert("결제가 완료되었습니다. 이용해주셔서 감사합니다!");
+        const response = await fetch("/api/orders", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Idempotency-Key": idempotencyKey,
+                "Accept": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify(paymentPayload),
+        });
 
-            cart = [];
-            saveState();
-            window.location.reload();
-        } catch (e) {
-            console.error("Payment Error:", e);
-            alert("결제 처리 중 통신 오류가 발생했습니다.");
+        if (!response.ok) {
+            const text = await response.text().catch(() => "");
+            let message = "결제 처리 실패";
+            try {
+                const parsed = JSON.parse(text);
+                message = parsed?.message ?? message;
+            } catch (_) {
+                if (text) message = text;
+            }
+            throw new Error(message);
         }
+
+        const result = await response.json().catch(() => ({}));
+        console.log("결제 성공:", result);
+
+        alert("결제가 완료되었습니다. 이용해주셔서 감사합니다!");
+
+        cart = [];
+        saveState();
+        window.location.reload();
+    } catch (e) {
+        console.error("Payment Error:", e);
+        alert(`결제 처리 중 오류가 발생했습니다: ${e.message}`);
     }
 }
 
