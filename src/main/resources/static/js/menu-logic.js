@@ -1,14 +1,3 @@
-/**
- * 스마트 QR 메뉴판 비즈니스 로직
- * - 메뉴 렌더링 (백엔드 API 연동)
- * - 장바구니 관리 (SessionStorage)
- * - 결제 연동 (주문 단계 생략 버전)
- *
- * 변경점:
- *  - storePublicId/tablePublicId/token 하드코딩 제거 (URL query에서 파싱)
- *  - sessionStorage key 테이블 단위 분리
- */
-
 // -------------------------
 // 0) QR 파라미터 파싱 (백엔드가 생성하는 URL 기준)
 //   /qr_menu_order.html?s={storePublicId}&t={tablePublicId}&token={entryToken}
@@ -47,8 +36,6 @@ function clearError() {
 }
 
 function setHeaderHints() {
-    // 지금 단계에서는 storeName/tableName을 백엔드에서 안 주므로
-    // 최소로 tablePublicId만 표시(원하면 "Table xx" 매핑은 나중에 API로)
     const tableEl = document.getElementById("table-name");
     const subEl = document.getElementById("subtitle");
 
@@ -67,7 +54,36 @@ function disableOrdering() {
 }
 
 // -------------------------
-// 3) 앱 초기화
+// 3) QR 입장(세션 생성)
+// -------------------------
+async function enterTableSession() {
+    const response = await fetch("/api/table-sessions/enter", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            // 컨트롤러가 요구하는 헤더명 그대로
+            "X-Table-Entry-Token": entryToken,
+        },
+        // ✅ 서버의 Set-Cookie를 브라우저가 저장/동봉할 수 있게
+        credentials: "include",
+        body: JSON.stringify({
+            storePublicId,
+            tablePublicId,
+        }),
+    });
+
+    if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(`enter 실패: HTTP ${response.status} ${response.statusText} :: ${text}`);
+    }
+
+    // 응답 바디가 필요 없으면 굳이 사용 안 해도 됨
+    return response.json().catch(() => ({}));
+}
+
+// -------------------------
+// 4) 앱 초기화
 // -------------------------
 async function init() {
     lucide.createIcons();
@@ -80,6 +96,16 @@ async function init() {
 
     setHeaderHints();
 
+    try {
+        await enterTableSession();
+        clearError();
+    } catch (e) {
+        console.error("Enter error:", e);
+        setError("QR 인증에 실패했습니다. 새로 발급된 QR을 다시 스캔해 주세요.");
+        disableOrdering();
+        return;
+    }
+
     await fetchMenuData();
     renderMenuGrid();
     updateUI();
@@ -87,7 +113,7 @@ async function init() {
 }
 
 // -------------------------
-// 4) 메뉴 API 호출
+// 5) 메뉴 API 호출
 // -------------------------
 async function fetchMenuData() {
     try {
@@ -97,6 +123,8 @@ async function fetchMenuData() {
         const response = await fetch(url, {
             method: "GET",
             headers: { "Accept": "application/json" },
+            // ✅ 메뉴 API도 인증/세션이 필요할 수 있어 포함(필요 없으면 있어도 무해)
+            credentials: "include",
         });
 
         if (!response.ok) {
@@ -126,46 +154,49 @@ async function fetchMenuData() {
 }
 
 // -------------------------
-// 5) 메뉴 렌더링
+// 6) 메뉴 렌더링
 // -------------------------
 function renderMenuGrid() {
-    const grid = document.getElementById('menu-grid');
+    const grid = document.getElementById("menu-grid");
     if (!grid) return;
 
-    grid.innerHTML = '';
+    grid.innerHTML = "";
 
     menuData.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'menu-card flex bg-white rounded-2xl p-4 border border-gray-100 shadow-sm gap-4 items-center';
+        const card = document.createElement("div");
+        card.className =
+            "menu-card flex bg-white rounded-2xl p-4 border border-gray-100 shadow-sm gap-4 items-center";
 
-        const iconWrap = document.createElement('div');
-        iconWrap.className = 'w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center text-3xl shadow-inner shrink-0';
-        iconWrap.textContent = item.icon ?? '';
+        const iconWrap = document.createElement("div");
+        iconWrap.className =
+            "w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center text-3xl shadow-inner shrink-0";
+        iconWrap.textContent = item.icon ?? "";
 
-        const body = document.createElement('div');
-        body.className = 'flex-1';
+        const body = document.createElement("div");
+        body.className = "flex-1";
 
-        const title = document.createElement('h3');
-        title.className = 'font-bold text-gray-900 text-base';
-        title.textContent = item.name ?? '';
+        const title = document.createElement("h3");
+        title.className = "font-bold text-gray-900 text-base";
+        title.textContent = item.name ?? "";
 
-        const desc = document.createElement('p');
-        desc.className = 'text-xs text-gray-400 mt-1';
-        desc.textContent = item.desc ?? '';
+        const desc = document.createElement("p");
+        desc.className = "text-xs text-gray-400 mt-1";
+        desc.textContent = item.desc ?? "";
 
-        const price = document.createElement('p');
-        price.className = 'text-sm font-black text-rose-600 mt-2';
+        const price = document.createElement("p");
+        price.className = "text-sm font-black text-rose-600 mt-2";
         price.textContent = `${(item.price ?? 0).toLocaleString()}원`;
 
         body.append(title, desc, price);
 
-        const btn = document.createElement('button');
-        btn.className = 'bg-gray-900 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-lg active:bg-rose-600 transition-all';
-        btn.addEventListener('click', () => addToCart(item.id));
+        const btn = document.createElement("button");
+        btn.className =
+            "bg-gray-900 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-lg active:bg-rose-600 transition-all";
+        btn.addEventListener("click", () => addToCart(item.id));
 
-        const plusIcon = document.createElement('i');
-        plusIcon.setAttribute('data-lucide', 'plus');
-        plusIcon.className = 'w-5 h-5';
+        const plusIcon = document.createElement("i");
+        plusIcon.setAttribute("data-lucide", "plus");
+        plusIcon.className = "w-5 h-5";
         btn.appendChild(plusIcon);
 
         card.append(iconWrap, body, btn);
@@ -176,7 +207,7 @@ function renderMenuGrid() {
 }
 
 // -------------------------
-// 6) 장바구니 로직
+// 7) 장바구니 로직
 // -------------------------
 function addToCart(id) {
     const item = menuData.find(m => m.id === id);
@@ -213,7 +244,7 @@ function saveState() {
 }
 
 // -------------------------
-// 7) 결제(아직은 데모) - 하드코딩 제거
+// 8) 결제(/api/orders)
 // -------------------------
 async function goToPayment() {
     if (cart.length === 0) {
@@ -227,11 +258,10 @@ async function goToPayment() {
         return;
     }
 
-    // ✅ 백엔드 DTO에 맞게 "items"만(그리고 식별자들) 보내는 형태로 정리
     const paymentPayload = {
         storePublicId,
         tablePublicId,
-        token: entryToken, // 백엔드가 필요 없다면 제거 가능 (현재 프론트 로직상 유지)
+        token: entryToken, // 백엔드에서 불필요하면 제거 가능(현재는 유지)
         items: cart.map((item) => ({
             menuPublicId: item.id,
             quantity: item.quantity,
@@ -282,22 +312,22 @@ async function goToPayment() {
 }
 
 // -------------------------
-// 8) UI 업데이트
+// 9) UI 업데이트
 // -------------------------
 function updateUI() {
-    const cartTotalEl = document.getElementById('cart-total');
-    const payBtn = document.getElementById('pay-btn');
+    const cartTotalEl = document.getElementById("cart-total");
+    const payBtn = document.getElementById("pay-btn");
 
     const cartSum = cart.reduce((acc, cur) => acc + (cur.price * cur.quantity), 0);
 
-    if (cartTotalEl) cartTotalEl.innerText = cartSum.toLocaleString() + '원';
+    if (cartTotalEl) cartTotalEl.innerText = cartSum.toLocaleString() + "원";
 
     if (payBtn) {
         if (cart.length > 0) {
-            payBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            payBtn.classList.remove("opacity-50", "cursor-not-allowed");
             payBtn.disabled = false;
         } else {
-            payBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            payBtn.classList.add("opacity-50", "cursor-not-allowed");
             payBtn.disabled = true;
         }
     }
@@ -307,62 +337,65 @@ function updateUI() {
 }
 
 function renderCartDrawerList() {
-    const container = document.getElementById('cart-list');
+    const container = document.getElementById("cart-list");
     if (!container) return;
 
     if (cart.length === 0) {
         container.innerHTML = `
-          <div class="flex flex-col items-center justify-center py-10 opacity-30">
-            <i data-lucide="shopping-cart" class="w-12 h-12 mb-2"></i>
-            <p class="text-sm">장바구니가 비어있습니다.</p>
-          </div>
-        `;
+      <div class="flex flex-col items-center justify-center py-10 opacity-30">
+        <i data-lucide="shopping-cart" class="w-12 h-12 mb-2"></i>
+        <p class="text-sm">장바구니가 비어있습니다.</p>
+      </div>
+    `;
         lucide.createIcons();
         return;
     }
 
-    container.innerHTML = '';
+    container.innerHTML = "";
 
     cart.forEach(item => {
-        const row = document.createElement('div');
-        row.className = 'flex items-center justify-between py-2';
+        const row = document.createElement("div");
+        row.className = "flex items-center justify-between py-2";
 
-        const left = document.createElement('div');
-        left.className = 'flex items-center gap-4';
+        const left = document.createElement("div");
+        left.className = "flex items-center gap-4";
 
-        const icon = document.createElement('span');
-        icon.className = 'text-2xl';
-        icon.textContent = item.icon ?? '';
+        const icon = document.createElement("span");
+        icon.className = "text-2xl";
+        icon.textContent = item.icon ?? "";
 
-        const info = document.createElement('div');
+        const info = document.createElement("div");
 
-        const name = document.createElement('p');
-        name.className = 'text-sm font-bold text-gray-800';
-        name.textContent = item.name ?? '';
+        const name = document.createElement("p");
+        name.className = "text-sm font-bold text-gray-800";
+        name.textContent = item.name ?? "";
 
-        const subtotal = document.createElement('p');
-        subtotal.className = 'text-xs text-rose-600 font-bold';
+        const subtotal = document.createElement("p");
+        subtotal.className = "text-xs text-rose-600 font-bold";
         subtotal.textContent = `${((item.price ?? 0) * (item.quantity ?? 0)).toLocaleString()}원`;
 
         info.append(name, subtotal);
         left.append(icon, info);
 
-        const right = document.createElement('div');
-        right.className = 'flex items-center gap-2 bg-gray-50 rounded-xl p-1.5 border border-gray-100';
+        const right = document.createElement("div");
+        right.className =
+            "flex items-center gap-2 bg-gray-50 rounded-xl p-1.5 border border-gray-100";
 
-        const minus = document.createElement('button');
-        minus.className = 'w-7 h-7 flex items-center justify-center bg-white rounded-lg border border-gray-200 text-sm font-bold active:bg-gray-100';
-        minus.textContent = '-';
-        minus.addEventListener('click', () => adjustCartQty(item.id, -1));
+        const minus = document.createElement("button");
+        minus.className =
+            "w-7 h-7 flex items-center justify-center bg-white rounded-lg border border-gray-200 text-sm font-bold active:bg-gray-100";
+        minus.textContent = "-";
+        minus.addEventListener("click", () => adjustCartQty(item.id, -1));
 
-        const qty = document.createElement('span');
-        qty.className = 'text-sm font-black w-6 text-center';
+        const qty = document.createElement("span");
+        qty.className = "text-sm font-black w-6 text-center";
         qty.textContent = String(item.quantity ?? 0);
 
-        const plus = document.createElement('button');
-        plus.className = 'w-7 h-7 flex items-center justify-center bg-white rounded-lg border border-gray-200 text-sm font-bold active:bg-gray-100';
-        plus.textContent = '+';
-        plus.addEventListener('click', () => adjustCartQty(item.id, 1));
+        const plus = document.createElement("button");
+        plus.className =
+            "w-7 h-7 flex items-center justify-center bg-white rounded-lg border border-gray-200 text-sm font-bold active:bg-gray-100";
+        plus.textContent = "+";
+        plus.addEventListener("click", () => adjustCartQty(item.id, 1));
 
         right.append(minus, qty, plus);
 
@@ -374,22 +407,22 @@ function renderCartDrawerList() {
 }
 
 // -------------------------
-// 9) 드로어
+// 10) 드로어
 // -------------------------
 function toggleDrawer() {
-    const drawer = document.getElementById('drawer');
-    const overlay = document.getElementById('drawer-overlay');
+    const drawer = document.getElementById("drawer");
+    const overlay = document.getElementById("drawer-overlay");
     if (!drawer || !overlay) return;
 
-    if (drawer.classList.contains('translate-y-full')) {
-        drawer.classList.remove('translate-y-full');
-        overlay.classList.remove('hidden');
-        setTimeout(() => overlay.classList.add('opacity-100'), 10);
+    if (drawer.classList.contains("translate-y-full")) {
+        drawer.classList.remove("translate-y-full");
+        overlay.classList.remove("hidden");
+        setTimeout(() => overlay.classList.add("opacity-100"), 10);
     } else {
-        drawer.classList.add('translate-y-full');
-        overlay.classList.remove('opacity-100');
-        setTimeout(() => overlay.classList.add('hidden'), 300);
+        drawer.classList.add("translate-y-full");
+        overlay.classList.remove("opacity-100");
+        setTimeout(() => overlay.classList.add("hidden"), 300);
     }
 }
 
-window.addEventListener('DOMContentLoaded', init);
+window.addEventListener("DOMContentLoaded", init);

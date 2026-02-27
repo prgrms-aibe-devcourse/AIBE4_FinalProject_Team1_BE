@@ -8,7 +8,7 @@ import kr.inventory.domain.dining.exception.TableException;
 import kr.inventory.domain.dining.repository.DiningTableRepository;
 import kr.inventory.domain.dining.repository.TableQrRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
-import kr.inventory.global.config.infrastructure.StorageService;
+import kr.inventory.global.config.infrastructure.S3StorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -27,7 +27,7 @@ public class TableQrManagerFacade {
     private final DiningTableRepository diningTableRepository;
     private final TableQrRepository tableQrRepository;
     private final StoreAccessValidator storeAccessValidator;
-    private final StorageService storageService;
+    private final S3StorageService s3storageService;
     private final QrGenerator qrGenerator;
 
     @Value("${app.order.base-url:http://localhost:8080}")
@@ -61,10 +61,10 @@ public class TableQrManagerFacade {
                 orderBaseUrl, storePublicId, table.getTablePublicId(), entryToken);
 
         byte[] imageBytes = qrGenerator.generate(qrContent, 300, 300);
-        String s3Path = String.format("public/stores/%s/tables/%s/qr_v%d.png",
+        String s3Path = String.format("public/qr/%s/tables/%s/qr_v%d.png",
                 storePublicId, table.getTablePublicId(), nextVersion);
 
-        String uploadedImageUrl = storageService.upload(imageBytes, s3Path, "image/png");
+        String uploadedImageUrl = s3storageService.upload(imageBytes, s3Path, "image/png");
         qr.complete(uploadedImageUrl);
 
         return TableQrIssueResponse.from(qr);

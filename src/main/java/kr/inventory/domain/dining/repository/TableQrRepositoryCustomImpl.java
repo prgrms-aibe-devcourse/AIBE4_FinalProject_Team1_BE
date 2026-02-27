@@ -34,7 +34,7 @@ public class TableQrRepositoryCustomImpl implements TableQrRepositoryCustom{
                 .selectFrom(tableQr)
                 .where(
                         tableQr.table.tableId.eq(tableId),
-                        tableQr.revokedAt.isNull()
+                        tableQr.status.eq(TableQrStatus.ACTIVE)
                 )
                 .orderBy(tableQr.rotationVersion.desc())
                 .fetchFirst();
