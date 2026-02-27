@@ -10,4 +10,5 @@ import java.util.UUID;
 public interface MenuRepository extends JpaRepository<Menu, Long> {
     List<Menu> findAllByStoreStoreId(Long storeId);
     Optional<Menu> findByMenuPublicId(UUID publicId);
+    List<Menu> findByMenuPublicIdIn(List<UUID> menuPublicIds);
 }

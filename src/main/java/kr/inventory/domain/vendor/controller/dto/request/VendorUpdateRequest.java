@@ -1,12 +1,8 @@
-package kr.inventory.domain.vendor.controller.dto;
+package kr.inventory.domain.vendor.controller.dto.request;
 
 import jakarta.validation.constraints.*;
 
-public record VendorCreateRequest(
-        @NotBlank(message = "거래처명은 필수입니다")
-        @Size(max = 120, message = "거래처명은 120자 이하여야 합니다")
-        String name,
-
+public record VendorUpdateRequest(
         @Size(max = 100, message = "담당자명은 100자 이하여야 합니다")
         String contactPerson,
 

@@ -13,7 +13,7 @@ let cart = JSON.parse(sessionStorage.getItem('current_cart') || '[]');
 
 // URL에서 storePublicId 추출
 const urlParams = new URLSearchParams(window.location.search);
-const storePublicId = "80b914dc-fd48-4b60-9f12-01ce4c116593";
+const storePublicId = "80b914dc-fd48-4b60-9f12-01ce4c116593"; // 하드코딩 (아직 연결전)
 
 /**
  * 앱 초기화
@@ -168,18 +168,38 @@ async function goToPayment() {
 
     if (confirm(`최종 결제 금액은 ${total.toLocaleString()}원입니다.\n결제를 진행하시겠습니까?`)) {
 
-        // 서버 전송용 데이터 구성
+        // 백엔드 API 형식: items만 전송!
         const paymentPayload = {
-            tableId: "05",
-            orderList: cart, // 이제 확정 내역이 아닌 장바구니(cart)를 보냄
-            totalAmount: total,
-            timestamp: new Date().toISOString()
+            items: cart.map(item => ({
+                menuPublicId: item.id,
+                quantity: item.quantity
+            }))
         };
 
-        console.log("결제 API 요청 데이터:", paymentPayload);
+        console.log("결제 API 요청:", paymentPayload);
 
         try {
-            // 여기에 Spring Boot 결제 API 연동 (fetch 호출)
+            // Idempotency-Key 생성 (중복 결제 방지!)
+            const idempotencyKey = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+            const response = await fetch('/api/orders', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Idempotency-Key': idempotencyKey
+                },
+                credentials: 'include',  // sessionToken 쿠키 자동 전송
+                body: JSON.stringify(paymentPayload)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                throw new Error(errorData?.message || '결제 처리 실패');
+            }
+
+            const result = await response.json();
+            console.log("결제 성공:", result);
+
             alert("결제가 완료되었습니다. 이용해주셔서 감사합니다!");
 
             // 결제 성공 후 장바구니 초기화
@@ -188,7 +208,7 @@ async function goToPayment() {
             window.location.reload();
         } catch (e) {
             console.error("Payment Error:", e);
-            alert("결제 처리 중 통신 오류가 발생했습니다.");
+            alert(`결제 처리 중 오류가 발생했습니다: ${e.message}`);
         }
     }
 }
