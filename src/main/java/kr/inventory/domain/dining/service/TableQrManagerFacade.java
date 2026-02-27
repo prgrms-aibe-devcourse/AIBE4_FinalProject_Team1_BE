@@ -43,11 +43,11 @@ public class TableQrManagerFacade {
         }
 
         return tables.stream()
-                .map(table -> processSingleTableQr(storePublicId, table))
+                .map(table -> processSingleTableQr(storeId, storePublicId, table))
                 .toList();
     }
 
-    private TableQrIssueResponse processSingleTableQr(UUID storePublicId, DiningTable table) {
+    private TableQrIssueResponse processSingleTableQr(Long storeId, UUID storePublicId, DiningTable table) {
         revokeExistingQrs(table.getTableId());
         int nextVersion = getNextVersion(table.getTableId());
 
@@ -62,7 +62,7 @@ public class TableQrManagerFacade {
 
         byte[] imageBytes = qrGenerator.generate(qrContent, 300, 300);
         String s3Path = String.format("public/qr/%s/tables/%s/qr_v%d.png",
-                storePublicId, table.getTablePublicId(), nextVersion);
+                storeId, table.getTableCode(), nextVersion);
 
         String uploadedImageUrl = s3storageService.upload(imageBytes, s3Path, "image/png");
         qr.complete(uploadedImageUrl);
