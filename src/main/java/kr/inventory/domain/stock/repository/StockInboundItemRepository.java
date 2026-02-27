@@ -8,6 +8,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface StockInboundItemRepository extends JpaRepository<StockInboundItem, Long> {
+
 	List<StockInboundItem> findByInbound_InboundId(Long inboundId);
+
     void deleteAllByInbound_InboundId(Long inboundId);
+
 }

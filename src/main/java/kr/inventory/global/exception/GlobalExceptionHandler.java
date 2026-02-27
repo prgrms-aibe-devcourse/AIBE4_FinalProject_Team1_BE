@@ -9,6 +9,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(StorageException.class)
+    public ResponseEntity<ErrorResponse> handleStorageException(StorageException e) {
+        StorageErrorCode ec = e.getErrorCode();
+        log.warn("StorageException: code={}, message={}", ec.getCode(), e.getMessage());
+        ErrorResponse body = ErrorResponse.of(
+                ec.getStatus().value(),
+                ec.getCode(),
+                ec.getMessage()
+        );
+        return ResponseEntity.status(ec.getStatus()).body(body);
+    }
+
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e) {
         log.warn("BusinessException: code={}, message={}", e.getErrorModel().getCode(), e.getMessage());
