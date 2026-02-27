@@ -1,62 +1,39 @@
 spring:
-  datasource:
-    url: ${DEV_DB_URL}
-    username: ${DEV_DB_USERNAME}
-    password: ${DEV_DB_PASSWORD}
-    driver-class-name: org.postgresql.Driver
-
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
     properties:
       hibernate:
         format_sql: false
 
   data:
     redis:
-      host: ${DEV_REDIS_HOST}
-      port: ${DEV_REDIS_PORT}
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: false
+      timeout: 3000
+      lettuce:
+        pool:
+          max-active: 5
+          max-idle: 3
+          min-idle: 1
 
-  elasticsearch:
-    uris: ${DEV_ES_URL}
+logging:
+  level:
+    root: INFO
+    kr.inventory: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: OFF
+    org.springframework.boot.autoconfigure: INFO
+    jdk.internal.httpclient: INFO
 
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: ${DEV_GOOGLE_CLIENT_ID}
-            client-secret: ${DEV_GOOGLE_CLIENT_SECRET}
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
-            scope: [ profile, email ]
-          kakao:
-            client-id: ${DEV_KAKAO_CLIENT_ID}
-            client-secret: ${DEV_KAKAO_CLIENT_SECRET}
-            client-authentication-method: client_secret_post
-            authorization-grant-type: authorization_code
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
-            scope:
-              - profile_nickname
-              - account_email
-            client-name: Kakao
-        provider:
-          kakao:
-            authorization-uri: https://kauth.kakao.com/oauth/authorize
-            token-uri: https://kauth.kakao.com/oauth/token
-            user-info-uri: https://kapi.kakao.com/v2/user/me
-            user-name-attribute: id
+cors:
+  allowed-origins:
+    - http://localhost:5173
+    - http://localhost:3000
 
-management:
-  endpoint:
-    health:
-      show-details: always
-
-jwt:
-  secret: ${DEV_JWT_SECRET}
-  access-exp: ${DEV_JWT_ACCESS_EXP}
-  refresh-exp: ${DEV_JWT_REFRESH_EXP}
-
-gemini:
-  api:
-    key: ${GEMINI_API_KEY}
-    url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent
+invitation:
+  ttl: PT30M
+  front-base-url: http://localhost

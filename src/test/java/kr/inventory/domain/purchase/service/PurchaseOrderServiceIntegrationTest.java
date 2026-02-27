@@ -65,18 +65,18 @@ class PurchaseOrderServiceIntegrationTest {
     @Test
     @DisplayName("발주 상태 전이와 권한 정책이 통합 환경에서 동작한다")
     void purchaseOrderFlow_withRoleAndCrud() {
-        Store store = storeRepository.save(Store.create("test-store", "1111222233", "seoul", "01000000000"));
+        Store store = storeRepository.save(Store.create("test-store", "1111222233"));
 
         User owner = userRepository.save(User.create("owner", "owner@test.com"));
-        User manager = userRepository.save(User.create("manager", "manager@test.com"));
+        User member = userRepository.save(User.create("member", "member@test.com"));
         User staff = userRepository.save(User.create("staff", "staff@test.com"));
 
-        storeMemberRepository.save(StoreMember.create(store, owner, StoreMemberRole.OWNER));
-        storeMemberRepository.save(StoreMember.create(store, manager, StoreMemberRole.MANAGER));
-        storeMemberRepository.save(StoreMember.create(store, staff, StoreMemberRole.STAFF));
+        storeMemberRepository.save(StoreMember.create(store, owner, StoreMemberRole.OWNER, 1, true));
+        storeMemberRepository.save(StoreMember.create(store, member, StoreMemberRole.MEMBER, 2, false));
+        storeMemberRepository.save(StoreMember.create(store, staff, StoreMemberRole.MEMBER, 3, false));
 
         PurchaseOrderDetailResponse created = purchaseOrderService.createDraft(
-                manager.getUserId(),
+                owner.getUserId(),
                 new PurchaseOrderCreateRequest(
                         store.getStoreId(),
                         List.of(new PurchaseOrderItemRequest("egg", 10, new BigDecimal("500")))
@@ -86,24 +86,24 @@ class PurchaseOrderServiceIntegrationTest {
         assertThat(created.status()).isEqualTo(PurchaseOrderStatus.DRAFT);
 
         PurchaseOrderDetailResponse updated = purchaseOrderService.updateDraft(
-                manager.getUserId(),
+                owner.getUserId(),
                 created.purchaseOrderId(),
                 new PurchaseOrderUpdateRequest(List.of(new PurchaseOrderItemRequest("egg", 12, new BigDecimal("500"))))
         );
 
         assertThat(updated.items().get(0).quantity()).isEqualTo(12);
 
-        PurchaseOrderDetailResponse submitted = purchaseOrderService.submit(manager.getUserId(), created.purchaseOrderId());
+        PurchaseOrderDetailResponse submitted = purchaseOrderService.submit(owner.getUserId(), created.purchaseOrderId());
         assertThat(submitted.status()).isEqualTo(PurchaseOrderStatus.SUBMITTED);
         assertThat(submitted.orderNo()).isNotBlank();
 
-        assertThatThrownBy(() -> purchaseOrderService.confirm(manager.getUserId(), created.purchaseOrderId()))
+        assertThatThrownBy(() -> purchaseOrderService.confirm(member.getUserId(), created.purchaseOrderId()))
                 .isInstanceOf(PurchaseOrderException.class);
 
         PurchaseOrderDetailResponse confirmed = purchaseOrderService.confirm(owner.getUserId(), created.purchaseOrderId());
         assertThat(confirmed.status()).isEqualTo(PurchaseOrderStatus.CONFIRMED);
 
-        PurchaseOrderDetailResponse canceled = purchaseOrderService.cancel(manager.getUserId(), created.purchaseOrderId());
+        PurchaseOrderDetailResponse canceled = purchaseOrderService.cancel(owner.getUserId(), created.purchaseOrderId());
         assertThat(canceled.status()).isEqualTo(PurchaseOrderStatus.CANCELED);
 
         assertThatThrownBy(() -> purchaseOrderService.getPurchaseOrders(staff.getUserId(), store.getStoreId()))

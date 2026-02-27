@@ -27,7 +27,7 @@ public class PurchaseOrderValidator {
                 )
                 .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ACCESS_DENIED));
 
-        if (storeMember.getRole() == StoreMemberRole.STAFF) {
+        if (storeMember.getRole() == StoreMemberRole.MEMBER) {
             throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ACCESS_DENIED);
         }
 

@@ -44,9 +44,14 @@ src/main/generated/
 
 # env
 .env
+.env.*
 AGENTS.md
 mnt/
+.skills
 
 # Windows 예약어 파일
 nul
 .sisyphus
+
+# ssm
+.ssm-logs/

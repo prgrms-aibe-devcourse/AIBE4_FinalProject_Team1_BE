@@ -16,35 +16,42 @@ import java.time.LocalDate;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class StockInboundItem extends CreatedAtEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long inboundItemId;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long inboundItemId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "inbound_id", nullable = false)
-    private StockInbound inbound;
+	@Column(name = "raw_product_name")
+	private String rawProductName;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "ingredient_id", nullable = false)
-    private Ingredient ingredient;
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "inbound_id", nullable = false)
+	private StockInbound inbound;
 
-    @Column(nullable = false, precision = 14, scale = 3)
-    private BigDecimal quantity;
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "ingredient_id", nullable = false)
+	private Ingredient ingredient;
 
-    @Column(precision = 14, scale = 2)
-    private BigDecimal unitCost;
+	@Column(nullable = false, precision = 14, scale = 3)
+	private BigDecimal quantity;
 
-    private LocalDate expirationDate;
+	@Column(precision = 14, scale = 2)
+	private BigDecimal unitCost;
 
-    public static StockInboundItem create(
-            StockInbound inbound,
-            Ingredient ingredient,
-            BigDecimal quantity
-    ) {
-        StockInboundItem item = new StockInboundItem();
-        item.inbound = inbound;
-        item.ingredient = ingredient;
-        item.quantity = quantity;
-        return item;
-    }
+	private LocalDate expirationDate;
+
+	public static StockInboundItem create(
+		StockInbound inbound,
+		Ingredient ingredient,
+		BigDecimal quantity,
+		BigDecimal unitCost,
+		LocalDate expirationDate
+	) {
+		StockInboundItem item = new StockInboundItem();
+		item.inbound = inbound;
+		item.ingredient = ingredient;
+		item.quantity = quantity;
+		item.unitCost = unitCost;
+		item.expirationDate = expirationDate;
+		return item;
+	}
 }

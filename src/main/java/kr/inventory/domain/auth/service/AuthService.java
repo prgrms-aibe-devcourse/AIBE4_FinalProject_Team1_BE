@@ -86,7 +86,7 @@ public class AuthService {
         savedToken.updateJti(newJti);
         refreshTokenRepository.save(savedToken);
 
-        return new TokenResponse(newAccessToken, newRefreshToken);
+        return TokenResponse.from(newAccessToken, newRefreshToken);
     }
 
     @Transactional

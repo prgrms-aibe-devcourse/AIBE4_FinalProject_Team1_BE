@@ -64,7 +64,7 @@ class PurchaseOrderServiceTest {
     private PurchaseOrderServiceImpl purchaseOrderService;
 
     @Test
-    @DisplayName("MANAGER 이상은 DRAFT 발주서를 생성하고 수정할 수 있다")
+    @DisplayName("OWNER는 DRAFT 발주서를 생성하고 수정할 수 있다")
     void createAndUpdateDraft_success() {
         // given
         Long userId = 1L;
@@ -84,7 +84,7 @@ class PurchaseOrderServiceTest {
         List<PurchaseOrderItem> updatedItems = List.of(PurchaseOrderItem.create("garlic", 3, new BigDecimal("1200")));
 
         when(storeRepository.findById(store.getStoreId())).thenReturn(Optional.of(store));
-        when(purchaseOrderValidator.requireManagerOrAbove(any(), any())).thenReturn(StoreMemberRole.MANAGER);
+        when(purchaseOrderValidator.requireManagerOrAbove(any(), any())).thenReturn(StoreMemberRole.OWNER);
         when(purchaseOrderFactory.createDraft(any(Store.class), any())).thenReturn(createdDraft);
         when(purchaseOrderFactory.createItems(any())).thenReturn(updatedItems);
         when(purchaseOrderRepository.save(any(PurchaseOrder.class))).thenReturn(savedOrder);
@@ -119,7 +119,7 @@ class PurchaseOrderServiceTest {
         order.submit("PO-20260220-000101", userId, java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC));
 
         when(purchaseOrderRepository.findWithItemsByPurchaseOrderId(order.getPurchaseOrderId())).thenReturn(Optional.of(order));
-        when(purchaseOrderValidator.requireManagerOrAbove(any(), any())).thenReturn(StoreMemberRole.MANAGER);
+        when(purchaseOrderValidator.requireManagerOrAbove(any(), any())).thenReturn(StoreMemberRole.OWNER);
         doThrow(new PurchaseOrderException(PurchaseOrderErrorCode.DRAFT_ONLY_MUTATION))
                 .when(purchaseOrderValidator)
                 .requireDraftForUpdate(any());
@@ -144,7 +144,7 @@ class PurchaseOrderServiceTest {
         order.replaceItems(List.of(PurchaseOrderItem.create("milk", 5, new BigDecimal("2000"))));
 
         when(purchaseOrderRepository.findWithItemsByPurchaseOrderId(order.getPurchaseOrderId())).thenReturn(Optional.of(order));
-        when(purchaseOrderValidator.requireManagerOrAbove(any(), any())).thenReturn(StoreMemberRole.MANAGER);
+        when(purchaseOrderValidator.requireManagerOrAbove(any(), any())).thenReturn(StoreMemberRole.OWNER);
         when(purchaseOrderNumberGenerator.generate(any(), any())).thenReturn("PO-20260220-000202");
         when(purchaseOrderResponseMapper.toDetailResponse(any(PurchaseOrder.class)))
                 .thenAnswer(invocation -> toDetailResponse(invocation.getArgument(0)));
@@ -172,11 +172,11 @@ class PurchaseOrderServiceTest {
 
         when(purchaseOrderRepository.findWithItemsByPurchaseOrderId(order.getPurchaseOrderId())).thenReturn(Optional.of(order));
         when(purchaseOrderValidator.requireManagerOrAbove(any(), any()))
-                .thenReturn(StoreMemberRole.MANAGER)
+                .thenReturn(StoreMemberRole.MEMBER)
                 .thenReturn(StoreMemberRole.OWNER);
         doThrow(new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ACCESS_DENIED))
                 .when(purchaseOrderValidator)
-                .requireOwner(StoreMemberRole.MANAGER);
+                .requireOwner(StoreMemberRole.MEMBER);
         when(purchaseOrderResponseMapper.toDetailResponse(any(PurchaseOrder.class)))
                 .thenAnswer(invocation -> toDetailResponse(invocation.getArgument(0)));
 
@@ -191,7 +191,7 @@ class PurchaseOrderServiceTest {
     }
 
     private Store createStore(Long storeId) {
-        Store store = Store.create("store", "1234567890", "address", "01012345678");
+        Store store = Store.create("store", "1234567890");
         ReflectionTestUtils.setField(store, "storeId", storeId);
         return store;
     }
