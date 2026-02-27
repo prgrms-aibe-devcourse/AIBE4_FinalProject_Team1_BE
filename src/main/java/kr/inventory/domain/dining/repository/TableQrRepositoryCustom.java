@@ -6,5 +6,6 @@ import java.util.Optional;
 
 public interface TableQrRepositoryCustom {
     Optional<TableQr> findActiveQrByTableIdWithLock(Long tableId);
+
     Optional<TableQr> findActiveQrByTable_TableId(Long tableId);
 }

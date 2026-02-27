@@ -2,7 +2,7 @@ package kr.inventory.domain.stock.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import kr.inventory.domain.catalog.entity.Menu;
+import kr.inventory.domain.reference.entity.Menu;
 import kr.inventory.domain.sales.entity.SalesOrder;
 import kr.inventory.domain.sales.entity.SalesOrderItem;
 import kr.inventory.domain.sales.repository.SalesOrderItemRepository;
