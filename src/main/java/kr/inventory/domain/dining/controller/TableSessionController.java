@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import static kr.inventory.domain.dining.constant.TableSessionConstant.SESSION_TOKEN_COOKIE_NAME;
+
 @Validated
 @RestController
 @RequiredArgsConstructor
@@ -27,7 +29,7 @@ public class TableSessionController {
     ) {
         TableSessionEnterResponse result = tableSessionService.enter(request, entryToken);
 
-        ResponseCookie cookie = ResponseCookie.from("sessionToken", result.sessionToken())
+        ResponseCookie cookie = ResponseCookie.from(SESSION_TOKEN_COOKIE_NAME, result.sessionToken())
                 .httpOnly(true)
                 .path("/")
                 .sameSite("Lax")
