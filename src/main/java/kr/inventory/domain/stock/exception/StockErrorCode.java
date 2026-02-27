@@ -18,7 +18,10 @@ public enum StockErrorCode implements ErrorModel {
     VENDOR_NOT_FOUND(HttpStatus.NOT_FOUND, "S008", "거래처를 찾을 수 없습니다."),
     INBOUND_NOT_FOUND(HttpStatus.NOT_FOUND, "S009", "입고 내역을 찾을 수 없습니다."),
     INBOUND_NOT_DRAFT_STATUS(HttpStatus.CONFLICT, "S010", "입고 내역이 DRAFT 상태가 아닙니다."),
-    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "S011", "사용자를 찾을 수 없습니다.");
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "S011", "사용자를 찾을 수 없습니다."),
+    VENDOR_NOT_ACTIVE(HttpStatus.CONFLICT, "S012", "비활성화된 거래처는 사용할 수 없습니다."),
+    PURCHASE_ORDER_STORE_MISMATCH(HttpStatus.BAD_REQUEST, "S013", "해당 발주서는 현재 매장에 속하지 않습니다."),
+    PURCHASE_ORDER_VENDOR_MISMATCH(HttpStatus.BAD_REQUEST, "S014", "입고 거래처와 발주 거래처가 일치하지 않습니다.");
 
     private final HttpStatus status;
     private final String code;

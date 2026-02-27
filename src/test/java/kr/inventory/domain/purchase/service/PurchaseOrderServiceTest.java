@@ -18,6 +18,9 @@ import kr.inventory.domain.purchase.validator.PurchaseOrderValidator;
 import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.entity.enums.StoreMemberRole;
 import kr.inventory.domain.store.repository.StoreRepository;
+import kr.inventory.domain.vendor.entity.Vendor;
+import kr.inventory.domain.vendor.entity.enums.VendorStatus;
+import kr.inventory.domain.vendor.repository.VendorRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +32,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -60,6 +64,9 @@ class PurchaseOrderServiceTest {
     @Mock
     private PurchaseOrderResponseMapper purchaseOrderResponseMapper;
 
+    @Mock
+    private VendorRepository vendorRepository;
+
     @InjectMocks
     private PurchaseOrderServiceImpl purchaseOrderService;
 
@@ -69,9 +76,11 @@ class PurchaseOrderServiceTest {
         // given
         Long userId = 1L;
         Store store = createStore(10L);
+        Vendor vendor = createVendor(store, 1L, UUID.randomUUID(), VendorStatus.ACTIVE);
 
         PurchaseOrderCreateRequest createRequest = new PurchaseOrderCreateRequest(
                 store.getStoreId(),
+                vendor.getVendorPublicId(),
                 List.of(new PurchaseOrderItemRequest("onion", 2, new BigDecimal("1000")))
         );
 
@@ -84,6 +93,7 @@ class PurchaseOrderServiceTest {
         List<PurchaseOrderItem> updatedItems = List.of(PurchaseOrderItem.create("garlic", 3, new BigDecimal("1200")));
 
         when(storeRepository.findById(store.getStoreId())).thenReturn(Optional.of(store));
+        when(vendorRepository.findByVendorPublicId(vendor.getVendorPublicId())).thenReturn(Optional.of(vendor));
         when(purchaseOrderValidator.requireManagerOrAbove(any(), any())).thenReturn(StoreMemberRole.OWNER);
         when(purchaseOrderFactory.createDraft(any(Store.class), any())).thenReturn(createdDraft);
         when(purchaseOrderFactory.createItems(any())).thenReturn(updatedItems);
@@ -97,7 +107,10 @@ class PurchaseOrderServiceTest {
         PurchaseOrderDetailResponse updated = purchaseOrderService.updateDraft(
                 userId,
                 savedOrder.getPurchaseOrderId(),
-                new PurchaseOrderUpdateRequest(List.of(new PurchaseOrderItemRequest("garlic", 3, new BigDecimal("1200"))))
+                new PurchaseOrderUpdateRequest(
+                        vendor.getVendorPublicId(),
+                        List.of(new PurchaseOrderItemRequest("garlic", 3, new BigDecimal("1200")))
+                )
         );
 
         // then
@@ -112,6 +125,7 @@ class PurchaseOrderServiceTest {
         // given
         Long userId = 2L;
         Store store = createStore(11L);
+        Vendor vendor = createVendor(store, 2L, UUID.randomUUID(), VendorStatus.ACTIVE);
 
         PurchaseOrder order = PurchaseOrder.createDraft(store);
         ReflectionTestUtils.setField(order, "purchaseOrderId", 101L);
@@ -127,7 +141,10 @@ class PurchaseOrderServiceTest {
         assertThatThrownBy(() -> purchaseOrderService.updateDraft(
                 userId,
                 order.getPurchaseOrderId(),
-                new PurchaseOrderUpdateRequest(List.of(new PurchaseOrderItemRequest("rice", 1, new BigDecimal("5000"))))
+                new PurchaseOrderUpdateRequest(
+                        vendor.getVendorPublicId(),
+                        List.of(new PurchaseOrderItemRequest("rice", 1, new BigDecimal("5000")))
+                )
         )).isInstanceOf(PurchaseOrderException.class)
                 .extracting(exception -> ((PurchaseOrderException) exception).getErrorModel())
                 .isEqualTo(PurchaseOrderErrorCode.DRAFT_ONLY_MUTATION);
@@ -200,6 +217,8 @@ class PurchaseOrderServiceTest {
         return new PurchaseOrderDetailResponse(
                 purchaseOrder.getPurchaseOrderId(),
                 purchaseOrder.getStore().getStoreId(),
+                purchaseOrder.getVendor() == null ? null : purchaseOrder.getVendor().getVendorPublicId(),
+                purchaseOrder.getVendor() == null ? null : purchaseOrder.getVendor().getName(),
                 purchaseOrder.getOrderNo(),
                 purchaseOrder.getStatus(),
                 purchaseOrder.getTotalAmount(),
@@ -218,5 +237,13 @@ class PurchaseOrderServiceTest {
                         ))
                         .toList()
         );
+    }
+
+    private Vendor createVendor(Store store, Long vendorId, UUID vendorPublicId, VendorStatus status) {
+        Vendor vendor = Vendor.create(store, "vendor", "manager", "01012341234", "vendor@test.com", 1);
+        ReflectionTestUtils.setField(vendor, "vendorId", vendorId);
+        ReflectionTestUtils.setField(vendor, "vendorPublicId", vendorPublicId);
+        ReflectionTestUtils.setField(vendor, "status", status);
+        return vendor;
     }
 }

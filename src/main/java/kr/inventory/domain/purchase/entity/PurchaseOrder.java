@@ -17,6 +17,7 @@ import jakarta.persistence.UniqueConstraint;
 import kr.inventory.domain.common.AuditableEntity;
 import kr.inventory.domain.purchase.entity.enums.PurchaseOrderStatus;
 import kr.inventory.domain.store.entity.Store;
+import kr.inventory.domain.vendor.entity.Vendor;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -44,6 +45,10 @@ public class PurchaseOrder extends AuditableEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vendor_id")
+    private Vendor vendor;
 
     @Column(name = "order_no", length = 40)
     private String orderNo;
@@ -76,6 +81,10 @@ public class PurchaseOrder extends AuditableEntity {
         purchaseOrder.status = PurchaseOrderStatus.DRAFT;
         purchaseOrder.totalAmount = BigDecimal.ZERO;
         return purchaseOrder;
+    }
+
+    public void assignVendor(Vendor vendor) {
+        this.vendor = vendor;
     }
 
     public void replaceItems(List<PurchaseOrderItem> newItems) {

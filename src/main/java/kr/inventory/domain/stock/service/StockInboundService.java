@@ -26,6 +26,7 @@ import kr.inventory.domain.store.service.StoreAccessValidator;
 import kr.inventory.domain.user.entity.User;
 import kr.inventory.domain.user.repository.UserRepository;
 import kr.inventory.domain.vendor.entity.Vendor;
+import kr.inventory.domain.vendor.entity.enums.VendorStatus;
 import kr.inventory.domain.vendor.repository.VendorRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -59,8 +60,7 @@ public class StockInboundService {
 		Store store = storeRepository.findById(storeId)
 			.orElseThrow(() -> new StockException(StockErrorCode.STORE_NOT_FOUND));
 
-		Vendor vendor = request.vendorId() != null ? vendorRepository.findById(request.vendorId())
-			.orElseThrow(() -> new StockException(StockErrorCode.VENDOR_NOT_FOUND)) : null;
+		Vendor selectedVendor = request.vendorId() == null ? null : findActiveVendorOrThrow(request.vendorId());
 
 		Document sourceDocument = documentRepository.findById(request.sourceDocumentId())
 			.orElseThrow(() -> new DocumentException(
@@ -68,6 +68,10 @@ public class StockInboundService {
 
 		PurchaseOrder sourcePurchaseOrder = purchaseOrderRepository.findById(request.sourcePurchaseOrderId())
 			.orElseThrow();
+
+		validatePurchaseOrderStore(sourcePurchaseOrder, storeId);
+
+		Vendor vendor = resolveInboundVendor(selectedVendor, sourcePurchaseOrder);
 
 		StockInbound inbound = StockInbound.create(store, vendor, sourceDocument, sourcePurchaseOrder);
 		stockInboundRepository.save(inbound);
@@ -87,6 +91,41 @@ public class StockInboundService {
 		stockInboundItemRepository.saveAll(items);
 
 		return StockInboundResponse.from(inbound);
+	}
+
+	private Vendor findActiveVendorOrThrow(Long vendorId) {
+		Vendor vendor = vendorRepository.findById(vendorId)
+			.orElseThrow(() -> new StockException(StockErrorCode.VENDOR_NOT_FOUND));
+
+		if (vendor.getStatus() != VendorStatus.ACTIVE) {
+			throw new StockException(StockErrorCode.VENDOR_NOT_ACTIVE);
+		}
+
+		return vendor;
+	}
+
+	private void validatePurchaseOrderStore(PurchaseOrder purchaseOrder, Long storeId) {
+		if (!purchaseOrder.getStore().getStoreId().equals(storeId)) {
+			throw new StockException(StockErrorCode.PURCHASE_ORDER_STORE_MISMATCH);
+		}
+	}
+
+	private Vendor resolveInboundVendor(Vendor selectedVendor, PurchaseOrder sourcePurchaseOrder) {
+		Vendor purchaseOrderVendor = sourcePurchaseOrder.getVendor();
+
+		if (purchaseOrderVendor == null) {
+			return selectedVendor;
+		}
+
+		if (purchaseOrderVendor.getStatus() != VendorStatus.ACTIVE) {
+			throw new StockException(StockErrorCode.VENDOR_NOT_ACTIVE);
+		}
+
+		if (selectedVendor != null && !purchaseOrderVendor.getVendorId().equals(selectedVendor.getVendorId())) {
+			throw new StockException(StockErrorCode.PURCHASE_ORDER_VENDOR_MISMATCH);
+		}
+
+		return purchaseOrderVendor;
 	}
 
 	@Transactional(readOnly = true)

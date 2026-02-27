@@ -13,6 +13,8 @@ import kr.inventory.domain.store.repository.StoreMemberRepository;
 import kr.inventory.domain.store.repository.StoreRepository;
 import kr.inventory.domain.user.entity.User;
 import kr.inventory.domain.user.repository.UserRepository;
+import kr.inventory.domain.vendor.entity.Vendor;
+import kr.inventory.domain.vendor.repository.VendorRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +50,8 @@ class PurchaseOrderServiceIntegrationTest {
         registry.add("spring.datasource.username", POSTGRESQL_CONTAINER::getUsername);
         registry.add("spring.datasource.password", POSTGRESQL_CONTAINER::getPassword);
         registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
+        registry.add("invitation.ttl", () -> "PT24H");
+        registry.add("invitation.front-base-url", () -> "http://localhost:3000");
     }
 
     @Autowired
@@ -62,10 +66,21 @@ class PurchaseOrderServiceIntegrationTest {
     @Autowired
     private StoreMemberRepository storeMemberRepository;
 
+    @Autowired
+    private VendorRepository vendorRepository;
+
     @Test
     @DisplayName("발주 상태 전이와 권한 정책이 통합 환경에서 동작한다")
     void purchaseOrderFlow_withRoleAndCrud() {
         Store store = storeRepository.save(Store.create("test-store", "1111222233"));
+        Vendor vendor = vendorRepository.save(Vendor.create(
+                store,
+                "fresh-vendor",
+                "kim",
+                "01012345678",
+                "vendor@test.com",
+                1
+        ));
 
         User owner = userRepository.save(User.create("owner", "owner@test.com"));
         User member = userRepository.save(User.create("member", "member@test.com"));
@@ -79,6 +94,7 @@ class PurchaseOrderServiceIntegrationTest {
                 owner.getUserId(),
                 new PurchaseOrderCreateRequest(
                         store.getStoreId(),
+                        vendor.getVendorPublicId(),
                         List.of(new PurchaseOrderItemRequest("egg", 10, new BigDecimal("500")))
                 )
         );
@@ -88,7 +104,10 @@ class PurchaseOrderServiceIntegrationTest {
         PurchaseOrderDetailResponse updated = purchaseOrderService.updateDraft(
                 owner.getUserId(),
                 created.purchaseOrderId(),
-                new PurchaseOrderUpdateRequest(List.of(new PurchaseOrderItemRequest("egg", 12, new BigDecimal("500"))))
+                new PurchaseOrderUpdateRequest(
+                        vendor.getVendorPublicId(),
+                        List.of(new PurchaseOrderItemRequest("egg", 12, new BigDecimal("500")))
+                )
         );
 
         assertThat(updated.items().get(0).quantity()).isEqualTo(12);

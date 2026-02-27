@@ -17,6 +17,9 @@ import kr.inventory.domain.purchase.validator.PurchaseOrderValidator;
 import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.entity.enums.StoreMemberRole;
 import kr.inventory.domain.store.repository.StoreRepository;
+import kr.inventory.domain.vendor.entity.Vendor;
+import kr.inventory.domain.vendor.entity.enums.VendorStatus;
+import kr.inventory.domain.vendor.repository.VendorRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +41,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final PurchaseOrderPdfService purchaseOrderPdfService;
     private final PurchaseOrderValidator purchaseOrderValidator;
     private final PurchaseOrderResponseMapper purchaseOrderResponseMapper;
+    private final VendorRepository vendorRepository;
 
     @Override
     public PurchaseOrderDetailResponse createDraft(Long userId, PurchaseOrderCreateRequest request) {
@@ -44,8 +49,10 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.STORE_NOT_FOUND));
         purchaseOrderValidator.requireManagerOrAbove(store.getStoreId(), userId);
         purchaseOrderValidator.requireItemsNotEmpty(request.items());
+        Vendor vendor = resolveVendorOrThrow(store.getStoreId(), request.vendorPublicId());
 
         PurchaseOrder purchaseOrder = purchaseOrderFactory.createDraft(store, request.items());
+        purchaseOrder.assignVendor(vendor);
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
         return purchaseOrderResponseMapper.toDetailResponse(savedPurchaseOrder);
     }
@@ -74,7 +81,9 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         purchaseOrderValidator.requireItemsNotEmpty(request.items());
 
         purchaseOrderValidator.requireDraftForUpdate(purchaseOrder.getStatus());
+        Vendor vendor = resolveVendorOrThrow(purchaseOrder.getStore().getStoreId(), request.vendorPublicId());
 
+        purchaseOrder.assignVendor(vendor);
         purchaseOrder.replaceItems(purchaseOrderFactory.createItems(request.items()));
         return purchaseOrderResponseMapper.toDetailResponse(purchaseOrder);
     }
@@ -124,5 +133,20 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private PurchaseOrder getPurchaseOrderOrThrow(Long purchaseOrderId) {
         return purchaseOrderRepository.findWithItemsByPurchaseOrderId(purchaseOrderId)
                 .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_NOT_FOUND));
+    }
+
+    private Vendor resolveVendorOrThrow(Long storeId, UUID vendorPublicId) {
+        Vendor vendor = vendorRepository.findByVendorPublicId(vendorPublicId)
+                .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.VENDOR_NOT_FOUND));
+
+        if (!vendor.getStore().getStoreId().equals(storeId)) {
+            throw new PurchaseOrderException(PurchaseOrderErrorCode.VENDOR_STORE_MISMATCH);
+        }
+
+        if (vendor.getStatus() != VendorStatus.ACTIVE) {
+            throw new PurchaseOrderException(PurchaseOrderErrorCode.VENDOR_NOT_ACTIVE);
+        }
+
+        return vendor;
     }
 }
