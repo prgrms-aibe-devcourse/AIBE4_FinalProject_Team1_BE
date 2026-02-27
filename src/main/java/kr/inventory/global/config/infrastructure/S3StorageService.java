@@ -22,7 +22,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class S3StorageService implements StorageService {
+public class S3StorageService {
 
 	private final S3Client s3Client;
 	private final S3Presigner s3Presigner;
@@ -30,7 +30,6 @@ public class S3StorageService implements StorageService {
 	@Value("${cloud.aws.s3.bucket}")
 	private String bucket;
 
-	@Override
 	public String upload(MultipartFile file, String directory) {
 		String fileName = directory + "/" + UUID.randomUUID() + "_" + file.getOriginalFilename();
 
@@ -54,7 +53,6 @@ public class S3StorageService implements StorageService {
 		}
 	}
 
-    @Override
     public String upload(byte[] bytes, String path, String contentType) {
         try {
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -74,7 +72,6 @@ public class S3StorageService implements StorageService {
         }
     }
 
-	@Override
 	public void delete(String fileUrl) {
 		String key = fileUrl.substring(fileUrl.lastIndexOf(bucket) + bucket.length() + 1);
 
@@ -84,7 +81,6 @@ public class S3StorageService implements StorageService {
 			.build());
 	}
 
-	@Override
 	public String getPresignedUrl(String filePath) {
 		if (filePath == null || filePath.isEmpty())
 			return null;
