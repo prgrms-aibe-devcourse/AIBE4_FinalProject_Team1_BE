@@ -3,31 +3,92 @@
  * - 메뉴 렌더링 (백엔드 API 연동)
  * - 장바구니 관리 (SessionStorage)
  * - 결제 연동 (주문 단계 생략 버전)
+ *
+ * 변경점:
+ *  - storePublicId/tablePublicId/token 하드코딩 제거 (URL query에서 파싱)
+ *  - sessionStorage key 테이블 단위 분리
  */
 
-// 1. 초기 메뉴 데이터
-let menuData = [];
-
-// 2. 전역 상태 관리
-let cart = JSON.parse(sessionStorage.getItem('current_cart') || '[]');
-
-// URL에서 storePublicId 추출
+// -------------------------
+// 0) QR 파라미터 파싱 (백엔드가 생성하는 URL 기준)
+//   /qr_menu_order.html?s={storePublicId}&t={tablePublicId}&token={entryToken}
+// -------------------------
 const urlParams = new URLSearchParams(window.location.search);
-const storePublicId = "80b914dc-fd48-4b60-9f12-01ce4c116593"; // 하드코딩 (아직 연결전)
+const storePublicId = urlParams.get("s");
+const tablePublicId = urlParams.get("t");
+const entryToken = urlParams.get("token");
 
-/**
- * 앱 초기화
- */
+// 테이블별 장바구니 분리 저장
+const CART_KEY = (storePublicId && tablePublicId)
+    ? `current_cart::${storePublicId}::${tablePublicId}`
+    : "current_cart::invalid";
+
+// -------------------------
+// 1) 초기 메뉴 데이터 / 상태
+// -------------------------
+let menuData = [];
+let cart = JSON.parse(sessionStorage.getItem(CART_KEY) || "[]");
+
+// -------------------------
+// 2) UI 유틸
+// -------------------------
+function setError(message) {
+    const box = document.getElementById("error-box");
+    if (!box) return;
+    box.textContent = message;
+    box.classList.remove("hidden");
+}
+
+function clearError() {
+    const box = document.getElementById("error-box");
+    if (!box) return;
+    box.textContent = "";
+    box.classList.add("hidden");
+}
+
+function setHeaderHints() {
+    // 지금 단계에서는 storeName/tableName을 백엔드에서 안 주므로
+    // 최소로 tablePublicId만 표시(원하면 "Table xx" 매핑은 나중에 API로)
+    const tableEl = document.getElementById("table-name");
+    const subEl = document.getElementById("subtitle");
+
+    if (tableEl) tableEl.textContent = tablePublicId ? `Table (${tablePublicId})` : "Table";
+    if (subEl) subEl.textContent = "QR로 입장했습니다";
+}
+
+function disableOrdering() {
+    const payBtn = document.getElementById("pay-btn");
+    if (payBtn) {
+        payBtn.disabled = true;
+        payBtn.classList.add("opacity-50", "cursor-not-allowed");
+    }
+    const grid = document.getElementById("menu-grid");
+    if (grid) grid.innerHTML = "";
+}
+
+// -------------------------
+// 3) 앱 초기화
+// -------------------------
 async function init() {
+    lucide.createIcons();
+
+    if (!storePublicId || !tablePublicId || !entryToken) {
+        setError("유효하지 않은 QR 입니다. 새로 발급된 QR을 다시 스캔해 주세요.");
+        disableOrdering();
+        return;
+    }
+
+    setHeaderHints();
+
     await fetchMenuData();
     renderMenuGrid();
     updateUI();
     lucide.createIcons();
 }
 
-/**
- * 백엔드 API에서 메뉴 데이터 가져오기 (수정하지 않음)
- */
+// -------------------------
+// 4) 메뉴 API 호출
+// -------------------------
 async function fetchMenuData() {
     try {
         const url = `/api/menus/${storePublicId}/customer`;
@@ -53,16 +114,20 @@ async function fetchMenuData() {
             desc: item.ingredientsJson?.description ?? "",
             icon: "🍽️",
         }));
+
+        clearError();
     } catch (error) {
         console.error("Menu fetch error:", error);
+        setError("메뉴를 불러올 수 없습니다.");
         const grid = document.getElementById("menu-grid");
         if (grid) grid.innerHTML = '<p class="text-center text-gray-500 py-10">메뉴를 불러올 수 없습니다.</p>';
+        disableOrdering();
     }
 }
 
-/**
- * 메뉴 리스트 화면 렌더링 (XSS 방지: innerHTML로 백엔드 값을 직접 넣지 않음)
- */
+// -------------------------
+// 5) 메뉴 렌더링
+// -------------------------
 function renderMenuGrid() {
     const grid = document.getElementById('menu-grid');
     if (!grid) return;
@@ -73,7 +138,6 @@ function renderMenuGrid() {
         const card = document.createElement('div');
         card.className = 'menu-card flex bg-white rounded-2xl p-4 border border-gray-100 shadow-sm gap-4 items-center';
 
-        // 아이콘 (현재 고정 문자열이라 안전하지만, 일관되게 textContent 사용)
         const iconWrap = document.createElement('div');
         iconWrap.className = 'w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center text-3xl shadow-inner shrink-0';
         iconWrap.textContent = item.icon ?? '';
@@ -95,7 +159,6 @@ function renderMenuGrid() {
 
         body.append(title, desc, price);
 
-        // 버튼 - 인라인 onclick 제거(문자열 주입 위험/깨짐 방지)
         const btn = document.createElement('button');
         btn.className = 'bg-gray-900 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-lg active:bg-rose-600 transition-all';
         btn.addEventListener('click', () => addToCart(item.id));
@@ -112,52 +175,46 @@ function renderMenuGrid() {
     lucide.createIcons();
 }
 
-/**
- * 장바구니에 아이템 추가
- */
+// -------------------------
+// 6) 장바구니 로직
+// -------------------------
 function addToCart(id) {
     const item = menuData.find(m => m.id === id);
     if (!item) return;
 
     const existing = cart.find(c => c.id === id);
 
-    if (existing) {
-        existing.quantity += 1;
-    } else {
-        cart.push({ ...item, quantity: 1 });
-    }
+    if (existing) existing.quantity += 1;
+    else cart.push({ ...item, quantity: 1 });
 
     saveState();
     updateUI();
 }
 
-/**
- * 장바구니 수량 조절
- */
 function adjustCartQty(id, delta) {
     const idx = cart.findIndex(c => c.id === id);
     if (idx === -1) return;
 
     cart[idx].quantity += delta;
-    if (cart[idx].quantity <= 0) {
-        cart.splice(idx, 1);
-    }
+    if (cart[idx].quantity <= 0) cart.splice(idx, 1);
+
     saveState();
     updateUI();
 }
 
-/**
- * 장바구니 비우기
- */
 function clearCart() {
     cart = [];
     saveState();
     updateUI();
 }
 
-/**
- * 최종 결제하기 (장바구니의 내용을 바로 서버로 전송)
- */
+function saveState() {
+    sessionStorage.setItem(CART_KEY, JSON.stringify(cart));
+}
+
+// -------------------------
+// 7) 결제(아직은 데모) - 하드코딩 제거
+// -------------------------
 async function goToPayment() {
     if (cart.length === 0) {
         alert("장바구니에 담긴 메뉴가 없습니다.");
@@ -166,63 +223,67 @@ async function goToPayment() {
 
     const total = cart.reduce((acc, cur) => acc + (cur.price * cur.quantity), 0);
 
-    if (confirm(`최종 결제 금액은 ${total.toLocaleString()}원입니다.\n결제를 진행하시겠습니까?`)) {
+    if (!confirm(`최종 결제 금액은 ${total.toLocaleString()}원입니다.\n결제를 진행하시겠습니까?`)) {
+        return;
+    }
 
-        // 백엔드 API 형식: items만 전송!
-        const paymentPayload = {
-            items: cart.map(item => ({
-                menuPublicId: item.id,
-                quantity: item.quantity
-            }))
-        };
+    // ✅ 백엔드 DTO에 맞게 "items"만(그리고 식별자들) 보내는 형태로 정리
+    const paymentPayload = {
+        storePublicId,
+        tablePublicId,
+        token: entryToken, // 백엔드가 필요 없다면 제거 가능 (현재 프론트 로직상 유지)
+        items: cart.map((item) => ({
+            menuPublicId: item.id,
+            quantity: item.quantity,
+        })),
+    };
 
-        console.log("결제 API 요청:", paymentPayload);
+    console.log("결제 API 요청:", paymentPayload);
 
-        try {
-            // Idempotency-Key 생성 (중복 결제 방지!)
-            const idempotencyKey = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    try {
+        const idempotencyKey =
+            (window.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
-            const response = await fetch('/api/orders', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Idempotency-Key': idempotencyKey
-                },
-                credentials: 'include',  // sessionToken 쿠키 자동 전송
-                body: JSON.stringify(paymentPayload)
-            });
+        const response = await fetch("/api/orders", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Idempotency-Key": idempotencyKey,
+                "Accept": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify(paymentPayload),
+        });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => null);
-                throw new Error(errorData?.message || '결제 처리 실패');
+        if (!response.ok) {
+            const text = await response.text().catch(() => "");
+            let message = "결제 처리 실패";
+            try {
+                const parsed = JSON.parse(text);
+                message = parsed?.message ?? message;
+            } catch (_) {
+                if (text) message = text;
             }
-
-            const result = await response.json();
-            console.log("결제 성공:", result);
-
-            alert("결제가 완료되었습니다. 이용해주셔서 감사합니다!");
-
-            // 결제 성공 후 장바구니 초기화
-            cart = [];
-            saveState();
-            window.location.reload();
-        } catch (e) {
-            console.error("Payment Error:", e);
-            alert(`결제 처리 중 오류가 발생했습니다: ${e.message}`);
+            throw new Error(message);
         }
+
+        const result = await response.json().catch(() => ({}));
+        console.log("결제 성공:", result);
+
+        alert("결제가 완료되었습니다. 이용해주셔서 감사합니다!");
+
+        cart = [];
+        saveState();
+        window.location.reload();
+    } catch (e) {
+        console.error("Payment Error:", e);
+        alert(`결제 처리 중 오류가 발생했습니다: ${e.message}`);
     }
 }
 
-/**
- * 세션 스토리지 저장
- */
-function saveState() {
-    sessionStorage.setItem('current_cart', JSON.stringify(cart));
-}
-
-/**
- * UI 요소들 업데이트
- */
+// -------------------------
+// 8) UI 업데이트
+// -------------------------
 function updateUI() {
     const cartTotalEl = document.getElementById('cart-total');
     const payBtn = document.getElementById('pay-btn');
@@ -231,7 +292,6 @@ function updateUI() {
 
     if (cartTotalEl) cartTotalEl.innerText = cartSum.toLocaleString() + '원';
 
-    // 결제 버튼 활성화 상태 제어 (장바구니에 메뉴가 1개 이상일 때)
     if (payBtn) {
         if (cart.length > 0) {
             payBtn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -242,26 +302,21 @@ function updateUI() {
         }
     }
 
-    // 상세 내역 리스트 갱신
     renderCartDrawerList();
-
     lucide.createIcons();
 }
 
-/**
- * 장바구니 상세 내역 리스트 렌더링 (XSS 방지: innerHTML로 백엔드 값을 직접 넣지 않음)
- */
 function renderCartDrawerList() {
     const container = document.getElementById('cart-list');
     if (!container) return;
 
     if (cart.length === 0) {
         container.innerHTML = `
-      <div class="flex flex-col items-center justify-center py-10 opacity-30">
-        <i data-lucide="shopping-cart" class="w-12 h-12 mb-2"></i>
-        <p class="text-sm">장바구니가 비어있습니다.</p>
-      </div>
-    `;
+          <div class="flex flex-col items-center justify-center py-10 opacity-30">
+            <i data-lucide="shopping-cart" class="w-12 h-12 mb-2"></i>
+            <p class="text-sm">장바구니가 비어있습니다.</p>
+          </div>
+        `;
         lucide.createIcons();
         return;
     }
@@ -318,9 +373,9 @@ function renderCartDrawerList() {
     lucide.createIcons();
 }
 
-/**
- * 드로어 열기/닫기
- */
+// -------------------------
+// 9) 드로어
+// -------------------------
 function toggleDrawer() {
     const drawer = document.getElementById('drawer');
     const overlay = document.getElementById('drawer-overlay');
@@ -337,5 +392,4 @@ function toggleDrawer() {
     }
 }
 
-// 윈도우 로드 시 시작
 window.addEventListener('DOMContentLoaded', init);
