@@ -70,6 +70,8 @@ management:
       application: ${spring.application.name}
 
 springdoc:
+  api-docs:
+    version: openapi_3_0
   swagger-ui:
     url: /v3/api-docs
 
