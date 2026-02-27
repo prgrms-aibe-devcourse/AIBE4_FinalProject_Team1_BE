@@ -61,7 +61,7 @@ public class TableQrManagerFacade {
                 orderBaseUrl, storePublicId, table.getTablePublicId(), entryToken);
 
         byte[] imageBytes = qrGenerator.generate(qrContent, 300, 300);
-        String s3Path = String.format("public/qr/%s/tables/%s/qr_v%d.png",
+        String s3Path = String.format("public/qr/store-%d/tables/%s/qr_v%d.png",
                 storeId, table.getTableCode(), nextVersion);
 
         String uploadedImageUrl = s3storageService.upload(imageBytes, s3Path, "image/png");
