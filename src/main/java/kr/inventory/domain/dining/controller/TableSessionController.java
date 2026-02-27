@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/table-sessions")
-public class TableSessionServiceController {
+public class TableSessionController {
     private final TableSessionService tableSessionService;
 
     @PostMapping("/enter")
