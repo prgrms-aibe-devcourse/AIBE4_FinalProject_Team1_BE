@@ -15,10 +15,11 @@ public enum SalesOrderErrorCode implements ErrorModel {
     MENU_NOT_ACTIVE(HttpStatus.BAD_REQUEST, "SO004","비활성화된 메뉴는 주문할 수 없습니다."),
     INVALID_SESSION(HttpStatus.BAD_REQUEST, "SO005","유효하지 않은 세션입니다."),
     SESSION_EXPIRED(HttpStatus.BAD_REQUEST, "SO006","만료된 세션입니다."),
+    INVALID_INGREDIENT_DATA(HttpStatus.BAD_REQUEST, "SO007","메뉴의 재료 데이터 형식이 올바르지 않습니다."),
 
-    INSUFFICIENT_STOCK(HttpStatus.CONFLICT, "SO007","재고가 부족합니다."),
-    ORDER_NOT_REFUNDABLE(HttpStatus.CONFLICT, "SO008","환불할 수 없는 주문입니다."),
-    ORDER_ALREADY_REFUNDED(HttpStatus.CONFLICT, "SO009","이미 환불된 주문입니다.");
+    INSUFFICIENT_STOCK(HttpStatus.CONFLICT, "SO008","재고가 부족합니다."),
+    ORDER_NOT_REFUNDABLE(HttpStatus.CONFLICT, "SO009","환불할 수 없는 주문입니다."),
+    ORDER_ALREADY_REFUNDED(HttpStatus.CONFLICT, "SO010","이미 환불된 주문입니다.");
 
     private final HttpStatus status;
     private final String code;
