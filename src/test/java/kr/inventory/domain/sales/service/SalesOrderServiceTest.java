@@ -2,13 +2,13 @@ package kr.inventory.domain.sales.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import kr.inventory.domain.catalog.entity.Menu;
-import kr.inventory.domain.catalog.entity.enums.MenuStatus;
-import kr.inventory.domain.catalog.repository.MenuRepository;
 import kr.inventory.domain.dining.entity.DiningTable;
 import kr.inventory.domain.dining.entity.TableSession;
 import kr.inventory.domain.dining.entity.enums.TableSessionStatus;
 import kr.inventory.domain.dining.repository.TableSessionRepository;
+import kr.inventory.domain.reference.entity.Menu;
+import kr.inventory.domain.reference.entity.enums.MenuStatus;
+import kr.inventory.domain.reference.repository.MenuRepository;
 import kr.inventory.domain.sales.controller.dto.request.SalesOrderCreateRequest;
 import kr.inventory.domain.sales.controller.dto.request.SalesOrderItemRequest;
 import kr.inventory.domain.sales.controller.dto.response.SalesOrderResponse;
