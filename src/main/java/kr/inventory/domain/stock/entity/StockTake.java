@@ -1,7 +1,7 @@
 package kr.inventory.domain.stock.entity;
 
 import jakarta.persistence.*;
-import kr.inventory.domain.catalog.entity.Ingredient;
+import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.common.AuditableEntity;
 import lombok.AccessLevel;
 import lombok.Getter;

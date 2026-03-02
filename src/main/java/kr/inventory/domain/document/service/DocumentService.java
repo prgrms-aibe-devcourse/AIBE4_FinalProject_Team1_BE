@@ -10,13 +10,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import kr.inventory.domain.document.controller.dto.document.DocumentResponse;
 import kr.inventory.domain.document.entity.Document;
-import kr.inventory.domain.document.exception.DocumentError;
-import kr.inventory.domain.document.exception.DocumentException;
 import kr.inventory.domain.document.repository.DocumentRepository;
 import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.service.StoreAccessValidator;
-import kr.inventory.domain.user.entity.User;
-import kr.inventory.global.config.infrastructure.S3StorageService;
+import kr.inventory.global.config.S3StorageService;
 import lombok.RequiredArgsConstructor;
 
 @Component

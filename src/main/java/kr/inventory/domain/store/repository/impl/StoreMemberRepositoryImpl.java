@@ -16,7 +16,6 @@ import static kr.inventory.domain.store.entity.QStore.store;
 import static kr.inventory.domain.store.entity.QStoreMember.storeMember;
 import static kr.inventory.domain.user.entity.QUser.user;
 
-@Repository
 @RequiredArgsConstructor
 public class StoreMemberRepositoryImpl  implements StoreMemberRepositoryCustom  {
     private final JPAQueryFactory queryFactory;

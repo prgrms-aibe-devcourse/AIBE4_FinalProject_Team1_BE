@@ -1,7 +1,7 @@
 package kr.inventory.domain.sales.entity;
 
 import jakarta.persistence.*;
-import kr.inventory.domain.catalog.entity.Menu;
+import kr.inventory.domain.reference.entity.Menu;
 import kr.inventory.domain.common.CreatedAtEntity;
 import lombok.AccessLevel;
 import lombok.Getter;

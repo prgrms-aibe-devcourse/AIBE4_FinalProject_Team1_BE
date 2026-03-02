@@ -17,7 +17,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/stores/{storePublicId}/members")
-@Tag(name = "매장멤버(Store Member)", description = "매장 멤버관리 API")
+@Tag(name = "매장 멤버(Store Member)", description = "매장 멤버 관리 API")
 @RequiredArgsConstructor
 public class StoreMemberController {
 

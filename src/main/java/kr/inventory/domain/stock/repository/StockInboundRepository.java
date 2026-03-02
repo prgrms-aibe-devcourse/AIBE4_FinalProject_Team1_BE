@@ -10,5 +10,6 @@ import java.util.UUID;
 
 public interface StockInboundRepository extends JpaRepository<StockInbound, Long> {
     Page<StockInbound> findByStoreStoreId(Long storeId, Pageable pageable);
+
     Optional<StockInbound> findByInboundPublicId(UUID inboundPublicId);
 }
