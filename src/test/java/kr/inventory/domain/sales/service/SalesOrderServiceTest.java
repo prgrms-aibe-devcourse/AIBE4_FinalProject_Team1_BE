@@ -1,5 +1,7 @@
 package kr.inventory.domain.sales.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inventory.domain.catalog.entity.Menu;
 import kr.inventory.domain.catalog.entity.enums.MenuStatus;
 import kr.inventory.domain.catalog.repository.MenuRepository;
@@ -11,7 +13,6 @@ import kr.inventory.domain.sales.controller.dto.request.SalesOrderCreateRequest;
 import kr.inventory.domain.sales.controller.dto.request.SalesOrderItemRequest;
 import kr.inventory.domain.sales.controller.dto.response.SalesOrderResponse;
 import kr.inventory.domain.sales.entity.SalesOrder;
-import kr.inventory.domain.sales.entity.SalesOrderItem;
 import kr.inventory.domain.sales.entity.enums.SalesOrderStatus;
 import kr.inventory.domain.sales.entity.enums.SalesOrderType;
 import kr.inventory.domain.sales.exception.SalesOrderErrorCode;
@@ -40,6 +41,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("주문 서비스 테스트")
@@ -66,6 +68,7 @@ class SalesOrderServiceTest {
     @Mock
     private StoreAccessValidator storeAccessValidator;
 
+    private ObjectMapper objectMapper;
     private Store store;
     private DiningTable table;
     private TableSession session;
@@ -74,6 +77,8 @@ class SalesOrderServiceTest {
 
     @BeforeEach
     void setUp() {
+        objectMapper = new ObjectMapper();
+
         // Store 생성
         store = Store.create("테스트 매장", "1234567890");
         ReflectionTestUtils.setField(store, "storeId", 1L);
@@ -92,7 +97,7 @@ class SalesOrderServiceTest {
         );
         ReflectionTestUtils.setField(session, "tableSessionId", 1L);
 
-        // Menu 생성
+        // Menu 생성 (ingredientsJson 없음)
         menu1 = Menu.create(
                 store,
                 "김치찌개",
@@ -111,7 +116,7 @@ class SalesOrderServiceTest {
     }
 
     @Test
-    @DisplayName("주문 생성 성공 - 정상 플로우")
+    @DisplayName("주문 생성 성공 - ingredientsJson 없음 (재고 차감 안 함)")
     void givenValidRequest_whenCreateOrder_thenSuccess() {
         // given
         String sessionToken = "test-token";
@@ -141,9 +146,6 @@ class SalesOrderServiceTest {
         given(salesOrderItemRepository.saveAll(anyList()))
                 .willReturn(Collections.emptyList());
 
-        given(stockService.deductStockWithFEFO(anyLong(), anyMap()))
-                .willReturn(Collections.emptyMap());
-
         // when
         SalesOrderResponse response = salesOrderService.createOrder(sessionToken, idempotencyKey, request);
 
@@ -155,6 +157,131 @@ class SalesOrderServiceTest {
         verify(salesOrderRepository).save(any(SalesOrder.class));
         verify(salesOrderItemRepository).saveAll(anyList());
         // ingredientsJson이 null이므로 재고 차감이 호출되지 않음
+        verify(stockService, never()).deductStockWithFEFO(anyLong(), anyMap());
+    }
+
+    @Test
+    @DisplayName("주문 생성 성공 - ingredientsJson 있음 (재고 차감 성공)")
+    void givenValidRequestWithIngredients_whenCreateOrder_thenSuccessWithStockDeduction() throws Exception {
+        // given
+        String sessionToken = "test-token";
+        String idempotencyKey = "idempotency-123";
+
+        // JsonNode로 변환
+        JsonNode ingredientsJson = objectMapper.readTree("""
+            {
+              "ingredients": [
+                {"ingredientId": 1, "quantity": 0.5},
+                {"ingredientId": 2, "quantity": 0.3}
+              ]
+            }
+            """);
+
+        // ingredientsJson이 있는 Menu 생성
+        Menu menuWithIngredients = Menu.create(
+                store,
+                "김치찌개 (재료 있음)",
+                new BigDecimal("8000"),
+                ingredientsJson
+        );
+        ReflectionTestUtils.setField(menuWithIngredients, "menuId", 3L);
+
+        UUID menuPublicId = menuWithIngredients.getMenuPublicId();
+
+        SalesOrderItemRequest item = new SalesOrderItemRequest(menuPublicId, 2);
+        SalesOrderCreateRequest request = new SalesOrderCreateRequest(List.of(item));
+
+        // Mock 설정
+        given(tableSessionRepository.findBySessionTokenHashAndStatus(anyString(), eq(TableSessionStatus.ACTIVE)))
+                .willReturn(Optional.of(session));
+
+        given(salesOrderRepository.findByStoreStoreIdAndIdempotencyKey(anyLong(), eq(idempotencyKey)))
+                .willReturn(Optional.empty());
+
+        given(menuRepository.findByMenuPublicIdIn(anyList()))
+                .willReturn(List.of(menuWithIngredients));
+
+        SalesOrder savedOrder = SalesOrder.create(store, table, session, idempotencyKey, SalesOrderType.DINE_IN);
+        given(salesOrderRepository.save(any(SalesOrder.class)))
+                .willReturn(savedOrder);
+
+        given(salesOrderItemRepository.saveAll(anyList()))
+                .willReturn(Collections.emptyList());
+
+        // 재고 차감 성공 (shortage 없음)
+        given(stockService.deductStockWithFEFO(anyLong(), anyMap()))
+                .willReturn(Collections.emptyMap());
+
+        // when
+        SalesOrderResponse response = salesOrderService.createOrder(sessionToken, idempotencyKey, request);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.status()).isEqualTo(SalesOrderStatus.COMPLETED);
+
+        verify(salesOrderRepository).save(any(SalesOrder.class));
+        verify(salesOrderItemRepository).saveAll(anyList());
+        // ingredientsJson이 있으므로 재고 차감 호출됨
+        verify(stockService).deductStockWithFEFO(anyLong(), anyMap());
+    }
+
+    @Test
+    @DisplayName("주문 생성 실패 - 재고 부족")
+    void givenInsufficientStock_whenCreateOrder_thenThrowException() throws Exception {
+        // given
+        String sessionToken = "test-token";
+        String idempotencyKey = "idempotency-123";
+
+        // JsonNode로 변환
+        JsonNode ingredientsJson = objectMapper.readTree("""
+            {
+              "ingredients": [
+                {"ingredientId": 1, "quantity": 0.5}
+              ]
+            }
+            """);
+
+        // ingredientsJson이 있는 Menu 생성
+        Menu menuWithIngredients = Menu.create(
+                store,
+                "김치찌개 (재료 있음)",
+                new BigDecimal("8000"),
+                ingredientsJson
+        );
+        ReflectionTestUtils.setField(menuWithIngredients, "menuId", 3L);
+
+        UUID menuPublicId = menuWithIngredients.getMenuPublicId();
+
+        SalesOrderItemRequest item = new SalesOrderItemRequest(menuPublicId, 2);
+        SalesOrderCreateRequest request = new SalesOrderCreateRequest(List.of(item));
+
+        // Mock 설정
+        given(tableSessionRepository.findBySessionTokenHashAndStatus(anyString(), eq(TableSessionStatus.ACTIVE)))
+                .willReturn(Optional.of(session));
+
+        given(salesOrderRepository.findByStoreStoreIdAndIdempotencyKey(anyLong(), eq(idempotencyKey)))
+                .willReturn(Optional.empty());
+
+        given(menuRepository.findByMenuPublicIdIn(anyList()))
+                .willReturn(List.of(menuWithIngredients));
+
+        SalesOrder savedOrder = SalesOrder.create(store, table, session, idempotencyKey, SalesOrderType.DINE_IN);
+        given(salesOrderRepository.save(any(SalesOrder.class)))
+                .willReturn(savedOrder);
+
+        given(salesOrderItemRepository.saveAll(anyList()))
+                .willReturn(Collections.emptyList());
+
+        // 재고 부족!
+        Map<Long, BigDecimal> shortage = new HashMap<>();
+        shortage.put(1L, new BigDecimal("10.5"));
+        given(stockService.deductStockWithFEFO(anyLong(), anyMap()))
+                .willReturn(shortage);
+
+        // when & then
+        assertThatThrownBy(() -> salesOrderService.createOrder(sessionToken, idempotencyKey, request))
+                .isInstanceOf(SalesOrderException.class)
+                .hasMessageContaining(SalesOrderErrorCode.INSUFFICIENT_STOCK.getMessage());
     }
 
     @Test
@@ -283,48 +410,6 @@ class SalesOrderServiceTest {
     }
 
     @Test
-    @DisplayName("주문 생성 실패 - 재고 부족")
-    void givenInsufficientStock_whenCreateOrder_thenThrowException() {
-        // given
-        String sessionToken = "test-token";
-        String idempotencyKey = "idempotency-123";
-
-        UUID menuPublicId1 = menu1.getMenuPublicId();
-
-        SalesOrderItemRequest item1 = new SalesOrderItemRequest(menuPublicId1, 2);
-        SalesOrderCreateRequest request = new SalesOrderCreateRequest(List.of(item1));
-
-        given(tableSessionRepository.findBySessionTokenHashAndStatus(anyString(), eq(TableSessionStatus.ACTIVE)))
-                .willReturn(Optional.of(session));
-
-        given(salesOrderRepository.findByStoreStoreIdAndIdempotencyKey(anyLong(), eq(idempotencyKey)))
-                .willReturn(Optional.empty());
-
-        given(menuRepository.findByMenuPublicIdIn(anyList()))
-                .willReturn(List.of(menu1));
-
-        SalesOrder savedOrder = SalesOrder.create(store, table, session, idempotencyKey, SalesOrderType.DINE_IN);
-        given(salesOrderRepository.save(any(SalesOrder.class)))
-                .willReturn(savedOrder);
-
-        given(salesOrderItemRepository.saveAll(anyList()))
-                .willReturn(Collections.emptyList());
-
-        // 재고 부족!
-        Map<Long, BigDecimal> shortage = new HashMap<>();
-        shortage.put(1L, new BigDecimal("10.5"));
-        given(stockService.deductStockWithFEFO(anyLong(), anyMap()))
-                .willReturn(shortage);
-
-        // when & then
-        // ingredientsJson이 null이므로 재고 부족 예외가 발생하지 않음
-        // 이 테스트는 재료가 설정된 메뉴에서만 유효함
-        assertThatThrownBy(() -> salesOrderService.createOrder(sessionToken, idempotencyKey, request))
-                .isInstanceOf(SalesOrderException.class);
-        // 실제로는 재고 부족이 아니라 다른 이유로 실패할 수 있음
-    }
-
-    @Test
     @DisplayName("환불 처리 성공")
     void givenCompletedOrder_whenRefund_thenSuccess() {
         // given
@@ -355,8 +440,8 @@ class SalesOrderServiceTest {
     }
 
     @Test
-    @DisplayName("환불 처리 실패 - 이미 환불된 주문")
-    void givenRefundedOrder_whenRefund_thenThrowException() {
+    @DisplayName("환불 처리 실패 - 환불 불가능한 주문 상태")
+    void givenNonRefundableOrder_whenRefund_thenThrowException() {
         // given
         Long userId = 1L;
         UUID storePublicId = UUID.randomUUID();
@@ -364,6 +449,7 @@ class SalesOrderServiceTest {
 
         SalesOrder order = SalesOrder.create(store, table, session, "idempotency-123", SalesOrderType.DINE_IN);
         ReflectionTestUtils.setField(order, "salesOrderId", 1L);
+        // REFUNDED 상태로 변경
         order.updateStatus(SalesOrderStatus.REFUNDED);
 
         given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId))
@@ -375,6 +461,6 @@ class SalesOrderServiceTest {
         // when & then
         assertThatThrownBy(() -> salesOrderService.refundOrder(orderPublicId, userId, storePublicId))
                 .isInstanceOf(SalesOrderException.class)
-                .hasMessageContaining(SalesOrderErrorCode.ORDER_ALREADY_REFUNDED.getMessage());
+                .hasMessageContaining(SalesOrderErrorCode.ORDER_NOT_REFUNDABLE.getMessage());
     }
 }

@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface SalesOrderItemRepository extends JpaRepository<SalesOrderItem, Long> {
     List<SalesOrderItem> findBySalesOrderSalesOrderId(Long salesOrderId);
+    List<SalesOrderItem> findBySalesOrderSalesOrderIdIn(List<Long> salesOrderIds);
 }

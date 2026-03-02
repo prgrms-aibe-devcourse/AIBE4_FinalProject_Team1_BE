@@ -2,6 +2,7 @@ package kr.inventory.domain.sales.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
+import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.sales.controller.dto.request.SalesOrderCreateRequest;
 import kr.inventory.domain.sales.controller.dto.request.SalesOrderItemRequest;
 import kr.inventory.domain.sales.controller.dto.response.SalesOrderResponse;
@@ -12,11 +13,11 @@ import kr.inventory.domain.sales.exception.SalesOrderException;
 import kr.inventory.domain.sales.service.SalesOrderService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
@@ -28,8 +29,11 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -46,10 +50,11 @@ class SalesOrderControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @InjectMocks
+    @MockitoBean
     private SalesOrderService salesOrderService;
 
     @Test
+    @WithMockUser
     @DisplayName("주문 생성 API - 성공")
     void givenValidRequest_whenCreateOrder_thenReturn201() throws Exception {
         // given
@@ -90,6 +95,7 @@ class SalesOrderControllerTest {
     }
 
     @Test
+    @WithMockUser
     @DisplayName("주문 생성 API - sessionToken 쿠키 없음")
     void givenNoSessionToken_whenCreateOrder_thenReturn400() throws Exception {
         // given
@@ -106,6 +112,7 @@ class SalesOrderControllerTest {
     }
 
     @Test
+    @WithMockUser
     @DisplayName("주문 생성 API - Idempotency-Key 헤더 없음")
     void givenNoIdempotencyKey_whenCreateOrder_thenReturn400() throws Exception {
         // given
@@ -122,6 +129,7 @@ class SalesOrderControllerTest {
     }
 
     @Test
+    @WithMockUser
     @DisplayName("주문 생성 API - 빈 items")
     void givenEmptyItems_whenCreateOrder_thenReturn400() throws Exception {
         // given
@@ -139,6 +147,7 @@ class SalesOrderControllerTest {
     }
 
     @Test
+    @WithMockUser
     @DisplayName("주문 생성 API - 유효하지 않은 세션")
     void givenInvalidSession_whenCreateOrder_thenReturn400() throws Exception {
         // given
@@ -161,6 +170,7 @@ class SalesOrderControllerTest {
     }
 
     @Test
+    @WithMockUser
     @DisplayName("주문 생성 API - 재고 부족")
     void givenInsufficientStock_whenCreateOrder_thenReturn409() throws Exception {
         // given
@@ -183,11 +193,14 @@ class SalesOrderControllerTest {
     }
 
     @Test
-    @WithMockUser
     @DisplayName("주문 목록 조회 API - 성공")
     void givenStorePublicId_whenGetStoreOrders_thenReturn200() throws Exception {
         // given
+        Long userId = 1L;
         UUID storePublicId = UUID.randomUUID();
+
+        CustomUserDetails userDetails = mock(CustomUserDetails.class);
+        given(userDetails.getUserId()).willReturn(userId);
 
         SalesOrderResponse response = new SalesOrderResponse(
                 UUID.randomUUID(),
@@ -201,12 +214,13 @@ class SalesOrderControllerTest {
                 Collections.emptyList()
         );
 
-        given(salesOrderService.getStoreOrders(any(), any()))
+        given(salesOrderService.getStoreOrders(eq(userId), eq(storePublicId)))
                 .willReturn(List.of(response));
 
         // when & then
         mockMvc.perform(get("/api/orders/{storePublicId}", storePublicId)
-                        .with(csrf()))
+                        .with(csrf())
+                        .with(user(userDetails)))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].status").value("COMPLETED"))
@@ -214,12 +228,15 @@ class SalesOrderControllerTest {
     }
 
     @Test
-    @WithMockUser
     @DisplayName("주문 상세 조회 API - 성공")
     void givenOrderPublicId_whenGetOrder_thenReturn200() throws Exception {
         // given
+        Long userId = 1L;
         UUID storePublicId = UUID.randomUUID();
         UUID orderPublicId = UUID.randomUUID();
+
+        CustomUserDetails userDetails = mock(CustomUserDetails.class);
+        given(userDetails.getUserId()).willReturn(userId);
 
         SalesOrderResponse response = new SalesOrderResponse(
                 orderPublicId,
@@ -233,12 +250,13 @@ class SalesOrderControllerTest {
                 Collections.emptyList()
         );
 
-        given(salesOrderService.getOrder(any(), any(), any()))
+        given(salesOrderService.getOrder(eq(orderPublicId), eq(userId), eq(storePublicId)))
                 .willReturn(response);
 
         // when & then
         mockMvc.perform(get("/api/orders/{storePublicId}/{orderPublicId}", storePublicId, orderPublicId)
-                        .with(csrf()))
+                        .with(csrf())
+                        .with(user(userDetails)))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.orderPublicId").value(orderPublicId.toString()))
@@ -246,12 +264,15 @@ class SalesOrderControllerTest {
     }
 
     @Test
-    @WithMockUser
     @DisplayName("환불 처리 API - 성공")
     void givenOrderPublicId_whenRefund_thenReturn200() throws Exception {
         // given
+        Long userId = 1L;
         UUID storePublicId = UUID.randomUUID();
         UUID orderPublicId = UUID.randomUUID();
+
+        CustomUserDetails userDetails = mock(CustomUserDetails.class);
+        given(userDetails.getUserId()).willReturn(userId);
 
         SalesOrderResponse response = new SalesOrderResponse(
                 orderPublicId,
@@ -265,12 +286,13 @@ class SalesOrderControllerTest {
                 Collections.emptyList()
         );
 
-        given(salesOrderService.refundOrder(any(), any(), any()))
+        given(salesOrderService.refundOrder(eq(orderPublicId), eq(userId), eq(storePublicId)))
                 .willReturn(response);
 
         // when & then
         mockMvc.perform(post("/api/orders/{storePublicId}/{orderPublicId}/refund", storePublicId, orderPublicId)
-                        .with(csrf()))
+                        .with(csrf())
+                        .with(user(userDetails)))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("REFUNDED"))
