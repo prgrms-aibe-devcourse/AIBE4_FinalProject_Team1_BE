@@ -7,14 +7,14 @@ import kr.inventory.domain.document.entity.Document;
 public record DocumentResponse(
 	Long documentId,
 	String fileName,
-	String url,
+	String presignedUrl,
 	OffsetDateTime uploadedAt
 ) {
-	public static DocumentResponse from(Document document, String url) {
+	public static DocumentResponse from(Document document, String presignedUrl) {
 		return new DocumentResponse(
 			document.getDocumentId(),
 			document.getFileName(),
-			url,
+			presignedUrl,
 			document.getUploadedAt()
 		);
 	}

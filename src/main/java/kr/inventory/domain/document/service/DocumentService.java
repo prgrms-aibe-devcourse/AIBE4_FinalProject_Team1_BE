@@ -44,10 +44,10 @@ public class DocumentService {
 		List<Document> documents = documentRepository.findAllByStore_StoreId(storeId);
 
 		return documents.stream()
-			.map(document -> DocumentResponse.from(
-				document,
-				s3StorageService.getPresignedUrl(document.getFilePath())
-			))
+			.map(document -> {
+				String safeUrl = s3StorageService.getPresignedUrl(document.getFilePath());
+				return DocumentResponse.from(document, safeUrl);
+			})
 			.collect(Collectors.toList());
 	}
 }
