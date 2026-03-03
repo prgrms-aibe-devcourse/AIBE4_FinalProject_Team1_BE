@@ -1,68 +1,137 @@
 package kr.inventory.domain.purchase.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import kr.inventory.domain.common.AuditableEntity;
+import kr.inventory.domain.purchase.controller.dto.request.PurchaseOrderItemRequest;
 import kr.inventory.domain.purchase.entity.enums.PurchaseOrderStatus;
 import kr.inventory.domain.store.entity.Store;
-import kr.inventory.domain.user.entity.User;
 import kr.inventory.domain.vendor.entity.Vendor;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Entity
-@Table(name = "purchase_orders")
+@Table(
+        name = "purchase_order",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_purchase_order_order_no", columnNames = "order_no")
+        }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PurchaseOrder extends AuditableEntity {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long purchaseOrderId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long purchaseOrderId;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "store_id", nullable = false)
-	private Store store;
+    @Column(nullable = false, unique = true, updatable = false)
+    private UUID purchaseOrderPublicId = UUID.randomUUID();
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "vendor_id")
-	private Vendor vendor;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "store_id", nullable = false)
+    private Store store;
 
-	@Column(nullable = false)
-	private LocalDate orderDate;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vendor_id")
+    private Vendor vendor;
 
-	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 20)
-	private PurchaseOrderStatus status;
+    @Column(name = "order_no", length = 40)
+    private String orderNo;
 
-	@Column(columnDefinition = "text")
-	private String note;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private PurchaseOrderStatus status;
 
-	@Column(nullable = false, precision = 14, scale = 2)
-	private BigDecimal totalAmount;
+    @Column(nullable = false, precision = 14, scale = 2)
+    private BigDecimal totalAmount;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "created_by_user_id")
-	private User createdByUser;
+    private Long submittedByUserId;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "approved_by_user_id")
-	private User approvedByUser;
+    private OffsetDateTime submittedAt;
 
-	private OffsetDateTime approvedAt;
+    private Long confirmedByUserId;
 
-	public static PurchaseOrder create(Store store, Vendor vendor, User createdByUser) {
-		PurchaseOrder order = new PurchaseOrder();
-		order.store = store;
-		order.vendor = vendor;
-		order.createdByUser = createdByUser;
-		order.orderDate = LocalDate.now();
-		order.status = PurchaseOrderStatus.DRAFT;
-		order.totalAmount = BigDecimal.ZERO;
-		return order;
-	}
+    private OffsetDateTime confirmedAt;
+
+    private Long canceledByUserId;
+
+    private OffsetDateTime canceledAt;
+
+    @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
+    private final List<PurchaseOrderItem> items = new ArrayList<>();
+
+    public static PurchaseOrder createDraft(Store store) {
+        PurchaseOrder purchaseOrder = new PurchaseOrder();
+        purchaseOrder.store = store;
+        purchaseOrder.status = PurchaseOrderStatus.DRAFT;
+        purchaseOrder.totalAmount = BigDecimal.ZERO;
+        return purchaseOrder;
+    }
+
+    public static PurchaseOrder createDraft(Store store, List<PurchaseOrderItemRequest> itemRequests) {
+        PurchaseOrder purchaseOrder = createDraft(store);
+        List<PurchaseOrderItem> items = itemRequests.stream()
+                .map(req -> PurchaseOrderItem.create(req.itemName(), req.quantity(), req.unitPrice()))
+                .toList();
+        purchaseOrder.replaceItems(items);
+        return purchaseOrder;
+    }
+
+    public void assignVendor(Vendor vendor) {
+        this.vendor = vendor;
+    }
+
+    public void replaceItems(List<PurchaseOrderItem> newItems) {
+        items.clear();
+        for (PurchaseOrderItem newItem : newItems) {
+            newItem.assignOrder(this);
+            items.add(newItem);
+        }
+        recalculateTotalAmount();
+    }
+
+    public void submit(String orderNo, Long submittedByUserId, OffsetDateTime submittedAt) {
+        this.orderNo = orderNo;
+        this.status = PurchaseOrderStatus.SUBMITTED;
+        this.submittedByUserId = submittedByUserId;
+        this.submittedAt = submittedAt;
+    }
+
+    public void confirm(Long confirmedByUserId, OffsetDateTime confirmedAt) {
+        this.status = PurchaseOrderStatus.CONFIRMED;
+        this.confirmedByUserId = confirmedByUserId;
+        this.confirmedAt = confirmedAt;
+    }
+
+    public void cancel(Long canceledByUserId, OffsetDateTime canceledAt) {
+        this.status = PurchaseOrderStatus.CANCELED;
+        this.canceledByUserId = canceledByUserId;
+        this.canceledAt = canceledAt;
+    }
+
+    private void recalculateTotalAmount() {
+        this.totalAmount = items.stream()
+                .map(PurchaseOrderItem::getLineAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
 }
