@@ -20,7 +20,7 @@ import static kr.inventory.domain.sales.constant.SalesOrderConstants.*;
 
 @RestController
 @RequestMapping("/api/orders")
-@Tag(name = "주문(Sales Order)", description = "주문관리API")
+@Tag(name = "주문(Sales Order)", description = "주문 관리 API")
 @RequiredArgsConstructor
 public class SalesOrderController {
 
