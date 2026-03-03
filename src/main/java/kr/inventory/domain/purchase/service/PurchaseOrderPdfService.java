@@ -5,6 +5,8 @@ import kr.inventory.domain.purchase.entity.PurchaseOrder;
 import kr.inventory.domain.purchase.entity.PurchaseOrderItem;
 import kr.inventory.domain.purchase.exception.PurchaseOrderErrorCode;
 import kr.inventory.domain.purchase.exception.PurchaseOrderException;
+import kr.inventory.domain.purchase.repository.PurchaseOrderItemRepository;
+import lombok.RequiredArgsConstructor;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -15,17 +17,22 @@ import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.List;
 
 @Component
+@RequiredArgsConstructor
 public class PurchaseOrderPdfService {
 
+    private final PurchaseOrderItemRepository purchaseOrderItemRepository;
+
     public byte[] generate(PurchaseOrder purchaseOrder) {
+        List<PurchaseOrderItem> items = purchaseOrderItemRepository.findByPurchaseOrderPurchaseOrderId(purchaseOrder.getPurchaseOrderId());
         try (PDDocument document = new PDDocument();
              ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             PDPage page = createPage(document);
             PDType1Font defaultFont = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
 
-            renderPageContent(document, page, defaultFont, purchaseOrder);
+            renderPageContent(document, page, defaultFont, purchaseOrder, items);
 
             document.save(outputStream);
             return outputStream.toByteArray();
@@ -34,10 +41,10 @@ public class PurchaseOrderPdfService {
         }
     }
 
-    private void renderPageContent(PDDocument document, PDPage page, PDType1Font defaultFont, PurchaseOrder purchaseOrder) throws IOException {
+    private void renderPageContent(PDDocument document, PDPage page, PDType1Font defaultFont, PurchaseOrder purchaseOrder, List<PurchaseOrderItem> items) throws IOException {
         try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
             float cursorY = renderHeader(contentStream, defaultFont, purchaseOrder, PurchaseOrderConstant.PDF_START_Y);
-            cursorY = renderItems(contentStream, defaultFont, purchaseOrder, cursorY);
+            cursorY = renderItems(contentStream, defaultFont, items, cursorY);
             renderTotal(contentStream, defaultFont, purchaseOrder, cursorY);
         }
     }
@@ -57,9 +64,9 @@ public class PurchaseOrderPdfService {
         return writeLine(contentStream, defaultFont, "", PurchaseOrderConstant.PDF_BODY_FONT_SIZE, PurchaseOrderConstant.PDF_START_X, cursorY);
     }
 
-    private float renderItems(PDPageContentStream contentStream, PDType1Font defaultFont, PurchaseOrder purchaseOrder, float startY) throws IOException {
+    private float renderItems(PDPageContentStream contentStream, PDType1Font defaultFont, List<PurchaseOrderItem> items, float startY) throws IOException {
         float cursorY = writeLine(contentStream, defaultFont, PurchaseOrderConstant.PDF_ITEMS_HEADER, PurchaseOrderConstant.PDF_SECTION_FONT_SIZE, PurchaseOrderConstant.PDF_START_X, startY);
-        for (PurchaseOrderItem item : purchaseOrder.getItems()) {
+        for (PurchaseOrderItem item : items) {
             cursorY = writeLine(contentStream, defaultFont, toItemRow(item), PurchaseOrderConstant.PDF_ITEM_FONT_SIZE, PurchaseOrderConstant.PDF_START_X, cursorY);
         }
         return cursorY;

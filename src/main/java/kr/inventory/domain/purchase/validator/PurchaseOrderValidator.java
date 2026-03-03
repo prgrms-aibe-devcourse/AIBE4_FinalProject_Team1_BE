@@ -1,9 +1,11 @@
 package kr.inventory.domain.purchase.validator;
 
 import kr.inventory.domain.purchase.controller.dto.request.PurchaseOrderItemRequest;
+import kr.inventory.domain.purchase.entity.PurchaseOrder;
 import kr.inventory.domain.purchase.entity.enums.PurchaseOrderStatus;
 import kr.inventory.domain.purchase.exception.PurchaseOrderErrorCode;
 import kr.inventory.domain.purchase.exception.PurchaseOrderException;
+import kr.inventory.domain.purchase.repository.PurchaseOrderRepository;
 import kr.inventory.domain.store.entity.StoreMember;
 import kr.inventory.domain.store.entity.enums.StoreMemberRole;
 import kr.inventory.domain.store.entity.enums.StoreMemberStatus;
@@ -12,12 +14,34 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
 public class PurchaseOrderValidator {
 
     private final StoreMemberRepository storeMemberRepository;
+    private final PurchaseOrderRepository purchaseOrderRepository;
+
+    /**
+     * 사용자의 발주서 접근 권한을 검증하고 내부 PurchaseOrder ID를 반환
+     *
+     * @param userId 사용자 ID
+     * @param purchaseOrderPublicId 발주서 Public ID (UUID)
+     * @return 내부 PurchaseOrder ID (Long)
+     * @throws PurchaseOrderException 발주서를 찾을 수 없거나 접근 권한이 없는 경우
+     */
+    public Long validateAccessAndGetPurchaseOrderId(Long userId, UUID purchaseOrderPublicId) {
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByPurchaseOrderPublicId(purchaseOrderPublicId)
+                .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_NOT_FOUND));
+
+        Long purchaseOrderId = purchaseOrder.getPurchaseOrderId();
+
+        // 권한 검증: Manager 이상만 접근 가능
+        requireManagerOrAbove(purchaseOrder.getStore().getStoreId(), userId);
+
+        return purchaseOrderId;
+    }
 
     public StoreMemberRole requireManagerOrAbove(Long storeId, Long userId) {
         StoreMember storeMember = storeMemberRepository.findByStoreStoreIdAndUserUserIdAndStatus(

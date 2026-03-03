@@ -51,7 +51,7 @@ public class PurchaseOrderItem extends CreatedAtEntity {
         return item;
     }
 
-    void assignOrder(PurchaseOrder purchaseOrder) {
+    public void assignOrder(PurchaseOrder purchaseOrder) {
         this.purchaseOrder = purchaseOrder;
     }
 }

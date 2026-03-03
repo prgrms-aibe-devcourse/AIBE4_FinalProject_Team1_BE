@@ -1,6 +1,7 @@
 package kr.inventory.domain.purchase.controller.dto.response;
 
 import kr.inventory.domain.purchase.entity.PurchaseOrder;
+import kr.inventory.domain.purchase.entity.PurchaseOrderItem;
 import kr.inventory.domain.purchase.entity.enums.PurchaseOrderStatus;
 import kr.inventory.domain.vendor.entity.Vendor;
 
@@ -25,7 +26,7 @@ public record PurchaseOrderDetailResponse(
         OffsetDateTime canceledAt,
         List<PurchaseOrderItemResponse> items
 ) {
-    public static PurchaseOrderDetailResponse from(PurchaseOrder purchaseOrder) {
+    public static PurchaseOrderDetailResponse from(PurchaseOrder purchaseOrder, List<PurchaseOrderItem> items) {
         Vendor vendor = purchaseOrder.getVendor();
         return new PurchaseOrderDetailResponse(
                 purchaseOrder.getPurchaseOrderPublicId(),
@@ -41,7 +42,7 @@ public record PurchaseOrderDetailResponse(
                 purchaseOrder.getConfirmedAt(),
                 purchaseOrder.getCanceledByUserId(),
                 purchaseOrder.getCanceledAt(),
-                purchaseOrder.getItems().stream()
+                items.stream()
                         .map(PurchaseOrderItemResponse::from)
                         .toList()
         );
