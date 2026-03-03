@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.UUID;
 
 public record PurchaseOrderCreateRequest(
-        @NotNull(message = "storeId는 필수입니다.")
-        Long storeId,
         @NotNull(message = "vendorPublicId는 필수입니다.")
         UUID vendorPublicId,
         @Valid

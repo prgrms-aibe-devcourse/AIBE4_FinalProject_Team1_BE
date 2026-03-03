@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "purchase_order_item")
+@Table(name = "purchase_order_items")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PurchaseOrderItem extends CreatedAtEntity {

@@ -49,9 +49,12 @@ public class PurchaseOrderService {
 
     @Transactional
     public PurchaseOrderDetailResponse createDraft(Long userId, UUID storePublicId, PurchaseOrderCreateRequest request) {
+        // 매장 검증
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.STORE_NOT_FOUND));
+
+        // 검증된 매장에 속해있는 거래처
         purchaseOrderValidator.requireItemsNotEmpty(request.items());
         Vendor vendor = resolveVendorOrThrow(storeId, request.vendorPublicId());
 
