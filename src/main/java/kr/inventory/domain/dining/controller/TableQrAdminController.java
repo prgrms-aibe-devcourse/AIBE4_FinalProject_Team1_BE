@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-@Tag(name = "테이블 QR(Table QR)", description = "테이블 QR 발급/회수 등 관리자 기능 API입니다.")
+@Tag(name = "테이블 QR(Table QR)", description = "테이블 QR 발급/회수 등 관리자 기능 API")
 @RestController
 @RequestMapping("/api/dining/{storePublicId}/table-qrs")
 @RequiredArgsConstructor
