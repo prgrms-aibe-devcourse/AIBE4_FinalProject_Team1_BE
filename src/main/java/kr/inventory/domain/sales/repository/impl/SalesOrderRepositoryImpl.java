@@ -9,9 +9,7 @@ import kr.inventory.domain.sales.repository.SalesOrderItemRepository;
 import kr.inventory.domain.sales.repository.SalesOrderRepositoryCustom;
 import lombok.RequiredArgsConstructor;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static kr.inventory.domain.sales.entity.QSalesOrder.salesOrder;
@@ -58,17 +56,34 @@ public class SalesOrderRepositoryImpl implements SalesOrderRepositoryCustom {
     public List<SalesOrderResponse> findStoreOrders(Long storeId) {
         List<SalesOrder> orders = queryFactory
                 .selectFrom(salesOrder)
-                .leftJoin(salesOrderItem).on(salesOrderItem.salesOrder.eq(salesOrder))
-                .fetchJoin()
                 .leftJoin(salesOrder.diningTable).fetchJoin()
                 .where(salesOrder.store.storeId.eq(storeId))
                 .orderBy(salesOrder.orderedAt.desc())
                 .fetch();
 
+        if (orders.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 2. 주문 ID 추출
+        List<Long> orderIds = orders.stream()
+                .map(SalesOrder::getSalesOrderId)
+                .toList();
+
+        // 3. 모든 주문 항목을 한 번에 조회 (N+1 방지!)
+        List<SalesOrderItem> allItems = salesOrderItemRepository.findBySalesOrderSalesOrderIdIn(orderIds);
+
+        // 4. 주문 ID별로 항목 그룹핑 (메모리에서 매핑)
+        Map<Long, List<SalesOrderItem>> itemsByOrderId = allItems.stream()
+                .collect(Collectors.groupingBy(item -> item.getSalesOrder().getSalesOrderId()));
+
+        // 5. Response 생성
         return orders.stream()
                 .map(order -> {
-                    List<SalesOrderItem> items = salesOrderItemRepository
-                            .findBySalesOrderSalesOrderId(order.getSalesOrderId());
+                    List<SalesOrderItem> items = itemsByOrderId.getOrDefault(
+                            order.getSalesOrderId(),
+                            Collections.emptyList()
+                    );
                     return SalesOrderResponse.from(order, items);
                 })
                 .collect(Collectors.toList());

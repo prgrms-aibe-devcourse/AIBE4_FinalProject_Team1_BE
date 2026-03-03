@@ -22,9 +22,6 @@ import kr.inventory.domain.sales.repository.SalesOrderItemRepository;
 import kr.inventory.domain.sales.repository.SalesOrderRepository;
 import kr.inventory.domain.stock.service.StockService;
 import kr.inventory.domain.store.entity.Store;
-import kr.inventory.domain.store.exception.StoreErrorCode;
-import kr.inventory.domain.store.exception.StoreException;
-import kr.inventory.domain.store.repository.StoreRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -202,11 +199,27 @@ public class SalesOrderService {
 
             if (ingredientsJson.has("ingredients") && ingredientsJson.get("ingredients").isArray()) {
                 for (JsonNode ingredientNode : ingredientsJson.get("ingredients")) {
+                    // ingredientId 검증
+                    if (!ingredientNode.has("ingredientId")) {
+                        throw new SalesOrderException(SalesOrderErrorCode.INVALID_INGREDIENT_DATA);
+                    }
+
+                    // quantity 검증 및 변환
+                    if (!ingredientNode.has("quantity")) {
+                        throw new SalesOrderException(SalesOrderErrorCode.INVALID_INGREDIENT_DATA);
+                    }
+
                     Long ingredientId = ingredientNode.get("ingredientId").asLong();
-                    BigDecimal quantity = new BigDecimal(ingredientNode.get("quantity").asText());
+
+                    BigDecimal quantity;
+                    try {
+                        quantity = new BigDecimal(ingredientNode.get("quantity").asText());
+                    } catch (NumberFormatException e) {
+                        // 잘못된 형식의 재료 수량 데이터
+                        throw new SalesOrderException(SalesOrderErrorCode.INVALID_INGREDIENT_DATA);
+                    }
 
                     BigDecimal totalQuantity = quantity.multiply(BigDecimal.valueOf(item.getQuantity()));
-
                     usageMap.merge(ingredientId, totalQuantity, BigDecimal::add);
                 }
             }
