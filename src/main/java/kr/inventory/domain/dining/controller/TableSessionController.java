@@ -12,6 +12,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
+import java.time.OffsetDateTime;
+
 import static kr.inventory.domain.dining.constant.TableSessionConstant.SESSION_TOKEN_COOKIE_NAME;
 
 @Validated
@@ -29,10 +32,13 @@ public class TableSessionController {
     ) {
         TableSessionEnterResponse result = tableSessionService.enter(request, entryToken);
 
+        long maxAgeSeconds = Duration.between(OffsetDateTime.now(), result.expiresAt()).getSeconds();
+
         ResponseCookie cookie = ResponseCookie.from(SESSION_TOKEN_COOKIE_NAME, result.sessionToken())
                 .httpOnly(true)
                 .path("/")
                 .sameSite("Lax")
+                .maxAge(maxAgeSeconds)
                 .build();
 
         response.addHeader("Set-Cookie", cookie.toString());
