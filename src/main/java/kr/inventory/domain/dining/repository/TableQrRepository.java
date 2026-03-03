@@ -1,6 +1,7 @@
 package kr.inventory.domain.dining.repository;
 
 import kr.inventory.domain.dining.entity.TableQr;
+import kr.inventory.domain.dining.entity.enums.TableQrStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -11,5 +12,8 @@ public interface TableQrRepository extends JpaRepository<TableQr, Long>, TableQr
 
     Optional<TableQr> findActiveQrByTable_TableId(Long tableId);
 
-    List<TableQr> findAllByTable_Store_StoreId(Long storeId);
+    List<TableQr> findAllByTable_Store_StoreIdAndStatus(
+            Long storeId,
+            TableQrStatus status
+    );
 }

@@ -51,4 +51,6 @@ public class TableQrAdminController {
             @AuthenticationPrincipal CustomUserDetails principal) {
         return ResponseEntity.ok(tableQrService.getTableQrs(principal.getUserId(), storePublicId));
     }
+
+    // TODO: qr 이미지 일괄 도운로드 기능 추가
 }

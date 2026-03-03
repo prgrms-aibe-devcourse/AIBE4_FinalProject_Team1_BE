@@ -1,6 +1,7 @@
 package kr.inventory.domain.dining.service;
 
 import kr.inventory.domain.dining.controller.dto.response.TableQrResponse;
+import kr.inventory.domain.dining.entity.enums.TableQrStatus;
 import kr.inventory.domain.dining.repository.TableQrRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +21,7 @@ public class TableQrService {
 
     public List<TableQrResponse> getTableQrs(Long userId, UUID storePublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        return tableQrRepository.findAllByTable_Store_StoreId(storeId).stream()
+        return tableQrRepository.findAllByTable_Store_StoreIdAndStatus(storeId, TableQrStatus.ACTIVE).stream()
                 .map(TableQrResponse::from)
                 .toList();
     }

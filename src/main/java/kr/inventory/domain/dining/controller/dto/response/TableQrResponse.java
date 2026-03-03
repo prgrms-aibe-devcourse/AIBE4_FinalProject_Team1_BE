@@ -12,7 +12,7 @@ public record TableQrResponse(
         String qrImageUrl,
         TableQrStatus status,
         Integer rotationVersion,
-        OffsetDateTime revokedAt
+        OffsetDateTime createdAt
 ) {
     public static TableQrResponse from(TableQr qr) {
         return new TableQrResponse(
@@ -21,7 +21,7 @@ public record TableQrResponse(
                 qr.getQrImageUrl(),
                 qr.getStatus(),
                 qr.getRotationVersion(),
-                qr.getRevokedAt()
+                qr.getCreatedAt()
         );
     }
 }
