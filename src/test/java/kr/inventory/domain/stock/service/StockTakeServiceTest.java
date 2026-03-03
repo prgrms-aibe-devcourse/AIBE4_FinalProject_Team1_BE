@@ -1,7 +1,7 @@
 package kr.inventory.domain.stock.service;
 
-import kr.inventory.domain.catalog.entity.Ingredient;
-import kr.inventory.domain.catalog.repository.IngredientRepository;
+import kr.inventory.domain.reference.entity.Ingredient;
+import kr.inventory.domain.reference.repository.IngredientRepository;
 import kr.inventory.domain.stock.controller.dto.request.StockTakeCreateRequest;
 import kr.inventory.domain.stock.controller.dto.request.StockTakeItemRequest;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;

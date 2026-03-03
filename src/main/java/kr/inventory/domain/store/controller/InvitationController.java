@@ -18,7 +18,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api")
-@Tag(name = "초대(Invitation)", description = "초대 관련 기능 API")
+@Tag(name = "초대(Invitation)", description = "멤버 초대 API")
 @RequiredArgsConstructor
 public class InvitationController {
 

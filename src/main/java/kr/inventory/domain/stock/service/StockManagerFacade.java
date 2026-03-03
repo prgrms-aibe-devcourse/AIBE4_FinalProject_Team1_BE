@@ -1,8 +1,8 @@
 package kr.inventory.domain.stock.service;
 
 import kr.inventory.domain.sales.entity.SalesOrder;
-import kr.inventory.domain.sales.exception.SalesErrorCode;
-import kr.inventory.domain.sales.exception.SalesException;
+import kr.inventory.domain.sales.exception.SalesOrderErrorCode;
+import kr.inventory.domain.sales.exception.SalesOrderException;
 import kr.inventory.domain.sales.repository.SalesOrderRepository;
 import kr.inventory.domain.stock.controller.dto.request.StockOrderDeductionRequest;
 import kr.inventory.domain.store.service.StoreAccessValidator;
@@ -31,7 +31,7 @@ public class StockManagerFacade {
 
 		SalesOrder salesOrder = salesOrderRepository.findByIdAndStoreStoreIdWithLock(request.salesOrderId(),
 				internalStoreId)
-			.orElseThrow(() -> new SalesException(SalesErrorCode.SALES_ORDER_NOT_FOUND));
+			.orElseThrow(() -> new SalesOrderException(SalesOrderErrorCode.SALES_ORDER_NOT_FOUND));
 
 		if (salesOrder.isStockProcessed()) {
 			log.info("이미 재고가 차감된 주문입니다. 주문 ID: {}", request.salesOrderId());

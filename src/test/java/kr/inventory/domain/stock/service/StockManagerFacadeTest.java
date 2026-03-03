@@ -1,7 +1,7 @@
 package kr.inventory.domain.stock.service;
 
 import kr.inventory.domain.sales.entity.SalesOrder;
-import kr.inventory.domain.sales.entity.enums.SalesOrderChannel;
+import kr.inventory.domain.sales.entity.enums.SalesOrderType;
 import kr.inventory.domain.sales.repository.SalesOrderRepository;
 import kr.inventory.domain.stock.controller.dto.request.StockOrderDeductionRequest;
 import kr.inventory.domain.store.service.StoreAccessValidator;
@@ -51,7 +51,8 @@ class StockManagerFacadeTest {
 		StockOrderDeductionRequest request =
 			new StockOrderDeductionRequest(internalStoreId, salesOrderId);
 
-		SalesOrder salesOrder = spy(SalesOrder.create(null, "EXT-001", OffsetDateTime.now(), SalesOrderChannel.POS));
+//		SalesOrder salesOrder = spy(SalesOrder.create(null, "EXT-001", OffsetDateTime.now(), SalesOrderChannel.POS));
+		SalesOrder salesOrder = spy(SalesOrder.create(null, null,null,"EXT-001", SalesOrderType.DINE_IN));
 
 		given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(internalStoreId);
 		given(salesOrderRepository.findByIdAndStoreStoreIdWithLock(salesOrderId, internalStoreId))
@@ -77,7 +78,8 @@ class StockManagerFacadeTest {
 		StockOrderDeductionRequest request =
 			new StockOrderDeductionRequest(internalStoreId, salesOrderId);
 
-		SalesOrder salesOrder = SalesOrder.create(null, "EXT-001", OffsetDateTime.now(), SalesOrderChannel.POS);
+//		SalesOrder salesOrder = SalesOrder.create(null, "EXT-001", OffsetDateTime.now(), SalesOrderChannel.POS);
+		SalesOrder salesOrder = spy(SalesOrder.create(null, null,null,"EXT-001", SalesOrderType.DINE_IN));
 		salesOrder.markAsStockProcessed();
 
 		given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(internalStoreId);

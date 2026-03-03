@@ -9,10 +9,9 @@ import kr.inventory.domain.store.exception.StoreException;
 import kr.inventory.domain.store.repository.StoreRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import kr.inventory.domain.user.repository.UserRepository;
-import kr.inventory.global.config.infrastructure.S3StorageService;
-import kr.inventory.global.config.infrastructure.exception.FileError;
-import kr.inventory.global.config.infrastructure.exception.FileException;
-import kr.inventory.global.util.FileUtil;
+import kr.inventory.global.config.S3StorageService;
+import kr.inventory.global.exception.StorageErrorCode;
+import kr.inventory.global.exception.StorageException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -51,7 +50,7 @@ public class DocumentOcrService {
 			OcrProcessor processor = findProcessor(file);
 			if (processor == null) {
 				log.warn("지원하지 않는 파일 형식 입니다: {}", file.getOriginalFilename());
-				throw new FileException(FileError.INVALID_FILE_FORMAT);
+				throw new StorageException(StorageErrorCode.INVALID_FILE_FORMAT);
 			}
 
 			try {
@@ -64,7 +63,7 @@ public class DocumentOcrService {
 				results.add(data);
 			} catch (Exception e) {
 				log.error("파일 처리 프로세스 중 오류 발생: {}", file.getOriginalFilename(), e);
-				throw new FileException(FileError.STORAGE_UPLOAD_FAILURE);
+				throw new StorageException(StorageErrorCode.STORAGE_UPLOAD_FAILURE);
 			}
 
 		}

@@ -25,7 +25,7 @@ import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.repository.StoreRepository;
 import kr.inventory.domain.user.entity.User;
 import kr.inventory.domain.user.repository.UserRepository;
-import kr.inventory.global.config.infrastructure.S3StorageService;
+import kr.inventory.global.config.S3StorageService;
 
 @ExtendWith(MockitoExtension.class)
 class DocumentOcrServiceTest {

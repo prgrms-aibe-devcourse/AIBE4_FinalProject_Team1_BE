@@ -1,6 +1,6 @@
 package kr.inventory.domain.stock.service;
 
-import kr.inventory.domain.catalog.entity.Ingredient;
+import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.enums.StockBatchStatus;
 import kr.inventory.domain.stock.repository.IngredientStockBatchRepository;

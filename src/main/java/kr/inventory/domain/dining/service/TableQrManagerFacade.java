@@ -3,14 +3,12 @@ package kr.inventory.domain.dining.service;
 import kr.inventory.domain.dining.controller.dto.response.TableQrIssueResponse;
 import kr.inventory.domain.dining.entity.DiningTable;
 import kr.inventory.domain.dining.entity.TableQr;
-import kr.inventory.domain.dining.entity.enums.TableQrStatus;
-import kr.inventory.domain.dining.exception.QrErrorCode;
-import kr.inventory.domain.dining.exception.QrException;
 import kr.inventory.domain.dining.exception.TableErrorCode;
 import kr.inventory.domain.dining.exception.TableException;
 import kr.inventory.domain.dining.repository.DiningTableRepository;
 import kr.inventory.domain.dining.repository.TableQrRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
+import kr.inventory.global.config.S3StorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -18,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -28,25 +27,29 @@ public class TableQrManagerFacade {
     private final DiningTableRepository diningTableRepository;
     private final TableQrRepository tableQrRepository;
     private final StoreAccessValidator storeAccessValidator;
+    private final S3StorageService s3storageService;
+    private final QrGenerator qrGenerator;
 
-    @Value("${app.order.base-url:http:localhost.index.html}")
+    @Value("${app.order.base-url:http://localhost:8080}")
     private String orderBaseUrl;
 
-    public TableQrIssueResponse issueOrRotate(Long userId, UUID storePublicId, UUID tablePublicId) {
+    public List<TableQrIssueResponse> issueTableQrs(Long userId, UUID storePublicId, List<UUID> tablePublicIds) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        DiningTable table = diningTableRepository.findByStore_StoreIdAndTablePublicId(storeId, tablePublicId)
-                .orElseThrow(() -> new TableException(TableErrorCode.TABLE_NOT_FOUND));
 
-        TableQr latest = tableQrRepository.findTopByTable_TableIdOrderByRotationVersionDesc(table.getTableId())
-                .orElse(null);
+        List<DiningTable> tables = diningTableRepository.findAllByStore_StoreIdAndTablePublicIdIn(storeId, tablePublicIds);
 
-        int nextVersion = 1;
-        if (latest != null) {
-            nextVersion = latest.getRotationVersion() + 1;
-            if (latest.getStatus() == TableQrStatus.ACTIVE) {
-                latest.revoke(OffsetDateTime.now(ZoneOffset.UTC));
-            }
+        if (tables.size() != tablePublicIds.size()) {
+            throw new TableException(TableErrorCode.SOME_TABLES_NOT_FOUND);
         }
+
+        return tables.stream()
+                .map(table -> processSingleTableQr(storePublicId, table))
+                .toList();
+    }
+
+    private TableQrIssueResponse processSingleTableQr(UUID storePublicId, DiningTable table) {
+        revokeExistingQrs(table.getTableId());
+        int nextVersion = getNextVersion(table.getTableId());
 
         String entryToken = TokenSupport.newOpaqueToken();
         String entryTokenHash = TokenSupport.sha256Hex(entryToken);
@@ -54,23 +57,27 @@ public class TableQrManagerFacade {
         TableQr qr = TableQr.create(table, entryTokenHash, nextVersion);
         tableQrRepository.save(qr);
 
-        String qrUrl = orderBaseUrl + "/t/" + entryToken;
+        String qrContent = String.format("%s/qr_menu_order.html?s=%s&t=%s&token=%s",
+                orderBaseUrl, storePublicId, table.getTablePublicId(), entryToken);
 
-        return TableQrIssueResponse.from(
-                qr.getQrPublicId(),
-                table.getTablePublicId(),
-                table.getTableCode(),
-                qr.getRotationVersion(),
-                entryToken,
-                qrUrl
-        );
+        byte[] imageBytes = qrGenerator.generate(qrContent, 300, 300);
+        String s3Path = String.format("public/qr/%s/tables/%s/qr_v%d.png",
+                storePublicId, table.getTablePublicId(), nextVersion);
+
+        String uploadedImageUrl = s3storageService.upload(imageBytes, s3Path, "image/png");
+        qr.complete(uploadedImageUrl);
+
+        return TableQrIssueResponse.from(qr);
     }
 
-    public void revoke(Long userId, UUID storePublicId, UUID qrPublicId) {
-        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        TableQr qr = tableQrRepository.findByTable_Store_StoreIdAndQrPublicId(storeId, qrPublicId)
-                .orElseThrow(() -> new QrException(QrErrorCode.QR_NOT_FOUND));
+    private void revokeExistingQrs(Long tableId) {
+        tableQrRepository.findActiveQrByTableIdWithLock(tableId)
+                .ifPresent(latest -> latest.revoke(OffsetDateTime.now(ZoneOffset.UTC)));
+    }
 
-        qr.revoke(OffsetDateTime.now(ZoneOffset.UTC));
+    private int getNextVersion(Long tableId) {
+        return tableQrRepository.findTopByTable_TableIdOrderByRotationVersionDesc(tableId)
+                .map(latest -> latest.getRotationVersion() + 1)
+                .orElse(1);
     }
 }

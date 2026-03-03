@@ -2,7 +2,7 @@ package kr.inventory.domain.document.service.processor;
 
 import java.math.BigDecimal;
 
-import kr.inventory.domain.catalog.repository.IngredientRepository;
+import kr.inventory.domain.reference.repository.IngredientRepository;
 import kr.inventory.domain.document.controller.dto.ocr.ReceiptResponse;
 import kr.inventory.domain.vendor.repository.VendorRepository;
 import kr.inventory.global.util.UnitConverter;
