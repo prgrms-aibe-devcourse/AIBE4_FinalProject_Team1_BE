@@ -1,8 +1,10 @@
 package kr.inventory.domain.stock.repository;
 
+import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import jakarta.persistence.LockModeType;
+import kr.inventory.domain.stock.controller.dto.response.StockSummaryResponse;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.enums.StockBatchStatus;
 import lombok.RequiredArgsConstructor;
@@ -101,5 +103,47 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
 					return sum != null ? sum : BigDecimal.ZERO;
 				}
 			));
+	}
+
+	@Override
+	public List<StockSummaryResponse> findStockSummaryList(Long storeId) {
+		return queryFactory
+			.select(Projections.constructor(StockSummaryResponse.class,
+				ingredientStockBatch.ingredient.ingredientId,
+				ingredientStockBatch.ingredient.name,
+				ingredientStockBatch.remainingQuantity.sum(),
+				ingredientStockBatch.ingredient.unit,
+				ingredientStockBatch.expirationDate.min()
+			))
+			.from(ingredientStockBatch)
+			.where(
+				ingredientStockBatch.storeId.eq(storeId),
+				ingredientStockBatch.status.eq(StockBatchStatus.OPEN)
+			)
+			.groupBy(ingredientStockBatch.ingredient.ingredientId)
+			.fetch();
+	}
+
+	@Override
+	public List<IngredientStockBatch> findAvailableBatchesByStore(Long storeId, Collection<Long> ingredientIds) {
+		if (storeId == null || ingredientIds == null || ingredientIds.isEmpty()) {
+			return Collections.emptyList();
+		}
+
+		return queryFactory
+			.selectFrom(ingredientStockBatch)
+			.join(ingredientStockBatch.ingredient).fetchJoin()
+			.where(
+				ingredientStockBatch.storeId.eq(storeId),
+				ingredientStockBatch.ingredient.ingredientId.in(ingredientIds),
+				ingredientStockBatch.status.eq(StockBatchStatus.OPEN),
+				ingredientStockBatch.remainingQuantity.gt(BigDecimal.ZERO)
+			)
+			.orderBy(
+				ingredientStockBatch.ingredient.ingredientId.asc(),
+				ingredientStockBatch.expirationDate.asc(),
+				ingredientStockBatch.createdAt.asc()
+			)
+			.fetch();
 	}
 }

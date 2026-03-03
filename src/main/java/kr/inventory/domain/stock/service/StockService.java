@@ -84,6 +84,5 @@ public class StockService {
 		ingredientStockBatchRepository.saveAll(batches);
 
 		// TODO: 나중에 여기에 StockLogService.logInbound() 호출 로직을 추가할 예정입니다.
-		// 현재는 재고 반영까지만 수행합니다.
 	}
 }

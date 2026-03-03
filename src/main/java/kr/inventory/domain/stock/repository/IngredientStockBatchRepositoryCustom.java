@@ -1,5 +1,6 @@
 package kr.inventory.domain.stock.repository;
 
+import kr.inventory.domain.stock.controller.dto.response.StockSummaryResponse;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 
 import java.math.BigDecimal;
@@ -16,4 +17,8 @@ public interface IngredientStockBatchRepositoryCustom {
 	BigDecimal calculateTotalQuantity(Long storeId, Long ingredientId);
 
 	Map<Long, BigDecimal> calculateTotalQuantities(Long storeId, List<Long> ingredientIds);
+
+	List<StockSummaryResponse> findStockSummaryList(Long storeId);
+
+	List<IngredientStockBatch> findAvailableBatchesByStore(Long storeId, Collection<Long> ingredientIds);
 }
