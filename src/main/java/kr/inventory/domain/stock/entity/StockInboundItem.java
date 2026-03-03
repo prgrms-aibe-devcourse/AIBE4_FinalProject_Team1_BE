@@ -20,7 +20,7 @@ public class StockInboundItem extends CreatedAtEntity {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long inboundItemId;
 
-	@Column(name = "raw_product_name")
+	@Column(name = "raw_product_name", nullable = false)
 	private String rawProductName;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -41,6 +41,7 @@ public class StockInboundItem extends CreatedAtEntity {
 
 	public static StockInboundItem create(
 		StockInbound inbound,
+		String rawProductName,
 		Ingredient ingredient,
 		BigDecimal quantity,
 		BigDecimal unitCost,
@@ -48,6 +49,7 @@ public class StockInboundItem extends CreatedAtEntity {
 	) {
 		StockInboundItem item = new StockInboundItem();
 		item.inbound = inbound;
+		item.rawProductName = rawProductName;
 		item.ingredient = ingredient;
 		item.quantity = quantity;
 		item.unitCost = unitCost;

@@ -5,10 +5,15 @@ import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface IngredientStockBatchRepositoryCustom {
-    List<IngredientStockBatch> findAvailableBatchesByStoreWithLock(Long storeId, Collection<Long> ingredientIds);
+	List<IngredientStockBatch> findAvailableBatchesByStoreWithLock(Long storeId, Collection<Long> ingredientIds);
 
-    Optional<BigDecimal> findLatestUnitCostByStoreAndIngredient(Long storeId, Long ingredientId);
+	Optional<BigDecimal> findLatestUnitCostByStoreAndIngredient(Long storeId, Long ingredientId);
+
+	BigDecimal calculateTotalQuantity(Long storeId, Long ingredientId);
+
+	Map<Long, BigDecimal> calculateTotalQuantities(Long storeId, List<Long> ingredientIds);
 }
