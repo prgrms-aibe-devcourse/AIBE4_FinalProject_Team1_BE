@@ -58,7 +58,7 @@ public class DocumentOcrService {
 				log.info("OCR processing completed for file: {}",
 					file.getOriginalFilename());
 
-				String filePath = s3StorageService.upload(file, "document");
+				String filePath = s3StorageService.upload(file, "private/document");
 				documentService.saveDocument(store, file, filePath);
 				results.add(data);
 			} catch (Exception e) {

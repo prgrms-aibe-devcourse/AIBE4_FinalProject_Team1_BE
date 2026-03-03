@@ -20,7 +20,7 @@ public class StockInboundItem extends CreatedAtEntity {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long inboundItemId;
 
-	@Column(name = "raw_product_name")
+	@Column(name = "raw_product_name", nullable = false)
 	private String rawProductName;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -28,7 +28,7 @@ public class StockInboundItem extends CreatedAtEntity {
 	private StockInbound inbound;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "ingredient_id", nullable = false)
+	@JoinColumn(name = "ingredient_id")
 	private Ingredient ingredient;
 
 	@Column(nullable = false, precision = 14, scale = 3)
@@ -41,14 +41,14 @@ public class StockInboundItem extends CreatedAtEntity {
 
 	public static StockInboundItem create(
 		StockInbound inbound,
-		Ingredient ingredient,
+		String rawProductName,
 		BigDecimal quantity,
 		BigDecimal unitCost,
 		LocalDate expirationDate
 	) {
 		StockInboundItem item = new StockInboundItem();
 		item.inbound = inbound;
-		item.ingredient = ingredient;
+		item.rawProductName = rawProductName;
 		item.quantity = quantity;
 		item.unitCost = unitCost;
 		item.expirationDate = expirationDate;
