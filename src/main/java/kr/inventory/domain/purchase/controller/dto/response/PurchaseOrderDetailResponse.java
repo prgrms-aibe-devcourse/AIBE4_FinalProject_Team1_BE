@@ -18,14 +18,9 @@ public record PurchaseOrderDetailResponse(
         String orderNo,
         PurchaseOrderStatus status,
         BigDecimal totalAmount,
-        Long submittedByUserId,
-        OffsetDateTime submittedAt,
-        Long confirmedByUserId,
-        OffsetDateTime confirmedAt,
         Long canceledByUserId,
         OffsetDateTime canceledAt,
-        List<PurchaseOrderItemResponse> items
-) {
+        List<PurchaseOrderItemResponse> items) {
     public static PurchaseOrderDetailResponse from(PurchaseOrder purchaseOrder, List<PurchaseOrderItem> items) {
         Vendor vendor = purchaseOrder.getVendor();
         return new PurchaseOrderDetailResponse(
@@ -36,15 +31,10 @@ public record PurchaseOrderDetailResponse(
                 purchaseOrder.getOrderNo(),
                 purchaseOrder.getStatus(),
                 purchaseOrder.getTotalAmount(),
-                purchaseOrder.getSubmittedByUserId(),
-                purchaseOrder.getSubmittedAt(),
-                purchaseOrder.getConfirmedByUserId(),
-                purchaseOrder.getConfirmedAt(),
                 purchaseOrder.getCanceledByUserId(),
                 purchaseOrder.getCanceledAt(),
                 items.stream()
                         .map(PurchaseOrderItemResponse::from)
-                        .toList()
-        );
+                        .toList());
     }
 }

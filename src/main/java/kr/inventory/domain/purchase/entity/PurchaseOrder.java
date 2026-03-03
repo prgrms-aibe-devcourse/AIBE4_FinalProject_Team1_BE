@@ -25,12 +25,9 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(
-        name = "purchase_orders",
-        uniqueConstraints = {
-                @UniqueConstraint(name = "uk_purchase_order_order_no", columnNames = "order_no")
-        }
-)
+@Table(name = "purchase_orders", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_purchase_order_order_no", columnNames = "order_no")
+})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PurchaseOrder extends AuditableEntity {
@@ -60,22 +57,14 @@ public class PurchaseOrder extends AuditableEntity {
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal totalAmount;
 
-    private Long submittedByUserId;
-
-    private OffsetDateTime submittedAt;
-
-    private Long confirmedByUserId;
-
-    private OffsetDateTime confirmedAt;
-
     private Long canceledByUserId;
 
     private OffsetDateTime canceledAt;
 
-    public static PurchaseOrder createDraft(Store store) {
+    public static PurchaseOrder create(Store store) {
         PurchaseOrder purchaseOrder = new PurchaseOrder();
         purchaseOrder.store = store;
-        purchaseOrder.status = PurchaseOrderStatus.DRAFT;
+        purchaseOrder.status = PurchaseOrderStatus.ORDERED;
         purchaseOrder.totalAmount = BigDecimal.ZERO;
         return purchaseOrder;
     }
@@ -84,17 +73,12 @@ public class PurchaseOrder extends AuditableEntity {
         this.vendor = vendor;
     }
 
-    public void submit(String orderNo, Long submittedByUserId, OffsetDateTime submittedAt) {
+    public void assignOrderNo(String orderNo) {
         this.orderNo = orderNo;
-        this.status = PurchaseOrderStatus.SUBMITTED;
-        this.submittedByUserId = submittedByUserId;
-        this.submittedAt = submittedAt;
     }
 
-    public void confirm(Long confirmedByUserId, OffsetDateTime confirmedAt) {
-        this.status = PurchaseOrderStatus.CONFIRMED;
-        this.confirmedByUserId = confirmedByUserId;
-        this.confirmedAt = confirmedAt;
+    public void updateTotalAmount(BigDecimal totalAmount) {
+        this.totalAmount = totalAmount;
     }
 
     public void cancel(Long canceledByUserId, OffsetDateTime canceledAt) {

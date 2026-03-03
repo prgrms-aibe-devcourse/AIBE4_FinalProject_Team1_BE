@@ -7,7 +7,6 @@ import kr.inventory.domain.purchase.exception.PurchaseOrderErrorCode;
 import kr.inventory.domain.purchase.exception.PurchaseOrderException;
 import kr.inventory.domain.purchase.repository.PurchaseOrderRepository;
 import kr.inventory.domain.store.entity.StoreMember;
-import kr.inventory.domain.store.entity.enums.StoreMemberRole;
 import kr.inventory.domain.store.entity.enums.StoreMemberStatus;
 import kr.inventory.domain.store.repository.StoreMemberRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,67 +23,28 @@ public class PurchaseOrderValidator {
     private final PurchaseOrderRepository purchaseOrderRepository;
 
     /**
-     * 사용자의 발주서 접근 권한을 검증하고 내부 PurchaseOrder ID를 반환
-     *
-     * @param userId 사용자 ID
-     * @param purchaseOrderPublicId 발주서 Public ID (UUID)
-     * @return 내부 PurchaseOrder ID (Long)
-     * @throws PurchaseOrderException 발주서를 찾을 수 없거나 접근 권한이 없는 경우
+     * 사용자의 발주서 접근 권한을 검증하고 내부 PurchaseOrder ID를 반환.
+     * 해당 매장의 모든 활성 멤버가 접근 가능하다.
      */
     public Long validateAccessAndGetPurchaseOrderId(Long userId, UUID purchaseOrderPublicId) {
         PurchaseOrder purchaseOrder = purchaseOrderRepository.findByPurchaseOrderPublicId(purchaseOrderPublicId)
                 .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_NOT_FOUND));
 
-        Long purchaseOrderId = purchaseOrder.getPurchaseOrderId();
+        Long storeId = purchaseOrder.getStore().getStoreId();
 
-        // 권한 검증: Manager 이상만 접근 가능
-        requireManagerOrAbove(purchaseOrder.getStore().getStoreId(), userId);
-
-        return purchaseOrderId;
-    }
-
-    public StoreMemberRole requireManagerOrAbove(Long storeId, Long userId) {
-        StoreMember storeMember = storeMemberRepository.findByStoreStoreIdAndUserUserIdAndStatus(
-                        storeId,
-                        userId,
-                        StoreMemberStatus.ACTIVE
-                )
+        // 권한 검증: 해당 매장의 활성 멤버이면 접근 가능
+        storeMemberRepository.findByStoreStoreIdAndUserUserIdAndStatus(
+                storeId,
+                userId,
+                StoreMemberStatus.ACTIVE)
                 .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ACCESS_DENIED));
 
-        if (storeMember.getRole() == StoreMemberRole.MEMBER) {
-            throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ACCESS_DENIED);
-        }
-
-        return storeMember.getRole();
-    }
-
-    public void requireOwner(StoreMemberRole role) {
-        if (role != StoreMemberRole.OWNER) {
-            throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ACCESS_DENIED);
-        }
+        return purchaseOrder.getPurchaseOrderId();
     }
 
     public void requireItemsNotEmpty(List<PurchaseOrderItemRequest> itemRequests) {
         if (itemRequests == null || itemRequests.isEmpty()) {
             throw new PurchaseOrderException(PurchaseOrderErrorCode.EMPTY_ITEMS);
-        }
-    }
-
-    public void requireDraftForUpdate(PurchaseOrderStatus status) {
-        if (status != PurchaseOrderStatus.DRAFT) {
-            throw new PurchaseOrderException(PurchaseOrderErrorCode.DRAFT_ONLY_MUTATION);
-        }
-    }
-
-    public void requireDraftForSubmit(PurchaseOrderStatus status) {
-        if (status != PurchaseOrderStatus.DRAFT) {
-            throw new PurchaseOrderException(PurchaseOrderErrorCode.INVALID_STATUS_TRANSITION);
-        }
-    }
-
-    public void requireSubmittedForConfirm(PurchaseOrderStatus status) {
-        if (status != PurchaseOrderStatus.SUBMITTED) {
-            throw new PurchaseOrderException(PurchaseOrderErrorCode.INVALID_STATUS_TRANSITION);
         }
     }
 

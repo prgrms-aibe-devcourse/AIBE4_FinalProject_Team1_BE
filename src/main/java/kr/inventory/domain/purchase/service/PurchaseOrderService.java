@@ -13,7 +13,6 @@ import kr.inventory.domain.purchase.repository.PurchaseOrderItemRepository;
 import kr.inventory.domain.purchase.repository.PurchaseOrderRepository;
 import kr.inventory.domain.purchase.validator.PurchaseOrderValidator;
 import kr.inventory.domain.store.entity.Store;
-import kr.inventory.domain.store.entity.enums.StoreMemberRole;
 import kr.inventory.domain.store.repository.StoreRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import kr.inventory.domain.vendor.entity.Vendor;
@@ -33,7 +32,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-/** 발주서의 생성·상태 전이·PDF 다운로드를 처리하는 서비스다. */
 public class PurchaseOrderService {
 
     private static final DateTimeFormatter ORDER_NO_DATE_FORMATTER =
@@ -42,41 +40,42 @@ public class PurchaseOrderService {
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
     private final StoreRepository storeRepository;
+    private final VendorRepository vendorRepository;
     private final PurchaseOrderPdfService purchaseOrderPdfService;
     private final PurchaseOrderValidator purchaseOrderValidator;
-    private final VendorRepository vendorRepository;
     private final StoreAccessValidator storeAccessValidator;
 
     @Transactional
-    public PurchaseOrderDetailResponse createDraft(Long userId, UUID storePublicId, PurchaseOrderCreateRequest request) {
-        // 매장 검증
+    public PurchaseOrderDetailResponse create(Long userId, UUID storePublicId, PurchaseOrderCreateRequest request) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.STORE_NOT_FOUND));
 
-        // 검증된 매장에 속해있는 거래처
         purchaseOrderValidator.requireItemsNotEmpty(request.items());
         Vendor vendor = resolveVendorOrThrow(storeId, request.vendorPublicId());
 
-        PurchaseOrder purchaseOrder = PurchaseOrder.createDraft(store);
+        PurchaseOrder purchaseOrder = PurchaseOrder.create(store);
         purchaseOrder.assignVendor(vendor);
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
+
+        String orderNo = generateOrderNumber(savedPurchaseOrder.getPurchaseOrderId(), OffsetDateTime.now(ZoneOffset.UTC));
+        savedPurchaseOrder.assignOrderNo(orderNo);
 
         List<PurchaseOrderItem> items = request.items().stream()
                 .map(req -> PurchaseOrderItem.create(req.itemName(), req.quantity(), req.unitPrice()))
                 .toList();
-
-        for (PurchaseOrderItem item : items) {
-            item.assignOrder(savedPurchaseOrder);
-        }
+        items.forEach(item -> item.assignOrder(savedPurchaseOrder));
         List<PurchaseOrderItem> savedItems = purchaseOrderItemRepository.saveAll(items);
+
+        BigDecimal totalAmount = savedItems.stream()
+                .map(PurchaseOrderItem::getLineAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        savedPurchaseOrder.updateTotalAmount(totalAmount);
 
         return PurchaseOrderDetailResponse.from(savedPurchaseOrder, savedItems);
     }
 
-
     @Transactional(readOnly = true)
-    /** 특정 매장의 발주서 목록을 최신순으로 조회한다. */
     public List<PurchaseOrderSummaryResponse> getPurchaseOrders(Long userId, UUID storePublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
         return purchaseOrderRepository.findAllByStoreStoreIdOrderByPurchaseOrderIdDesc(storeId).stream()
@@ -84,9 +83,7 @@ public class PurchaseOrderService {
                 .toList();
     }
 
-
     @Transactional(readOnly = true)
-    /** 단건 발주서 상세 정보를 조회한다. */
     public PurchaseOrderDetailResponse getPurchaseOrder(Long userId, UUID storePublicId, UUID purchaseOrderPublicId) {
         PurchaseOrder purchaseOrder = validateAndGetPurchaseOrder(userId, storePublicId, purchaseOrderPublicId);
         List<PurchaseOrderItem> items = purchaseOrderItemRepository.findByPurchaseOrderPurchaseOrderId(purchaseOrder.getPurchaseOrderId());
@@ -94,13 +91,11 @@ public class PurchaseOrderService {
     }
 
     @Transactional
-    public PurchaseOrderDetailResponse updateDraft(Long userId, UUID storePublicId, UUID purchaseOrderPublicId, PurchaseOrderUpdateRequest request) {
+    public PurchaseOrderDetailResponse update(Long userId, UUID storePublicId, UUID purchaseOrderPublicId, PurchaseOrderUpdateRequest request) {
         PurchaseOrder purchaseOrder = validateAndGetPurchaseOrder(userId, storePublicId, purchaseOrderPublicId);
         purchaseOrderValidator.requireItemsNotEmpty(request.items());
 
-        purchaseOrderValidator.requireDraftForUpdate(purchaseOrder.getStatus());
         Vendor vendor = resolveVendorOrThrow(purchaseOrder.getStore().getStoreId(), request.vendorPublicId());
-
         purchaseOrder.assignVendor(vendor);
 
         List<PurchaseOrderItem> oldItems = purchaseOrderItemRepository.findByPurchaseOrderPurchaseOrderId(purchaseOrder.getPurchaseOrderId());
@@ -109,54 +104,27 @@ public class PurchaseOrderService {
         List<PurchaseOrderItem> newItems = request.items().stream()
                 .map(req -> PurchaseOrderItem.create(req.itemName(), req.quantity(), req.unitPrice()))
                 .toList();
-
-        for (PurchaseOrderItem item : newItems) {
-            item.assignOrder(purchaseOrder);
-        }
+        newItems.forEach(item -> item.assignOrder(purchaseOrder));
         List<PurchaseOrderItem> savedItems = purchaseOrderItemRepository.saveAll(newItems);
 
+        BigDecimal totalAmount = savedItems.stream()
+                .map(PurchaseOrderItem::getLineAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        purchaseOrder.updateTotalAmount(totalAmount);
+
         return PurchaseOrderDetailResponse.from(purchaseOrder, savedItems);
-    }
-
-    @Transactional
-    public PurchaseOrderDetailResponse submit(Long userId, UUID storePublicId, UUID purchaseOrderPublicId) {
-        PurchaseOrder purchaseOrder = validateAndGetPurchaseOrder(userId, storePublicId, purchaseOrderPublicId);
-        purchaseOrderValidator.requireDraftForSubmit(purchaseOrder.getStatus());
-
-        OffsetDateTime submittedAt = OffsetDateTime.now(ZoneOffset.UTC);
-        String orderNo = generateOrderNumber(purchaseOrder.getPurchaseOrderId(), submittedAt);
-        purchaseOrder.submit(orderNo, userId, submittedAt);
-
-        List<PurchaseOrderItem> items = purchaseOrderItemRepository.findByPurchaseOrderPurchaseOrderId(purchaseOrder.getPurchaseOrderId());
-        return PurchaseOrderDetailResponse.from(purchaseOrder, items);
-    }
-
-    @Transactional
-    public PurchaseOrderDetailResponse confirm(Long userId, UUID storePublicId, UUID purchaseOrderPublicId) {
-        PurchaseOrder purchaseOrder = validateAndGetPurchaseOrder(userId, storePublicId, purchaseOrderPublicId);
-        StoreMemberRole role = purchaseOrderValidator.requireManagerOrAbove(purchaseOrder.getStore().getStoreId(), userId);
-        purchaseOrderValidator.requireOwner(role);
-        purchaseOrderValidator.requireSubmittedForConfirm(purchaseOrder.getStatus());
-
-        purchaseOrder.confirm(userId, OffsetDateTime.now(ZoneOffset.UTC));
-
-        List<PurchaseOrderItem> items = purchaseOrderItemRepository.findByPurchaseOrderPurchaseOrderId(purchaseOrder.getPurchaseOrderId());
-        return PurchaseOrderDetailResponse.from(purchaseOrder, items);
     }
 
     @Transactional
     public PurchaseOrderDetailResponse cancel(Long userId, UUID storePublicId, UUID purchaseOrderPublicId) {
         PurchaseOrder purchaseOrder = validateAndGetPurchaseOrder(userId, storePublicId, purchaseOrderPublicId);
         purchaseOrderValidator.requireCancelable(purchaseOrder.getStatus());
-
         purchaseOrder.cancel(userId, OffsetDateTime.now(ZoneOffset.UTC));
-
         List<PurchaseOrderItem> items = purchaseOrderItemRepository.findByPurchaseOrderPurchaseOrderId(purchaseOrder.getPurchaseOrderId());
         return PurchaseOrderDetailResponse.from(purchaseOrder, items);
     }
 
     @Transactional(readOnly = true)
-    /** 발주서 상세를 PDF로 생성해 반환한다. */
     public byte[] downloadPdf(Long userId, UUID storePublicId, UUID purchaseOrderPublicId) {
         PurchaseOrder purchaseOrder = validateAndGetPurchaseOrder(userId, storePublicId, purchaseOrderPublicId);
         return purchaseOrderPdfService.generate(purchaseOrder);
@@ -165,10 +133,6 @@ public class PurchaseOrderService {
     private PurchaseOrder validateAndGetPurchaseOrder(Long userId, UUID storePublicId, UUID purchaseOrderPublicId) {
         storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
         Long purchaseOrderId = purchaseOrderValidator.validateAccessAndGetPurchaseOrderId(userId, purchaseOrderPublicId);
-        return getPurchaseOrderOrThrow(purchaseOrderId);
-    }
-
-    private PurchaseOrder getPurchaseOrderOrThrow(Long purchaseOrderId) {
         return purchaseOrderRepository.findById(purchaseOrderId)
                 .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_NOT_FOUND));
     }
@@ -176,20 +140,17 @@ public class PurchaseOrderService {
     private Vendor resolveVendorOrThrow(Long storeId, UUID vendorPublicId) {
         Vendor vendor = vendorRepository.findByVendorPublicId(vendorPublicId)
                 .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.VENDOR_NOT_FOUND));
-
         if (!vendor.getStore().getStoreId().equals(storeId)) {
             throw new PurchaseOrderException(PurchaseOrderErrorCode.VENDOR_STORE_MISMATCH);
         }
-
         if (vendor.getStatus() != VendorStatus.ACTIVE) {
             throw new PurchaseOrderException(PurchaseOrderErrorCode.VENDOR_NOT_ACTIVE);
         }
-
         return vendor;
     }
 
-    private String generateOrderNumber(Long purchaseOrderId, OffsetDateTime submittedAt) {
-        String datePart = submittedAt.format(ORDER_NO_DATE_FORMATTER);
+    private String generateOrderNumber(Long purchaseOrderId, OffsetDateTime orderedAt) {
+        String datePart = orderedAt.format(ORDER_NO_DATE_FORMATTER);
         String sequencePart = String.format(PurchaseOrderConstant.ORDER_NO_SEQUENCE_FORMAT, purchaseOrderId);
         return String.join(
                 PurchaseOrderConstant.ORDER_NO_SEPARATOR,

@@ -1,8 +1,8 @@
 package kr.inventory.domain.purchase.controller;
 
-import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.purchase.constant.PurchaseOrderConstant;
 import kr.inventory.domain.purchase.controller.dto.request.PurchaseOrderCreateRequest;
@@ -17,13 +17,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
@@ -31,19 +25,19 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/purchase-orders/{storePublicId}")
 @RequiredArgsConstructor
-@Tag(name = "발주(Purchase Order)", description = "발주서 생성/조회/상태변경 API")
+@Tag(name = "발주(Purchase Order)", description = "발주서 생성/조회/수정/취소/PDF API")
 public class PurchaseOrderController {
 
     private final PurchaseOrderService purchaseOrderService;
 
     @PostMapping
-    @Operation(summary = "발주서 초안 생성", description = PurchaseApiDocs.CREATE_DRAFT)
+    @Operation(summary = "발주서 생성", description = PurchaseApiDocs.CREATE_DRAFT)
     public ResponseEntity<PurchaseOrderDetailResponse> create(
             @PathVariable UUID storePublicId,
             @AuthenticationPrincipal CustomUserDetails principal,
             @Valid @RequestBody PurchaseOrderCreateRequest request
     ) {
-        PurchaseOrderDetailResponse response = purchaseOrderService.createDraft(principal.getUserId(), storePublicId, request);
+        PurchaseOrderDetailResponse response = purchaseOrderService.create(principal.getUserId(), storePublicId, request);
         return ResponseEntity.ok(response);
     }
 
@@ -69,36 +63,14 @@ public class PurchaseOrderController {
     }
 
     @PutMapping("/{purchaseOrderPublicId}")
-    @Operation(summary = "발주서 초안 수정", description = PurchaseApiDocs.UPDATE_DRAFT)
+    @Operation(summary = "발주서 수정", description = PurchaseApiDocs.UPDATE_DRAFT)
     public ResponseEntity<PurchaseOrderDetailResponse> update(
             @PathVariable UUID storePublicId,
             @PathVariable UUID purchaseOrderPublicId,
             @AuthenticationPrincipal CustomUserDetails principal,
             @Valid @RequestBody PurchaseOrderUpdateRequest request
     ) {
-        PurchaseOrderDetailResponse response = purchaseOrderService.updateDraft(principal.getUserId(), storePublicId, purchaseOrderPublicId, request);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/{purchaseOrderPublicId}/submit")
-    @Operation(summary = "발주서 제출", description = PurchaseApiDocs.SUBMIT)
-    public ResponseEntity<PurchaseOrderDetailResponse> submit(
-            @PathVariable UUID storePublicId,
-            @PathVariable UUID purchaseOrderPublicId,
-            @AuthenticationPrincipal CustomUserDetails principal
-    ) {
-        PurchaseOrderDetailResponse response = purchaseOrderService.submit(principal.getUserId(), storePublicId, purchaseOrderPublicId);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/{purchaseOrderPublicId}/confirm")
-    @Operation(summary = "발주서 확정", description = PurchaseApiDocs.CONFIRM)
-    public ResponseEntity<PurchaseOrderDetailResponse> confirm(
-            @PathVariable UUID storePublicId,
-            @PathVariable UUID purchaseOrderPublicId,
-            @AuthenticationPrincipal CustomUserDetails principal
-    ) {
-        PurchaseOrderDetailResponse response = purchaseOrderService.confirm(principal.getUserId(), storePublicId, purchaseOrderPublicId);
+        PurchaseOrderDetailResponse response = purchaseOrderService.update(principal.getUserId(), storePublicId, purchaseOrderPublicId, request);
         return ResponseEntity.ok(response);
     }
 

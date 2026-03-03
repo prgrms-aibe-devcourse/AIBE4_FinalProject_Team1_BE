@@ -5,7 +5,6 @@ import kr.inventory.domain.purchase.entity.enums.PurchaseOrderStatus;
 import kr.inventory.domain.vendor.entity.Vendor;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public record PurchaseOrderSummaryResponse(
@@ -15,9 +14,7 @@ public record PurchaseOrderSummaryResponse(
         String vendorName,
         String orderNo,
         PurchaseOrderStatus status,
-        BigDecimal totalAmount,
-        OffsetDateTime submittedAt
-) {
+        BigDecimal totalAmount) {
     public static PurchaseOrderSummaryResponse from(PurchaseOrder purchaseOrder) {
         Vendor vendor = purchaseOrder.getVendor();
         return new PurchaseOrderSummaryResponse(
@@ -27,8 +24,6 @@ public record PurchaseOrderSummaryResponse(
                 vendor == null ? null : vendor.getName(),
                 purchaseOrder.getOrderNo(),
                 purchaseOrder.getStatus(),
-                purchaseOrder.getTotalAmount(),
-                purchaseOrder.getSubmittedAt()
-        );
+                purchaseOrder.getTotalAmount());
     }
 }
