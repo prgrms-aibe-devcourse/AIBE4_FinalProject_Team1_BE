@@ -76,11 +76,10 @@ public class StockInboundService {
 
 		List<StockInboundItem> items = request.items().stream()
 			.map(itemDto -> {
-				Ingredient ingredient = ingredientRepository.findById(itemDto.ingredientId()).orElseThrow();
+				// TODO 마스터 테이블 경규화
 				return StockInboundItem.create(
 					inbound,
 					itemDto.rawProductName(),
-					ingredient,
 					itemDto.quantity(),
 					itemDto.unitCost(),
 					itemDto.expirationDate()

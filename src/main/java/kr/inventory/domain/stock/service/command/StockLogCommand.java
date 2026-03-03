@@ -2,7 +2,7 @@ package kr.inventory.domain.stock.service.command;
 
 import java.math.BigDecimal;
 
-import kr.inventory.domain.catalog.entity.Ingredient;
+import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.StockInbound;
 import kr.inventory.domain.stock.entity.StockInboundItem;

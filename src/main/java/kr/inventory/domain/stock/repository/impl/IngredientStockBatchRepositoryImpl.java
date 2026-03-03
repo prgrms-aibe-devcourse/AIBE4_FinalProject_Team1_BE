@@ -115,6 +115,7 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
 				ingredientStockBatch.ingredient.name,
 				ingredientStockBatch.remainingQuantity.sum(),
 				ingredientStockBatch.ingredient.unit,
+				ingredientStockBatch.count(),
 				ingredientStockBatch.expirationDate.min()
 			))
 			.from(ingredientStockBatch)
@@ -122,7 +123,9 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
 				ingredientStockBatch.storeId.eq(storeId),
 				ingredientStockBatch.status.eq(StockBatchStatus.OPEN)
 			)
-			.groupBy(ingredientStockBatch.ingredient.ingredientId)
+			.groupBy(ingredientStockBatch.ingredient.ingredientId,
+				ingredientStockBatch.ingredient.name,
+				ingredientStockBatch.ingredient.unit)
 			.fetch();
 	}
 

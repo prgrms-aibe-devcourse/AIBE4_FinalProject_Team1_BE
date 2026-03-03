@@ -40,8 +40,9 @@ public class StockInboundRepositoryImpl implements StockInboundRepositoryCustom 
 		List<StockInboundItemResponse> itemResponses = queryFactory
 			.select(Projections.constructor(StockInboundItemResponse.class,
 				inboundItem.inboundItemId,
-				inboundItem.ingredient.ingredientId, // ingredientId 추출
-				inboundItem.ingredient.name,         // ingredientName 추출
+				inboundItem.inbound.inboundId,
+				inboundItem.ingredient.name, // ingredientId 추출
+				inboundItem.rawProductName,         // ingredientName 추출
 				inboundItem.quantity,
 				inboundItem.unitCost,
 				inboundItem.expirationDate

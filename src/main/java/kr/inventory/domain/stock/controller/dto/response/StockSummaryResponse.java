@@ -3,13 +3,14 @@ package kr.inventory.domain.stock.controller.dto.response;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import kr.inventory.domain.reference.entity.enums.IngredientUnit;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 
 public record StockSummaryResponse(
 	Long ingredientId,
 	String ingredientName,
 	BigDecimal totalRemainingQuantity, // 해당 재료의 모든 배치 합계
-	String unit,
+	IngredientUnit unit,
 	Long batchCount,                  // 해당 재료의 유효한 배치 개수
 	LocalDate minExpirationDate       // 가장 빠른 유통기한
 ) {
@@ -18,7 +19,7 @@ public record StockSummaryResponse(
 		Long ingredientId,
 		String ingredientName,
 		BigDecimal totalRemainingQuantity,
-		String unit,
+		IngredientUnit unit,
 		Long batchCount,
 		LocalDate minExpirationDate
 	) {

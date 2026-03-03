@@ -28,7 +28,7 @@ public class StockInboundItem extends CreatedAtEntity {
 	private StockInbound inbound;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "ingredient_id", nullable = false)
+	@JoinColumn(name = "ingredient_id")
 	private Ingredient ingredient;
 
 	@Column(nullable = false, precision = 14, scale = 3)
@@ -42,7 +42,6 @@ public class StockInboundItem extends CreatedAtEntity {
 	public static StockInboundItem create(
 		StockInbound inbound,
 		String rawProductName,
-		Ingredient ingredient,
 		BigDecimal quantity,
 		BigDecimal unitCost,
 		LocalDate expirationDate
@@ -50,7 +49,6 @@ public class StockInboundItem extends CreatedAtEntity {
 		StockInboundItem item = new StockInboundItem();
 		item.inbound = inbound;
 		item.rawProductName = rawProductName;
-		item.ingredient = ingredient;
 		item.quantity = quantity;
 		item.unitCost = unitCost;
 		item.expirationDate = expirationDate;
