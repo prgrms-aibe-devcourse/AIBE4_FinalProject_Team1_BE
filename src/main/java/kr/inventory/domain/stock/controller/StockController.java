@@ -69,7 +69,7 @@ public class StockController {
 		summary = "재고 상세 조회",
 		description = "해당 매장의 재고 배치별로 상세 조회합니다."
 	)
-	@GetMapping("/{storePublicId}/{ingredientPublicId}/batches}")
+	@GetMapping("/{storePublicId}/{ingredientPublicId}/batches")
 	public ResponseEntity<List<StockBatchResponse>> getIngredientBatches(
 		@AuthenticationPrincipal CustomUserDetails principal,
 		@PathVariable("storePublicId") UUID storePublicId,

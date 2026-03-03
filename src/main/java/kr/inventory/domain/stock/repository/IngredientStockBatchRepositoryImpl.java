@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static kr.inventory.domain.stock.entity.QIngredientStockBatch.ingredientStockBatch;
@@ -125,8 +126,8 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
 	}
 
 	@Override
-	public List<IngredientStockBatch> findAvailableBatchesByStore(Long storeId, Collection<Long> ingredientIds) {
-		if (storeId == null || ingredientIds == null || ingredientIds.isEmpty()) {
+	public List<IngredientStockBatch> findAvailableBatchesByStore(Long storeId, UUID ingredientPublicIds) {
+		if (storeId == null || ingredientPublicIds == null) {
 			return Collections.emptyList();
 		}
 
@@ -135,7 +136,7 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
 			.join(ingredientStockBatch.ingredient).fetchJoin()
 			.where(
 				ingredientStockBatch.storeId.eq(storeId),
-				ingredientStockBatch.ingredient.ingredientId.in(ingredientIds),
+				ingredientStockBatch.ingredient.ingredientPublicId.eq(ingredientPublicIds),
 				ingredientStockBatch.status.eq(StockBatchStatus.OPEN),
 				ingredientStockBatch.remainingQuantity.gt(BigDecimal.ZERO)
 			)

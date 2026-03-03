@@ -6,8 +6,12 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import kr.inventory.domain.catalog.repository.IngredientRepository;
 import kr.inventory.domain.stock.controller.dto.response.StockBatchResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockSummaryResponse;
+import kr.inventory.domain.stock.entity.IngredientStockBatch;
+import kr.inventory.domain.stock.exception.StockErrorCode;
+import kr.inventory.domain.stock.exception.StockException;
 import kr.inventory.domain.stock.repository.IngredientStockBatchRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import lombok.RequiredArgsConstructor;
@@ -25,12 +29,13 @@ public class StockQueryService {
 		return batchRepository.findStockSummaryList(storeId);
 	}
 
-	public List<StockBatchResponse> getIngredientBatchDetails(Long userId, UUID storePublicId, UUID ingredientId) {
+	public List<StockBatchResponse> getIngredientBatchDetails(Long userId, UUID storePublicId,
+		UUID ingredientPublicId) {
 		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
-		// 잔액이 남아있는 배치를 유통기한 순으로 조회
-		return batchRepository.findAvailableBatchesByStore(storeId, List.of(ingredientId))
-			.stream()
+		List<IngredientStockBatch> batches = batchRepository.findAvailableBatchesByStore(storeId, ingredientPublicId);
+
+		return batches.stream()
 			.map(StockBatchResponse::from)
 			.toList();
 	}

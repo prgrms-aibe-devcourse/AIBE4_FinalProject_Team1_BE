@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface IngredientStockBatchRepositoryCustom {
 	List<IngredientStockBatch> findAvailableBatchesByStoreWithLock(Long storeId, Collection<Long> ingredientIds);
@@ -20,5 +21,5 @@ public interface IngredientStockBatchRepositoryCustom {
 
 	List<StockSummaryResponse> findStockSummaryList(Long storeId);
 
-	List<IngredientStockBatch> findAvailableBatchesByStore(Long storeId, Collection<Long> ingredientIds);
+	List<IngredientStockBatch> findAvailableBatchesByStore(Long storeId, UUID ingredientPublicIds);
 }
