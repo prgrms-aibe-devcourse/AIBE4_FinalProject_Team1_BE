@@ -6,7 +6,9 @@ import jakarta.validation.Valid;
 import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.dining.controller.dto.request.TableQrsIssueRequest;
 import kr.inventory.domain.dining.controller.dto.response.TableQrIssueResponse;
+import kr.inventory.domain.dining.controller.dto.response.TableQrResponse;
 import kr.inventory.domain.dining.service.TableQrManagerFacade;
+import kr.inventory.domain.dining.service.TableQrService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,6 +24,7 @@ import java.util.UUID;
 public class TableQrAdminController {
 
     private final TableQrManagerFacade tableQrManagerFacade;
+    private final TableQrService tableQrService;
 
     @Operation(
             summary = "테이블 QR 발급",
@@ -39,5 +42,13 @@ public class TableQrAdminController {
                 request.tablePublicIds()
         );
         return ResponseEntity.ok(res);
+    }
+
+    @Operation(summary = "테이블 QR 목록 조회", description = "매장의 모든 테이블 QR을 조회합니다.")
+    @GetMapping
+    public ResponseEntity<List<TableQrResponse>> getTableQrs(
+            @PathVariable UUID storePublicId,
+            @AuthenticationPrincipal CustomUserDetails principal) {
+        return ResponseEntity.ok(tableQrService.getTableQrs(principal.getUserId(), storePublicId));
     }
 }
