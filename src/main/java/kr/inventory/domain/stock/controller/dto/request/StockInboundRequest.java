@@ -6,9 +6,9 @@ import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
-public record StockInboundRequest(@NotNull Long storeId,
-								  Long vendorId,
-								  Long sourceDocumentId,
-								  Long sourcePurchaseOrderId,
-								  @NotEmpty @Valid List<StockInboundItemRequest> items) {
+public record StockInboundRequest(
+	Long vendorId,
+	Long sourceDocumentId,
+	Long sourcePurchaseOrderId,
+	@NotEmpty @Valid List<StockInboundItemRequest> items) {
 }

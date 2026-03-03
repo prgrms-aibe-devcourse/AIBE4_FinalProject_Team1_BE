@@ -8,8 +8,8 @@ import kr.inventory.domain.stock.entity.StockInboundItem;
 public record StockInboundItemResponse(
 	Long inboundItemId,
 	Long inboundId,         // 어떤 입고에 속하는지 ID만 포함
-	Long ingredientId,
 	String ingredientName,  // 화면 표시용 식재료 이름
+	String rawProductName,
 	BigDecimal quantity,
 	BigDecimal unitCost,
 	LocalDate expirationDate
@@ -18,8 +18,8 @@ public record StockInboundItemResponse(
 		return new StockInboundItemResponse(
 			item.getInboundItemId(),
 			item.getInbound().getInboundId(),
-			item.getIngredient().getIngredientId(),
 			item.getIngredient().getName(),
+			item.getRawProductName(),
 			item.getQuantity(),
 			item.getUnitCost(),
 			item.getExpirationDate()

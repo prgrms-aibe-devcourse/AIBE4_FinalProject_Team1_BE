@@ -1,5 +1,6 @@
 package kr.inventory.domain.stock.service;
 
+import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.repository.IngredientRepository;
 import kr.inventory.domain.document.entity.Document;
 import kr.inventory.domain.document.exception.DocumentError;
@@ -8,6 +9,7 @@ import kr.inventory.domain.document.repository.DocumentRepository;
 import kr.inventory.domain.purchase.entity.PurchaseOrder;
 import kr.inventory.domain.purchase.repository.PurchaseOrderRepository;
 import kr.inventory.domain.stock.controller.dto.request.StockInboundRequest;
+import kr.inventory.domain.stock.controller.dto.response.StockInboundItemResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockInboundResponse;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.StockInbound;
@@ -35,6 +37,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -44,8 +47,6 @@ public class StockInboundService {
 
 	private final StockInboundRepository stockInboundRepository;
 	private final StockInboundItemRepository stockInboundItemRepository;
-	private final IngredientStockBatchRepository ingredientStockBatchRepository;
-	private final StockLogRepository stockLogRepository;
 	private final StoreAccessValidator storeAccessValidator;
 	private final StoreRepository storeRepository;
 	private final VendorRepository vendorRepository;
@@ -53,14 +54,15 @@ public class StockInboundService {
 	private final UserRepository userRepository;
 	private final DocumentRepository documentRepository;
 	private final PurchaseOrderRepository purchaseOrderRepository;
+	private final StockService stockService;
 
 	public StockInboundResponse createInbound(Long userId, UUID storePublicId, StockInboundRequest request) {
 		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 		Store store = storeRepository.findById(storeId)
 			.orElseThrow(() -> new StockException(StockErrorCode.STORE_NOT_FOUND));
 
-		Vendor vendor = request.vendorId() != null ? vendorRepository.findById(request.vendorId())
-			.orElseThrow(() -> new StockException(StockErrorCode.VENDOR_NOT_FOUND)) : null;
+		Vendor vendor = vendorRepository.findById(request.vendorId())
+			.orElseThrow(() -> new StockException(StockErrorCode.VENDOR_NOT_FOUND));
 
 		Document sourceDocument = documentRepository.findById(request.sourceDocumentId())
 			.orElseThrow(() -> new DocumentException(
@@ -74,10 +76,10 @@ public class StockInboundService {
 
 		List<StockInboundItem> items = request.items().stream()
 			.map(itemDto -> {
-				// TODO: ingredientRepository 에서 ingredient 를 찾지 못했을 경우 예외처리 필요
+				// TODO 마스터 테이블 경규화
 				return StockInboundItem.create(
 					inbound,
-					ingredientRepository.findById(itemDto.ingredientId()).orElseThrow(),
+					itemDto.rawProductName(),
 					itemDto.quantity(),
 					itemDto.unitCost(),
 					itemDto.expirationDate()
@@ -86,24 +88,29 @@ public class StockInboundService {
 
 		stockInboundItemRepository.saveAll(items);
 
-		return StockInboundResponse.from(inbound);
+		return StockInboundResponse.fromEntity(inbound, items);
 	}
 
 	@Transactional(readOnly = true)
-	public StockInboundResponse getInbound(UUID inboundPublicId) {
-		StockInbound inbound = stockInboundRepository.findByInboundPublicId(inboundPublicId)
+	public StockInboundResponse getInbound(Long userId, UUID storePublicId, UUID inboundPublicId) {
+		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
+		return stockInboundRepository.findInboundWithItems(inboundPublicId, storeId)
 			.orElseThrow(() -> new StockException(StockErrorCode.INBOUND_NOT_FOUND));
-		return StockInboundResponse.from(inbound);
 	}
 
 	@Transactional(readOnly = true)
-	public Page<StockInboundResponse> getInbounds(Long storeId, Pageable pageable) {
+	public Page<StockInboundResponse> getInbounds(Long userId, UUID storePublicId, Pageable pageable) {
+		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
 		return stockInboundRepository.findByStoreStoreId(storeId, pageable)
-			.map(StockInboundResponse::from);
+			.map(inbound -> StockInboundResponse.from(inbound, List.of()));
 	}
 
-	public void confirmInbound(UUID inboundPublicId, Long userId) {
-		StockInbound inbound = stockInboundRepository.findByInboundPublicId(inboundPublicId)
+	public void confirmInbound(Long userId, UUID storePublicId, UUID inboundPublicId) {
+		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
+		StockInbound inbound = stockInboundRepository.findByInboundPublicIdAndStoreStoreId(inboundPublicId, storeId)
 			.orElseThrow(() -> new StockException(StockErrorCode.INBOUND_NOT_FOUND));
 
 		if (inbound.getStatus() != InboundStatus.DRAFT) {
@@ -117,28 +124,12 @@ public class StockInboundService {
 
 		List<StockInboundItem> items = stockInboundItemRepository.findByInbound_InboundId(inbound.getInboundId());
 
-		for (StockInboundItem item : items) {
-			IngredientStockBatch batch = IngredientStockBatch.createFromInbound(
-				inbound.getStore(),
-				item.getIngredient(),
-				item
-			);
-			ingredientStockBatchRepository.save(batch);
-
-			StockLog log = StockLog.createInboundLog(
-				inbound.getStore(),
-				item.getIngredient(),
-				item.getQuantity(),
-				batch,
-				inbound.getInboundId(),
-				user
-			);
-			stockLogRepository.save(log);
-		}
+		stockService.registerInboundStock(items);
 	}
 
-	public void deleteInbound(UUID inboundPublicId) {
-		StockInbound inbound = stockInboundRepository.findByInboundPublicId(inboundPublicId)
+	public void deleteInbound(Long userId, UUID storePublicId, UUID inboundPublicId) {
+		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+		StockInbound inbound = stockInboundRepository.findByInboundPublicIdAndStoreStoreId(inboundPublicId, storeId)
 			.orElseThrow(() -> new StockException(StockErrorCode.INBOUND_NOT_FOUND));
 
 		if (inbound.getStatus() != InboundStatus.DRAFT) {
