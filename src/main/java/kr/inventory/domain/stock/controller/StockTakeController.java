@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-@Tag(name = "재고 실사(StockTake)", description = "매장 재고 실사 관련 기능을 담당하는 API입니다.")
+@Tag(name = "재고 실사(StockTake)", description = "매장 재고 실사 관리 API")
 @RestController
 @RequestMapping("/api/stocktakes/{storePublicId}")
 @RequiredArgsConstructor

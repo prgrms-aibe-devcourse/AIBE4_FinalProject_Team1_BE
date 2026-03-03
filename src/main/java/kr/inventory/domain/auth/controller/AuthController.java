@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "인증(Auth)", description = "인증관련 기능을 담당하는 API입니다.")
+@Tag(name = "인증(Auth)", description = "유저 인증 API")
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
