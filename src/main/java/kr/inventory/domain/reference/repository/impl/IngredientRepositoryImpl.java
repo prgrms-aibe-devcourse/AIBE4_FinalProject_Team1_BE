@@ -9,8 +9,8 @@ import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
-import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.entity.QIngredient;
+import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.repository.IngredientRepositoryCustom;
 
 import lombok.RequiredArgsConstructor;

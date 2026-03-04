@@ -8,8 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface StockInboundRepository extends JpaRepository<StockInbound, Long> {
-    Page<StockInbound> findByStoreStoreId(Long storeId, Pageable pageable);
+public interface StockInboundRepository extends JpaRepository<StockInbound, Long>, StockInboundRepositoryCustom {
+	Page<StockInbound> findByStoreStoreId(Long storeId, Pageable pageable);
 
-    Optional<StockInbound> findByInboundPublicId(UUID inboundPublicId);
+	Optional<StockInbound> findByInboundPublicIdAndStoreStoreId(UUID inboundPublicId, Long storeId);
 }
