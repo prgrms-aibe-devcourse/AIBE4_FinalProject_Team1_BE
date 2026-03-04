@@ -4,8 +4,8 @@ import kr.inventory.domain.sales.entity.SalesOrder;
 import kr.inventory.domain.sales.exception.SalesOrderErrorCode;
 import kr.inventory.domain.sales.exception.SalesOrderException;
 import kr.inventory.domain.sales.repository.SalesOrderRepository;
+import kr.inventory.domain.stock.repository.StockShortageRepository;
 import kr.inventory.domain.stock.service.command.StockDeductionRequest;
-import kr.inventory.domain.store.service.StoreAccessValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,7 +21,8 @@ public class StockManagerFacade {
 	private final TheoreticalUsageService theoreticalUsageService;
 	private final SalesOrderRepository salesOrderRepository;
 	private final StockService stockService;
-	private final StoreAccessValidator storeAccessValidator;
+    private final StockShortageRepository stockShortageRepository;
+    private final StockShortageService stockShortageService;
 
 	@Transactional
 	public void processOrderStockDeduction(Long storeId, Long salesOrderId) {
@@ -40,19 +41,10 @@ public class StockManagerFacade {
 		Map<Long, BigDecimal> shortageMap = stockService.deductStockWithFEFO(request);
 
 		if (!shortageMap.isEmpty()) {
-			handleStockShortage(salesOrder.getSalesOrderId(), usageMap, shortageMap);
+            log.warn("재고 부족 발생 - 주문: {}, 부족 품목 수: {}", salesOrderId, shortageMap.size());
+            stockShortageService.recordShortages(storeId, salesOrderId, usageMap, shortageMap);
 		}
 
 		salesOrder.markAsStockProcessed();
-	}
-
-	private void handleStockShortage(Long orderId, Map<Long, BigDecimal> usageMap, Map<Long, BigDecimal> shortageMap) {
-		shortageMap.forEach((ingredientId, amount) -> {
-			log.warn("재고 부족 발생 - 주문: {}, 식재료 ID: {}, 부족량: {}", orderId, ingredientId, amount);
-
-			// TODO: [비즈니스 요구사항]
-			// 1. Shortage 테이블에 기록하여 추후 발주 데이터로 활용 필요
-			// 2. 관리자에게 '재고 부족' 알림 발송 로직 추가 필요
-		});
 	}
 }
