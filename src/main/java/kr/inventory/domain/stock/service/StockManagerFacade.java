@@ -40,13 +40,13 @@ public class StockManagerFacade {
 		Map<Long, BigDecimal> shortageMap = stockService.deductStockWithFEFO(request);
 
 		if (!shortageMap.isEmpty()) {
-			handleStockShortage(salesOrder.getSalesOrderId(), shortageMap);
+			handleStockShortage(salesOrder.getSalesOrderId(), usageMap, shortageMap);
 		}
 
 		salesOrder.markAsStockProcessed();
 	}
 
-	private void handleStockShortage(Long orderId, Map<Long, BigDecimal> shortageMap) {
+	private void handleStockShortage(Long orderId, Map<Long, BigDecimal> usageMap, Map<Long, BigDecimal> shortageMap) {
 		shortageMap.forEach((ingredientId, amount) -> {
 			log.warn("재고 부족 발생 - 주문: {}, 식재료 ID: {}, 부족량: {}", orderId, ingredientId, amount);
 
