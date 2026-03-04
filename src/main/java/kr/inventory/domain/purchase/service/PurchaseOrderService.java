@@ -47,7 +47,7 @@ public class PurchaseOrderService {
 
     @Transactional
     public PurchaseOrderDetailResponse create(Long userId, UUID storePublicId, PurchaseOrderCreateRequest request) {
-        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+        Long storeId = storeAccessValidator.validateAndGetStoreIdForActiveMembers(userId, storePublicId);
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.STORE_NOT_FOUND));
 
@@ -77,7 +77,7 @@ public class PurchaseOrderService {
 
     @Transactional(readOnly = true)
     public List<PurchaseOrderSummaryResponse> getPurchaseOrders(Long userId, UUID storePublicId) {
-        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+        Long storeId = storeAccessValidator.validateAndGetStoreIdForActiveMembers(userId, storePublicId);
         return purchaseOrderRepository.findAllByStoreStoreIdOrderByPurchaseOrderIdDesc(storeId).stream()
                 .map(PurchaseOrderSummaryResponse::from)
                 .toList();
@@ -93,13 +93,14 @@ public class PurchaseOrderService {
     @Transactional
     public PurchaseOrderDetailResponse update(Long userId, UUID storePublicId, UUID purchaseOrderPublicId, PurchaseOrderUpdateRequest request) {
         PurchaseOrder purchaseOrder = validateAndGetPurchaseOrder(userId, storePublicId, purchaseOrderPublicId);
+        purchaseOrderValidator.requireCancelable(purchaseOrder.getStatus());
         purchaseOrderValidator.requireItemsNotEmpty(request.items());
 
         Vendor vendor = resolveVendorOrThrow(purchaseOrder.getStore().getStoreId(), request.vendorPublicId());
         purchaseOrder.assignVendor(vendor);
 
         List<PurchaseOrderItem> oldItems = purchaseOrderItemRepository.findByPurchaseOrderPurchaseOrderId(purchaseOrder.getPurchaseOrderId());
-        purchaseOrderItemRepository.deleteAll(oldItems);
+        purchaseOrderItemRepository.deleteAllInBatch(oldItems);
 
         List<PurchaseOrderItem> newItems = request.items().stream()
                 .map(req -> PurchaseOrderItem.create(req.itemName(), req.quantity(), req.unitPrice()))
@@ -131,7 +132,6 @@ public class PurchaseOrderService {
     }
 
     private PurchaseOrder validateAndGetPurchaseOrder(Long userId, UUID storePublicId, UUID purchaseOrderPublicId) {
-        storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
         Long purchaseOrderId = purchaseOrderValidator.validateAccessAndGetPurchaseOrderId(userId, purchaseOrderPublicId);
         return purchaseOrderRepository.findById(purchaseOrderId)
                 .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_NOT_FOUND));
