@@ -4,6 +4,7 @@ import kr.inventory.domain.sales.entity.SalesOrder;
 import kr.inventory.domain.sales.exception.SalesOrderErrorCode;
 import kr.inventory.domain.sales.exception.SalesOrderException;
 import kr.inventory.domain.sales.repository.SalesOrderRepository;
+import kr.inventory.domain.stock.service.command.StockDeductionRequest;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +36,8 @@ public class StockManagerFacade {
 
 		Map<Long, BigDecimal> usageMap = theoreticalUsageService.calculateOrderUsage(salesOrder);
 
-		Map<Long, BigDecimal> shortageMap = stockService.deductStockWithFEFO(storeId, usageMap);
+        StockDeductionRequest request = StockDeductionRequest.of(storeId, salesOrderId, usageMap);
+		Map<Long, BigDecimal> shortageMap = stockService.deductStockWithFEFO(request);
 
 		if (!shortageMap.isEmpty()) {
 			handleStockShortage(salesOrder.getSalesOrderId(), shortageMap);
