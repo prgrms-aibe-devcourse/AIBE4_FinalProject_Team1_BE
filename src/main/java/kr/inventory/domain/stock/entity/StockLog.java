@@ -5,7 +5,7 @@ import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.common.CreatedAtEntity;
 import kr.inventory.domain.stock.entity.enums.ReferenceType;
 import kr.inventory.domain.stock.entity.enums.TransactionType;
-import kr.inventory.domain.stock.service.command.StockLogCommand;
+import kr.inventory.domain.stock.service.command.StockInboundLogCommand;
 import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.user.entity.User;
 import lombok.AccessLevel;
@@ -57,7 +57,7 @@ public class StockLog extends CreatedAtEntity {
 	private User createdByUser;
 
 	public static StockLog createInboundLog(
-		StockLogCommand command
+		StockInboundLogCommand command
 	) {
 		StockLog log = new StockLog();
 		log.store = command.store();

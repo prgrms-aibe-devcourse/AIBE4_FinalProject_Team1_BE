@@ -84,7 +84,6 @@ public class TableSessionService {
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
         OffsetDateTime expiresAt = now.plusMinutes(sessionTtlMinutes);
 
-        // Opaque Token 생성 및 해싱
         String sessionToken = TokenSupport.newOpaqueToken();
         String sessionTokenHash = TokenSupport.sha256Hex(sessionToken);
 

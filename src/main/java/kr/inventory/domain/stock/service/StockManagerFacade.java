@@ -4,17 +4,14 @@ import kr.inventory.domain.sales.entity.SalesOrder;
 import kr.inventory.domain.sales.exception.SalesOrderErrorCode;
 import kr.inventory.domain.sales.exception.SalesOrderException;
 import kr.inventory.domain.sales.repository.SalesOrderRepository;
-import kr.inventory.domain.stock.controller.dto.request.StockOrderDeductionRequest;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 @Slf4j
@@ -26,21 +23,19 @@ public class StockManagerFacade {
 	private final StoreAccessValidator storeAccessValidator;
 
 	@Transactional
-	public void processOrderStockDeduction(Long userId, UUID storePublicId, StockOrderDeductionRequest request) {
-		Long internalStoreId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-
-		SalesOrder salesOrder = salesOrderRepository.findByIdAndStoreStoreIdWithLock(request.salesOrderId(),
-				internalStoreId)
+	public void processOrderStockDeduction(Long storeId, Long salesOrderId) {
+		SalesOrder salesOrder = salesOrderRepository.findByIdAndStoreStoreIdWithLock(salesOrderId,
+				storeId)
 			.orElseThrow(() -> new SalesOrderException(SalesOrderErrorCode.SALES_ORDER_NOT_FOUND));
 
 		if (salesOrder.isStockProcessed()) {
-			log.info("이미 재고가 차감된 주문입니다. 주문 ID: {}", request.salesOrderId());
+			log.info("이미 재고가 차감된 주문입니다. 주문 ID: {}", salesOrderId);
 			return;
 		}
 
 		Map<Long, BigDecimal> usageMap = theoreticalUsageService.calculateOrderUsage(salesOrder);
 
-		Map<Long, BigDecimal> shortageMap = stockService.deductStockWithFEFO(internalStoreId, usageMap);
+		Map<Long, BigDecimal> shortageMap = stockService.deductStockWithFEFO(storeId, usageMap);
 
 		if (!shortageMap.isEmpty()) {
 			handleStockShortage(salesOrder.getSalesOrderId(), shortageMap);

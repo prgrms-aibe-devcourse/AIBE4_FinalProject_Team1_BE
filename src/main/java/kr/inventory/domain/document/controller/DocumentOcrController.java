@@ -21,7 +21,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/documents/{storePublicId}")
 @RequiredArgsConstructor
-@Tag(name = "Document OCR API", description = "OCR")
+@Tag(name = "OCR", description = "OCR API")
 public class DocumentOcrController {
 
 	private final DocumentOcrService documentOcrService;

@@ -1,14 +1,14 @@
 package kr.inventory.domain.sales.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import kr.inventory.domain.reference.entity.Menu;
-import kr.inventory.domain.reference.entity.enums.MenuStatus;
-import kr.inventory.domain.reference.repository.MenuRepository;
 import kr.inventory.domain.dining.entity.DiningTable;
 import kr.inventory.domain.dining.entity.TableSession;
 import kr.inventory.domain.dining.entity.enums.TableSessionStatus;
 import kr.inventory.domain.dining.repository.TableSessionRepository;
 import kr.inventory.domain.dining.service.TokenSupport;
+import kr.inventory.domain.reference.entity.Menu;
+import kr.inventory.domain.reference.entity.enums.MenuStatus;
+import kr.inventory.domain.reference.repository.MenuRepository;
 import kr.inventory.domain.sales.controller.dto.request.SalesOrderCreateRequest;
 import kr.inventory.domain.sales.controller.dto.request.SalesOrderItemRequest;
 import kr.inventory.domain.sales.controller.dto.response.SalesOrderResponse;
@@ -20,7 +20,7 @@ import kr.inventory.domain.sales.exception.SalesOrderErrorCode;
 import kr.inventory.domain.sales.exception.SalesOrderException;
 import kr.inventory.domain.sales.repository.SalesOrderItemRepository;
 import kr.inventory.domain.sales.repository.SalesOrderRepository;
-import kr.inventory.domain.stock.service.StockService;
+import kr.inventory.domain.stock.service.StockManagerFacade;
 import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +43,7 @@ public class SalesOrderService {
     private final SalesOrderItemRepository salesOrderItemRepository;
     private final TableSessionRepository tableSessionRepository;
     private final MenuRepository menuRepository;
-    private final StockService stockService;
+    private final StockManagerFacade stockManagerFacade;
     private final StoreAccessValidator storeAccessValidator;
 
     @Transactional
@@ -104,7 +104,7 @@ public class SalesOrderService {
                 idempotencyKey,
                 SalesOrderType.DINE_IN
         );
-        SalesOrder savedOrder = salesOrderRepository.save(salesOrder);
+        SalesOrder savedOrder = salesOrderRepository.saveAndFlush(salesOrder);
 
         // 9. 주문 항목 생성 (가격 스냅샷!)
         List<SalesOrderItem> items = new ArrayList<>();
@@ -120,16 +120,7 @@ public class SalesOrderService {
         salesOrderItemRepository.saveAll(items);
         savedOrder.updateTotalAmount(totalAmount);
 
-        // 10. 재고 차감 (실패 시 전체 롤백!)
-        Map<Long, BigDecimal> usageMap = calculateIngredientUsage(items);
-
-        if (!usageMap.isEmpty()) {
-            Map<Long, BigDecimal> shortageMap = stockService.deductStockWithFEFO(storeId, usageMap);
-
-            if (!shortageMap.isEmpty()) {
-                throw new SalesOrderException(SalesOrderErrorCode.INSUFFICIENT_STOCK);
-            }
-        }
+        stockManagerFacade.processOrderStockDeduction(storeId, savedOrder.getSalesOrderId());
 
         // 11. COMPLETED 상태 설정
         savedOrder.updateCompletedAt(OffsetDateTime.now(ZoneOffset.UTC));

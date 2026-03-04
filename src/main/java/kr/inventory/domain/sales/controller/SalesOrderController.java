@@ -16,11 +16,11 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-import static kr.inventory.domain.sales.constant.SalesOrderConstants.*;
+import kr.inventory.domain.sales.constant.SalesOrderConstants;
 
 @RestController
 @RequestMapping("/api/orders")
-@Tag(name = "주문(Sales Order)", description = "주문관리API")
+@Tag(name = "주문(Sales Order)", description = "주문 관리 API")
 @RequiredArgsConstructor
 public class SalesOrderController {
 
@@ -29,8 +29,8 @@ public class SalesOrderController {
     @Operation(summary = "주문 생성 (결제 처리)", description = "주문 생성 및 재고 차감을 동시에 처리합니다.")
     @PostMapping
     public ResponseEntity<SalesOrderResponse> createOrder(
-            @CookieValue(name = SESSION_TOKEN_COOKIE_NAME) String sessionToken,
-            @RequestHeader(IDEMPOTENCY_KEY_HEADER_NAME) String idempotencyKey,
+            @CookieValue(name = SalesOrderConstants.SESSION_TOKEN_COOKIE_NAME) String sessionToken,
+            @RequestHeader(SalesOrderConstants.IDEMPOTENCY_KEY_HEADER_NAME) String idempotencyKey,
             @Valid @RequestBody SalesOrderCreateRequest request
     ) {
         SalesOrderResponse response = salesOrderService.createOrder(
