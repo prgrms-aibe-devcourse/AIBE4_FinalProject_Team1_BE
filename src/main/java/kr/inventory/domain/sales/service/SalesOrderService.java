@@ -118,13 +118,13 @@ public class SalesOrderService {
         }
 
         salesOrderItemRepository.saveAll(items);
+        salesOrderItemRepository.flush();
         savedOrder.updateTotalAmount(totalAmount);
 
         stockManagerFacade.processOrderStockDeduction(storeId, savedOrder.getSalesOrderId());
 
         // 11. COMPLETED 상태 설정
         savedOrder.updateCompletedAt(OffsetDateTime.now(ZoneOffset.UTC));
-        savedOrder.markAsStockProcessed();
 
         return SalesOrderResponse.from(savedOrder, items);
     }
