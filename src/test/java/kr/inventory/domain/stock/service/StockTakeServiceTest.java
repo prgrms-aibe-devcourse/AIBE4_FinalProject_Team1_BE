@@ -165,8 +165,7 @@ class StockTakeServiceTest {
 	}
 
 	private IngredientStockBatch createBatch(Long storeId, Ingredient ingredient, BigDecimal qty) {
-		IngredientStockBatch batch = IngredientStockBatch.create(ingredient, null, qty);
-		ReflectionTestUtils.setField(batch, "storeId", storeId);
+		IngredientStockBatch batch = IngredientStockBatch.createAdjustment(storeId, ingredient, qty, BigDecimal.ZERO);
 		ReflectionTestUtils.setField(batch, "initialQuantity", qty);
 		return batch;
 	}
