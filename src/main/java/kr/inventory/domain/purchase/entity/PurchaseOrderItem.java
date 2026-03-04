@@ -16,38 +16,38 @@ import java.time.LocalDate;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PurchaseOrderItem extends CreatedAtEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long purchaseOrderItemId;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long purchaseOrderItemId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "purchase_order_id", nullable = false)
-    private PurchaseOrder purchaseOrder;
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "purchase_order_id", nullable = false)
+	private PurchaseOrder purchaseOrder;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "ingredient_id", nullable = false)
-    private Ingredient ingredient;
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "ingredient_id", nullable = true)
+	private Ingredient ingredient;
 
-    @Column(nullable = false, precision = 14, scale = 3)
-    private BigDecimal quantity;
+	@Column(nullable = false, precision = 14, scale = 3)
+	private BigDecimal quantity;
 
-    @Column(precision = 14, scale = 2)
-    private BigDecimal unitCost;
+	@Column(precision = 14, scale = 2)
+	private BigDecimal unitCost;
 
-    @Column(precision = 14, scale = 2)
-    private BigDecimal lineTotal;
+	@Column(precision = 14, scale = 2)
+	private BigDecimal lineTotal;
 
-    private LocalDate expirationDate;
+	private LocalDate expirationDate;
 
-    public static PurchaseOrderItem create(
-            PurchaseOrder purchaseOrder,
-            Ingredient ingredient,
-            BigDecimal quantity
-    ) {
-        PurchaseOrderItem item = new PurchaseOrderItem();
-        item.purchaseOrder = purchaseOrder;
-        item.ingredient = ingredient;
-        item.quantity = quantity;
-        return item;
-    }
+	public static PurchaseOrderItem create(
+		PurchaseOrder purchaseOrder,
+		Ingredient ingredient,
+		BigDecimal quantity
+	) {
+		PurchaseOrderItem item = new PurchaseOrderItem();
+		item.purchaseOrder = purchaseOrder;
+		item.ingredient = ingredient;
+		item.quantity = quantity;
+		return item;
+	}
 }
