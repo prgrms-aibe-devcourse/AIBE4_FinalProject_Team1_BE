@@ -4,6 +4,6 @@ public enum ReferenceType {
     INBOUND,
     SALE,
     WASTE,
-    ADJUST,
+    STOCK_TAKING,
     OTHER
 }
