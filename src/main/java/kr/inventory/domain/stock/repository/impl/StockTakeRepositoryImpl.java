@@ -1,9 +1,10 @@
-package kr.inventory.domain.stock.repository;
+package kr.inventory.domain.stock.repository.impl;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.LockModeType;
 import kr.inventory.domain.stock.entity.StockTake;
 import kr.inventory.domain.stock.entity.StockTakeSheet;
+import kr.inventory.domain.stock.repository.StockTakeRepositoryCustom;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Collections;
