@@ -79,7 +79,7 @@ public class SalesOrderService {
                 .map(SalesOrderItemRequest::menuPublicId)
                 .toList();
 
-        List<Menu> menus = menuRepository.findByMenuPublicIdIn(menuPublicIds);
+        List<Menu> menus = menuRepository.findByMenuPublicIdInAndStatusNot(menuPublicIds, MenuStatus.DELETED);
 
         if (menus.size() != menuPublicIds.size()) {
             throw new SalesOrderException(SalesOrderErrorCode.MENU_NOT_FOUND);

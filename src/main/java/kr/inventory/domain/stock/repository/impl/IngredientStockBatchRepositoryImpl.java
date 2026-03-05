@@ -37,7 +37,7 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
 			.selectFrom(ingredientStockBatch)
 			.join(ingredientStockBatch.ingredient).fetchJoin()
 			.where(
-				ingredientStockBatch.storeId.eq(storeId),
+				ingredientStockBatch.store.storeId.eq(storeId),
 				ingredientStockBatch.ingredient.ingredientId.in(ingredientIds),
 				ingredientStockBatch.status.eq(StockBatchStatus.OPEN),
 				ingredientStockBatch.remainingQuantity.gt(BigDecimal.ZERO)
@@ -58,7 +58,7 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
 				.select(ingredientStockBatch.unitCost)
 				.from(ingredientStockBatch)
 				.where(
-					ingredientStockBatch.storeId.eq(storeId),
+					ingredientStockBatch.store.storeId.eq(storeId),
 					ingredientStockBatch.ingredient.ingredientId.eq(ingredientId),
 					ingredientStockBatch.unitCost.isNotNull(),
 					ingredientStockBatch.unitCost.gt(BigDecimal.ZERO)
@@ -74,7 +74,7 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
 			.select(ingredientStockBatch.remainingQuantity.sum())
 			.from(ingredientStockBatch)
 			.where(
-				ingredientStockBatch.storeId.eq(storeId),
+				ingredientStockBatch.store.storeId.eq(storeId),
 				ingredientStockBatch.ingredient.ingredientId.eq(ingredientId),
 				ingredientStockBatch.remainingQuantity.gt(BigDecimal.ZERO)
 			)
@@ -92,16 +92,16 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
 			)
 			.from(ingredientStockBatch)
 			.where(
-				ingredientStockBatch.storeId.eq(storeId),
+				ingredientStockBatch.store.storeId.eq(storeId),
 				ingredientStockBatch.ingredient.ingredientId.in(ingredientIds)
 			)
 			.groupBy(ingredientStockBatch.ingredient.ingredientId)
 			.fetch()
 			.stream()
 			.collect(Collectors.toMap(
-				tuple -> tuple.get(ingredientStockBatch.ingredient.ingredientId),
+				tuple -> tuple.get(0, Long.class),
 				tuple -> {
-					BigDecimal sum = tuple.get(ingredientStockBatch.remainingQuantity.sum());
+					BigDecimal sum = tuple.get(1, BigDecimal.class);
 					return sum != null ? sum : BigDecimal.ZERO;
 				}
 			));
@@ -120,7 +120,7 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
 			))
 			.from(ingredientStockBatch)
 			.where(
-				ingredientStockBatch.storeId.eq(storeId),
+				ingredientStockBatch.store.storeId.eq(storeId),
 				ingredientStockBatch.status.eq(StockBatchStatus.OPEN)
 			)
 			.groupBy(ingredientStockBatch.ingredient.ingredientId,
@@ -139,7 +139,7 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
 			.selectFrom(ingredientStockBatch)
 			.join(ingredientStockBatch.ingredient).fetchJoin()
 			.where(
-				ingredientStockBatch.storeId.eq(storeId),
+				ingredientStockBatch.store.storeId.eq(storeId),
 				ingredientStockBatch.ingredient.ingredientPublicId.eq(ingredientPublicIds),
 				ingredientStockBatch.status.eq(StockBatchStatus.OPEN),
 				ingredientStockBatch.remainingQuantity.gt(BigDecimal.ZERO)

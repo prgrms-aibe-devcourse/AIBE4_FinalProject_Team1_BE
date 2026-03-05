@@ -1,4 +1,4 @@
-package kr.inventory.domain.reference.controller.dto;
+package kr.inventory.domain.reference.controller.dto.request;
 
 import kr.inventory.domain.reference.entity.enums.IngredientStatus;
 import kr.inventory.domain.reference.entity.enums.IngredientUnit;

@@ -1,6 +1,4 @@
-package kr.inventory.domain.stock.repository;
-
-import static kr.inventory.domain.stock.entity.QStockInbound.*;
+package kr.inventory.domain.stock.repository.impl;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,7 +12,7 @@ import kr.inventory.domain.stock.controller.dto.response.StockInboundResponse;
 import kr.inventory.domain.stock.entity.QStockInbound;
 import kr.inventory.domain.stock.entity.QStockInboundItem;
 import kr.inventory.domain.stock.entity.StockInbound;
-import kr.inventory.domain.stock.entity.StockInboundItem;
+import kr.inventory.domain.stock.repository.StockInboundRepositoryCustom;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor

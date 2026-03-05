@@ -1,6 +1,7 @@
 package kr.inventory.domain.stock.service;
 
 import kr.inventory.domain.reference.entity.Ingredient;
+import kr.inventory.domain.reference.entity.enums.IngredientStatus;
 import kr.inventory.domain.reference.exception.IngredientErrorCode;
 import kr.inventory.domain.reference.exception.IngredientException;
 import kr.inventory.domain.reference.repository.IngredientRepository;
@@ -59,8 +60,12 @@ public class StockTakeService {
 
 		List<Long> ingredientIds = request.items().stream().map(StockTakeItemRequest::ingredientId).toList();
 
-		Map<Long, Ingredient> ingredientMap = ingredientRepository.findAllByStoreStoreIdAndIngredientIdIn(storeId,
-			ingredientIds).stream().collect(Collectors.toMap(Ingredient::getIngredientId, Function.identity()));
+		// ACTIVE 전용 조회 (DELETED 제외)
+		Map<Long, Ingredient> ingredientMap = ingredientRepository.findAllByStoreStoreIdAndIngredientIdInAndStatusNot(
+			storeId,
+			ingredientIds,
+			IngredientStatus.DELETED
+		).stream().collect(Collectors.toMap(Ingredient::getIngredientId, Function.identity()));
 
 		List<StockTake> items = request.items().stream()
 			.map(req -> {
@@ -173,7 +178,6 @@ public class StockTakeService {
 			});
 
 		IngredientStockBatch adjustmentBatch = IngredientStockBatch.createAdjustment(
-			storeId,
 			ingredient,
 			amount,
 			adjustmentUnitCost

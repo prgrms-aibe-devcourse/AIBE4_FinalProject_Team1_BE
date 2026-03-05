@@ -1,4 +1,4 @@
-package kr.inventory.domain.reference.controller.dto;
+package kr.inventory.domain.reference.controller.dto.request;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.constraints.NotBlank;

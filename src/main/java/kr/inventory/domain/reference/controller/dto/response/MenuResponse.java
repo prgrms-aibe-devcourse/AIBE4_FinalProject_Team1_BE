@@ -1,4 +1,4 @@
-package kr.inventory.domain.reference.controller.dto;
+package kr.inventory.domain.reference.controller.dto.response;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import kr.inventory.domain.reference.entity.Menu;

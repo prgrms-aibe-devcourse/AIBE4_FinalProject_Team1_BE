@@ -5,11 +5,10 @@ import kr.inventory.domain.reference.entity.enums.IngredientStatus;
 import kr.inventory.domain.reference.entity.enums.IngredientUnit;
 import kr.inventory.domain.common.AuditableEntity;
 import kr.inventory.domain.store.entity.Store;
+import kr.inventory.global.util.IngredientNameNormalizer;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.Where;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -17,10 +16,15 @@ import java.util.UUID;
 @Entity
 @Table(
         name = "ingredients",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"store_id", "name"})
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"store_id", "name"}),
+                @UniqueConstraint(columnNames = {"store_id", "normalized_name"})
+        },
+        indexes = {
+                @Index(name = "idx_ingredients_store_id", columnList = "store_id"),
+                @Index(name = "idx_ingredients_normalized_name", columnList = "normalized_name")
+        }
 )
-@SQLDelete(sql = "UPDATE ingredients SET status = 'DELETED' WHERE ingredient_id = ?")
-@Where(clause = "status <> 'DELETED'")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Ingredient extends AuditableEntity {
@@ -39,12 +43,18 @@ public class Ingredient extends AuditableEntity {
     @Column(nullable = false, length = 120)
     private String name;
 
+    @Column(nullable = false, length = 200)
+    private String normalizedName;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private IngredientUnit unit;
 
     @Column(precision = 14, scale = 3)
     private BigDecimal lowStockThreshold;
+
+    @Column(precision = 14, scale = 3)
+    private BigDecimal unitSize;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -54,16 +64,44 @@ public class Ingredient extends AuditableEntity {
         Ingredient ingredient = new Ingredient();
         ingredient.store = store;
         ingredient.name = name;
+        ingredient.normalizedName = IngredientNameNormalizer.normalizeForSearch(name);
         ingredient.unit = unit;
         ingredient.lowStockThreshold = lowStockThreshold;
+        ingredient.unitSize = null;
+        ingredient.status = IngredientStatus.ACTIVE;
+        return ingredient;
+    }
+
+    public static Ingredient create(Store store, String name, IngredientUnit unit, BigDecimal lowStockThreshold, BigDecimal unitSize) {
+        Ingredient ingredient = new Ingredient();
+        ingredient.store = store;
+        ingredient.name = name;
+        ingredient.normalizedName = IngredientNameNormalizer.normalizeForSearch(name);
+        ingredient.unit = unit;
+        ingredient.lowStockThreshold = lowStockThreshold;
+        ingredient.unitSize = unitSize;
         ingredient.status = IngredientStatus.ACTIVE;
         return ingredient;
     }
 
     public void update(String name, IngredientUnit unit, BigDecimal lowStockThreshold, IngredientStatus status) {
-        if (name != null) this.name = name;
-        if (unit != null) this.unit = unit;
-        if (lowStockThreshold != null) this.lowStockThreshold = lowStockThreshold;
-        if (status != null) this.status = status;
+        this.name = name;
+        this.normalizedName = IngredientNameNormalizer.normalizeForSearch(name);
+        this.unit = unit;
+        this.lowStockThreshold = lowStockThreshold;
+        this.status = status;
+    }
+
+    public void update(String name, IngredientUnit unit, BigDecimal lowStockThreshold, IngredientStatus status, BigDecimal unitSize) {
+        this.name = name;
+        this.normalizedName = IngredientNameNormalizer.normalizeForSearch(name);
+        this.unit = unit;
+        this.lowStockThreshold = lowStockThreshold;
+        this.unitSize = unitSize;
+        this.status = status;
+    }
+
+    public void delete() {
+        this.status = IngredientStatus.DELETED;
     }
 }

@@ -3,6 +3,7 @@ package kr.inventory.domain.stock.entity;
 import jakarta.persistence.*;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.common.AuditableEntity;
+import kr.inventory.domain.reference.entity.enums.IngredientUnit;
 import kr.inventory.domain.stock.entity.enums.StockBatchStatus;
 import kr.inventory.domain.store.entity.Store;
 import lombok.AccessLevel;
@@ -22,12 +23,17 @@ public class IngredientStockBatch extends AuditableEntity {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long batchId;
 
-	@Column(nullable = false)
-	private Long storeId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "store_id", nullable = false)
+    private Store store;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "ingredient_id", nullable = false)
-	private Ingredient ingredient;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "ingredient_id", nullable = false)
+    private Ingredient ingredient;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private IngredientUnit unit;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "inbound_item_id")
@@ -53,11 +59,18 @@ public class IngredientStockBatch extends AuditableEntity {
 		StockInboundItem inboundItem
 	) {
 		IngredientStockBatch batch = new IngredientStockBatch();
-		batch.storeId = ingredient.getStore().getStoreId();
+		batch.store = ingredient.getStore();
 		batch.ingredient = ingredient;
+		batch.unit = ingredient.getUnit();
 		batch.inboundItem = inboundItem;
-		batch.initialQuantity = inboundItem.getQuantity();
-		batch.remainingQuantity = inboundItem.getQuantity();
+
+		BigDecimal effectiveQuantity = inboundItem.getQuantity();
+		if (ingredient.getUnitSize() != null) {
+			effectiveQuantity = effectiveQuantity.multiply(ingredient.getUnitSize());
+		}
+
+		batch.initialQuantity = effectiveQuantity;
+		batch.remainingQuantity = effectiveQuantity;
 		batch.unitCost = inboundItem.getUnitCost();
 		batch.expirationDate = inboundItem.getExpirationDate();
 		batch.status = StockBatchStatus.OPEN;
@@ -91,14 +104,14 @@ public class IngredientStockBatch extends AuditableEntity {
 	}
 
 	public static IngredientStockBatch createAdjustment(
-		Long storeId,
 		Ingredient ingredient,
 		BigDecimal quantity,
 		BigDecimal unitCost
 	) {
 		IngredientStockBatch batch = new IngredientStockBatch();
-		batch.storeId = storeId;
+		batch.store = ingredient.getStore();
 		batch.ingredient = ingredient;
+		batch.unit = ingredient.getUnit();
 		batch.inboundItem = null;
 		batch.initialQuantity = quantity;
 		batch.remainingQuantity = quantity;

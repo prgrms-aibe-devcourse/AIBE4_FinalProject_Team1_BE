@@ -1,4 +1,4 @@
-package kr.inventory.domain.reference.controller.dto;
+package kr.inventory.domain.reference.controller.dto.response;
 
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.entity.enums.IngredientStatus;
@@ -12,6 +12,7 @@ public record IngredientResponse(
         String name,
         IngredientUnit unit,
         BigDecimal lowStockThreshold,
+        BigDecimal unitSize,
         IngredientStatus status
 ) {
     public static IngredientResponse from(Ingredient ingredient) {
@@ -20,6 +21,7 @@ public record IngredientResponse(
                 ingredient.getName(),
                 ingredient.getUnit(),
                 ingredient.getLowStockThreshold(),
+                ingredient.getUnitSize(),
                 ingredient.getStatus()
         );
     }

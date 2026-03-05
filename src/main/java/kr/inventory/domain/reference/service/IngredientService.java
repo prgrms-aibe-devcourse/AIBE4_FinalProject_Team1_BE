@@ -1,12 +1,14 @@
 package kr.inventory.domain.reference.service;
 
-import kr.inventory.domain.reference.controller.dto.IngredientCreateRequest;
-import kr.inventory.domain.reference.controller.dto.IngredientResponse;
-import kr.inventory.domain.reference.controller.dto.IngredientUpdateRequest;
+import kr.inventory.domain.reference.controller.dto.request.IngredientCreateRequest;
+import kr.inventory.domain.reference.controller.dto.response.IngredientResponse;
+import kr.inventory.domain.reference.controller.dto.request.IngredientUpdateRequest;
 import kr.inventory.domain.reference.entity.Ingredient;
+import kr.inventory.domain.reference.entity.enums.IngredientStatus;
 import kr.inventory.domain.reference.exception.IngredientErrorCode;
 import kr.inventory.domain.reference.exception.IngredientException;
 import kr.inventory.domain.reference.repository.IngredientRepository;
+import kr.inventory.domain.stock.normalization.model.InboundSpecExtractor;
 import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.exception.StoreErrorCode;
 import kr.inventory.domain.store.exception.StoreException;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -27,21 +30,44 @@ public class IngredientService {
     private final IngredientRepository ingredientRepository;
     private final StoreRepository storeRepository;
     private final StoreAccessValidator storeAccessValidator;
+    private final InboundSpecExtractor specExtractor;
 
     @Transactional
-    public UUID createIngredient(Long userId, UUID storePublicId, IngredientCreateRequest request) {
+    public IngredientResponse createIngredient(Long userId, UUID storePublicId, IngredientCreateRequest request) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_NOT_FOUND));
 
-        Ingredient ingredient = Ingredient.create(store, request.name(), request.unit(), request.lowStockThreshold());
+        // 입고 원문에서 규격 추출 시도
+        Optional<InboundSpecExtractor.Spec> spec = specExtractor.extract(request.name());
+
+        Ingredient ingredient;
+        if (spec.isPresent()) {
+            // 규격 추출 성공: baseName, unit, unitSize 사용
+            ingredient = Ingredient.create(
+                store,
+                spec.get().baseName(),
+                spec.get().unit(),
+                request.lowStockThreshold(),
+                spec.get().unitSize()
+            );
+        } else {
+            // 규격 추출 실패: 기존 방식대로 생성 (unitSize=null)
+            ingredient = Ingredient.create(
+                store,
+                request.name(),
+                request.unit(),
+                request.lowStockThreshold()
+            );
+        }
+
         ingredientRepository.save(ingredient);
-        return ingredient.getIngredientPublicId();
+        return IngredientResponse.from(ingredient);
     }
 
     public List<IngredientResponse> getIngredients(Long userId, UUID storePublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        return ingredientRepository.findAllByStoreStoreId(storeId).stream()
+        return ingredientRepository.findAllByStoreStoreIdAndStatusNot(storeId, IngredientStatus.DELETED).stream()
                 .map(IngredientResponse::from)
                 .toList();
     }
@@ -55,12 +81,13 @@ public class IngredientService {
     }
 
     @Transactional
-    public void updateIngredient(Long userId, UUID storePublicId, UUID ingredientPublicId, IngredientUpdateRequest request) {
+    public IngredientResponse updateIngredient(Long userId, UUID storePublicId, UUID ingredientPublicId, IngredientUpdateRequest request) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
         Ingredient ingredient = getValidIngredient(ingredientPublicId, storeId);
 
         ingredient.update(request.name(), request.unit(), request.lowStockThreshold(), request.status());
+        return IngredientResponse.from(ingredient);
     }
 
     @Transactional
@@ -69,21 +96,16 @@ public class IngredientService {
 
         Ingredient ingredient = getValidIngredient(ingredientPublicId, storeId);
 
-        ingredientRepository.delete(ingredient);
+        ingredient.delete();
     }
 
     private Ingredient getValidIngredient(UUID ingredientPublicId, Long storeId) {
-        Ingredient ingredient = ingredientRepository.findByIngredientPublicId(ingredientPublicId)
+        return ingredientRepository
+                .findByIngredientPublicIdAndStoreStoreIdAndStatusNot(
+                        ingredientPublicId,
+                        storeId,
+                        IngredientStatus.DELETED
+                )
                 .orElseThrow(() -> new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND));
-
-        validateIngredientBelongsToStore(ingredient, storeId);
-
-        return ingredient;
-    }
-
-    private void validateIngredientBelongsToStore(Ingredient ingredient, Long storeId){
-        if (!ingredient.getStore().getStoreId().equals(storeId)) {
-            throw new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND);
-        }
     }
 }
