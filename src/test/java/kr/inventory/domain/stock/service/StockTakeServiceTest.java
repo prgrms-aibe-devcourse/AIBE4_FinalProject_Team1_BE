@@ -59,7 +59,8 @@ class StockTakeServiceTest {
     @DisplayName("실사 시트를 생성하면 시트와 항목들이 정상적으로 저장된다.")
     void createStockTakeSheet_Success() {
         // given
-        StockTakeItemRequest itemReq = new StockTakeItemRequest(100L, new BigDecimal("50.0"));
+        UUID ingredientPublicId = UUID.randomUUID();
+        StockTakeItemRequest itemReq = new StockTakeItemRequest(ingredientPublicId, new BigDecimal("50.0"));
         StockTakeCreateRequest request = new StockTakeCreateRequest("정기 실사", List.of(itemReq));
         Ingredient ingredient = createIngredient(100L);
 

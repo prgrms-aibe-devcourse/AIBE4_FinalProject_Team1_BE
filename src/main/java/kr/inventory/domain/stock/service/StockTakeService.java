@@ -20,14 +20,24 @@ import kr.inventory.domain.stock.exception.StockException;
 import kr.inventory.domain.stock.repository.IngredientStockBatchRepository;
 import kr.inventory.domain.stock.repository.StockTakeRepository;
 import kr.inventory.domain.stock.repository.StockTakeSheetRepository;
+import kr.inventory.domain.stock.service.command.StockDeductionLogCommand;
+import kr.inventory.domain.stock.service.command.StockInboundLogCommand;
+import kr.inventory.domain.stock.service.command.StockTakeConfirmContext;
+import kr.inventory.domain.store.entity.Store;
+import kr.inventory.domain.store.repository.StoreRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
+import kr.inventory.domain.user.entity.User;
+import kr.inventory.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -40,6 +50,9 @@ public class StockTakeService {
 	private final IngredientRepository ingredientRepository;
 	private final StockTakeSheetRepository stockTakeSheetRepository;
 	private final StoreAccessValidator storeAccessValidator;
+    private final StockLogService stockLogService;
+    private final StoreRepository storeRepository;
+    private final UserRepository userRepository;
 
 	@Transactional(readOnly = true)
 	public List<StockTakeSheetResponse> getStockTakeSheets(Long userId, UUID storePublicId) {
@@ -165,7 +178,17 @@ public class StockTakeService {
 	public void confirmSheet(Long userId, UUID storePublicId, UUID sheetPublicId) {
 		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
+        Store store = storeRepository.getReferenceById(storeId);
+        User user = userRepository.getReferenceById(userId);
+
         StockTakeSheet sheet = loadSheetForUpdate(sheetPublicId, storeId);
+
+        StockTakeConfirmContext ctx = new StockTakeConfirmContext(
+                storeId,
+                store,
+                user,
+                sheet.getSheetId()
+        );
 
 		List<StockTake> items = stockTakeRepository.findBySheet(sheet);
 		if (items.isEmpty()) {
@@ -175,7 +198,7 @@ public class StockTakeService {
 
         Map<Long, List<IngredientStockBatch>> batchMap = loadBatchesGroupedByIngredient(storeId, items);
 
-        applyConfirmToItems(storeId, items, batchMap);
+        applyConfirmToItems(ctx, items, batchMap);
 
 		sheet.confirm();
 	}
@@ -190,40 +213,52 @@ public class StockTakeService {
                 .collect(Collectors.groupingBy(IngredientStockBatch::getIngredientId));
     }
 
-    private void applyConfirmToItems(Long storeId, List<StockTake> items, Map<Long, List<IngredientStockBatch>> batchMap) {
+    private void applyConfirmToItems(
+            StockTakeConfirmContext ctx,
+            List<StockTake> items,
+            Map<Long, List<IngredientStockBatch>> batchMap
+    ) {
         for (StockTake item : items) {
             Long ingredientId = item.getIngredient().getIngredientId();
             List<IngredientStockBatch> ingredientBatches = batchMap.getOrDefault(ingredientId, List.of());
-            confirmIndividualItem(storeId, item, ingredientBatches);
+            confirmIndividualItem(ctx, item, ingredientBatches);
         }
     }
 
-	private void confirmIndividualItem(Long storeId, StockTake item, List<IngredientStockBatch> batches) {
-		Ingredient ingredient = item.getIngredient();
+    private void confirmIndividualItem(
+            StockTakeConfirmContext ctx,
+            StockTake item,
+            List<IngredientStockBatch> batches
+    ) {
+        Ingredient ingredient = item.getIngredient();
 
-		BigDecimal theoreticalQty = batches.stream()
-			.map(IngredientStockBatch::getRemainingQuantity)
-			.reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal theoreticalQty = batches.stream()
+                .map(IngredientStockBatch::getRemainingQuantity)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-		BigDecimal varianceQty = item.getStockTakeQty().subtract(theoreticalQty);
+        BigDecimal varianceQty = item.getStockTakeQty().subtract(theoreticalQty);
 
-		item.updateQuantities(theoreticalQty, varianceQty);
+        item.updateQuantities(theoreticalQty, varianceQty);
 
-		adjustStockByVariance(storeId, ingredient, batches, varianceQty);
-	}
+        adjustStockByVariance(ctx, ingredient, batches, varianceQty);
+    }
 
-	private void adjustStockByVariance(Long storeId, Ingredient ingredient, List<IngredientStockBatch> batches,
-		BigDecimal variance) {
-		int compare = variance.signum();
+    private void adjustStockByVariance(
+            StockTakeConfirmContext ctx,
+            Ingredient ingredient,
+            List<IngredientStockBatch> batches,
+            BigDecimal variance
+    ) {
+        int compare = variance.signum();
 
-		if (compare < 0) {
-			handleStockDeficit(batches, variance.abs());
-		} else if (compare > 0) {
-			createAdjustmentBatch(storeId, ingredient, variance);
-		}
-	}
+        if (compare < 0) {
+            handleStockDeficit(ctx, ingredient, batches, variance.abs());
+        } else if (compare > 0) {
+            createAdjustmentBatch(ctx, ingredient, variance);
+        }
+    }
 
-	private void handleStockDeficit(List<IngredientStockBatch> batches, BigDecimal deficitAmount) {
+	private void handleStockDeficit(StockTakeConfirmContext ctx, Ingredient ingredient, List<IngredientStockBatch> batches, BigDecimal deficitAmount) {
 		BigDecimal remainingToDeduct = deficitAmount;
 
 		for (IngredientStockBatch batch : batches) {
@@ -232,29 +267,61 @@ public class StockTakeService {
 
 			BigDecimal currentRemaining = batch.getRemainingQuantity();
 			BigDecimal deductAmount = currentRemaining.min(remainingToDeduct);
+            BigDecimal after = currentRemaining.subtract(deductAmount);
 
-			batch.updateRemaining(currentRemaining.subtract(deductAmount));
+            batch.updateRemaining(after);
+
+            stockLogService.logDeduction(
+                    StockDeductionLogCommand.forStockTake(
+                            ctx.store(),
+                            ingredient,
+                            batch,
+                            deductAmount,
+                            after,
+                            ctx.sheetId(),
+                            ctx.user()
+                    )
+            );
 
 			remainingToDeduct = remainingToDeduct.subtract(deductAmount);
 		}
+        if (remainingToDeduct.signum() > 0) {
+            throw new StockException(StockErrorCode.INSUFFICIENT_STOCK);
+        }
 	}
 
-	private void createAdjustmentBatch(Long storeId, Ingredient ingredient, BigDecimal amount) {
-		BigDecimal adjustmentUnitCost = ingredientStockBatchRepository
-			.findLatestUnitCostByStoreAndIngredient(storeId, ingredient.getIngredientId())
-			.orElseGet(() -> {
-				log.warn("재고 조정 중 단가를 찾을 수 없습니다. (식재료: {}, 매장: {}). 단가 0으로 생성됩니다.",
-					ingredient.getName(), storeId);
-				return BigDecimal.ZERO;
-			});
+    private void createAdjustmentBatch(
+            StockTakeConfirmContext ctx,
+            Ingredient ingredient,
+            BigDecimal amount
+    ) {
+        BigDecimal adjustmentUnitCost = ingredientStockBatchRepository
+                .findLatestUnitCostByStoreAndIngredient(ctx.storeId(), ingredient.getIngredientId())
+                .orElseGet(() -> {
+                    log.warn("재고 조정 중 단가를 찾을 수 없습니다. (식재료: {}, 매장: {}). 단가 0으로 생성됩니다.",
+                            ingredient.getName(), ctx.storeId());
+                    return BigDecimal.ZERO;
+                });
 
-		IngredientStockBatch adjustmentBatch = IngredientStockBatch.createAdjustment(
-			storeId,
-			ingredient,
-			amount,
-			adjustmentUnitCost
-		);
+        IngredientStockBatch adjustmentBatch = IngredientStockBatch.createAdjustment(
+                ctx.storeId(),
+                ingredient,
+                amount,
+                adjustmentUnitCost
+        );
 
-		ingredientStockBatchRepository.save(adjustmentBatch);
-	}
+        ingredientStockBatchRepository.save(adjustmentBatch);
+
+        stockLogService.logInbound(
+                StockInboundLogCommand.forStockTake(
+                        ctx.store(),
+                        ingredient,
+                        adjustmentBatch,
+                        amount,
+                        adjustmentBatch.getRemainingQuantity(),
+                        ctx.sheetId(),
+                        ctx.user()
+                )
+        );
+    }
 }
