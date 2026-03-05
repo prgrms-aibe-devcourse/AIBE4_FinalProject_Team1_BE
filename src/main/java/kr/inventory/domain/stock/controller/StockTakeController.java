@@ -50,12 +50,12 @@ public class StockTakeController {
 		summary = "재고 실사 확정",
 		description = "입력된 실사 수량을 바탕으로 장부상 재고를 업데이트하고 조사를 종료합니다."
 	)
-	@PostMapping("/{sheetId}/confirm")
+	@PostMapping("/{sheetPublicId}/confirm")
 	public ResponseEntity<Void> confirmSheet(
 		@PathVariable UUID storePublicId,
-		@PathVariable Long sheetId,
+		@PathVariable UUID sheetPublicId,
 		@AuthenticationPrincipal CustomUserDetails principal) {
-		stockTakeService.confirmSheet(principal.getUserId(), storePublicId, sheetId);
+		stockTakeService.confirmSheet(principal.getUserId(), storePublicId, sheetPublicId);
 		return ResponseEntity.noContent().build();
 	}
 }

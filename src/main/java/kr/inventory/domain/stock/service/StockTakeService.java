@@ -75,9 +75,10 @@ public class StockTakeService {
 	}
 
 	@Transactional
-	public void confirmSheet(Long userId, UUID storePublicId, Long sheetId) {
+	public void confirmSheet(Long userId, UUID storePublicId, UUID sheetPublicId) {
 		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-		StockTakeSheet sheet = getValidSheetForConfirm(sheetId, storeId);
+
+        StockTakeSheet sheet = getValidSheetByPublicId(sheetPublicId, storeId);
 
 		List<StockTake> items = stockTakeRepository.findBySheet(sheet);
 		if (items.isEmpty()) {
@@ -92,15 +93,15 @@ public class StockTakeService {
 		sheet.confirm();
 	}
 
-	private StockTakeSheet getValidSheetForConfirm(Long sheetId, Long storeId) {
-		StockTakeSheet sheet = stockTakeSheetRepository.findByIdAndStoreIdWithLock(sheetId, storeId)
-			.orElseThrow(() -> new StockException(StockErrorCode.SHEET_NOT_FOUND));
+    private StockTakeSheet getValidSheetByPublicId(UUID sheetPublicId, Long storeId) {
+        StockTakeSheet sheet = stockTakeSheetRepository.findBySheetPublicIdAndStoreIdWithLock(sheetPublicId, storeId)
+                .orElseThrow(() -> new StockException(StockErrorCode.SHEET_NOT_FOUND));
 
-		if (sheet.getStatus() == StockTakeStatus.CONFIRMED) {
-			throw new StockException(StockErrorCode.ALREADY_CONFIRMED);
-		}
-		return sheet;
-	}
+        if (sheet.getStatus() == StockTakeStatus.CONFIRMED) {
+            throw new StockException(StockErrorCode.ALREADY_CONFIRMED);
+        }
+        return sheet;
+    }
 
 	private Map<Long, List<IngredientStockBatch>> fetchGroupedBatches(Long storeId, List<StockTake> items) {
 		List<Long> ingredientIds = items.stream()
