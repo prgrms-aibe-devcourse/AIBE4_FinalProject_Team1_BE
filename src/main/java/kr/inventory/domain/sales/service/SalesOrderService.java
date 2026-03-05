@@ -104,7 +104,7 @@ public class SalesOrderService {
                 idempotencyKey,
                 SalesOrderType.DINE_IN
         );
-        SalesOrder savedOrder = salesOrderRepository.saveAndFlush(salesOrder);
+        SalesOrder savedOrder = salesOrderRepository.save(salesOrder);
 
         // 9. 주문 항목 생성 (가격 스냅샷!)
         List<SalesOrderItem> items = new ArrayList<>();
@@ -118,10 +118,9 @@ public class SalesOrderService {
         }
 
         salesOrderItemRepository.saveAll(items);
-        salesOrderItemRepository.flush();
         savedOrder.updateTotalAmount(totalAmount);
 
-        stockManagerFacade.processOrderStockDeduction(storeId, savedOrder.getSalesOrderId());
+        stockManagerFacade.processOrderStockDeduction(savedOrder, items);
 
         // 11. COMPLETED 상태 설정
         savedOrder.updateCompletedAt(OffsetDateTime.now(ZoneOffset.UTC));

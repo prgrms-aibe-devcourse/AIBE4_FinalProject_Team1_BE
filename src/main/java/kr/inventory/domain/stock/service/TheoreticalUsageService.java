@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.entity.Menu;
 import kr.inventory.domain.reference.repository.IngredientRepository;
-import kr.inventory.domain.sales.entity.SalesOrder;
 import kr.inventory.domain.sales.entity.SalesOrderItem;
 import kr.inventory.domain.sales.repository.SalesOrderItemRepository;
 import kr.inventory.domain.stock.exception.StockErrorCode;
@@ -32,11 +31,7 @@ public class TheoreticalUsageService {
     private final IngredientRepository ingredientRepository;
     private final ObjectMapper objectMapper;
 
-    public Map<Long, BigDecimal> calculateOrderUsage(SalesOrder salesOrder) {
-        List<SalesOrderItem> items = salesOrderItemRepository.findBySalesOrderSalesOrderId(salesOrder.getSalesOrderId());
-
-        Long storeId = salesOrder.getStore().getStoreId();
-
+    public Map<Long, BigDecimal> calculateOrderUsage(Long storeId, List<SalesOrderItem> items) {
         return getTotalUsage(storeId, items);
     }
 
