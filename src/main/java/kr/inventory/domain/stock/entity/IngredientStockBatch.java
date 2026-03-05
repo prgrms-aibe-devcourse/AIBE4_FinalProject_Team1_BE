@@ -5,6 +5,8 @@ import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.common.AuditableEntity;
 import kr.inventory.domain.reference.entity.enums.IngredientUnit;
 import kr.inventory.domain.stock.entity.enums.StockBatchStatus;
+import kr.inventory.domain.stock.exception.StockErrorCode;
+import kr.inventory.domain.stock.exception.StockException;
 import kr.inventory.domain.store.entity.Store;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -12,6 +14,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Entity
 @Table(name = "ingredient_stock_batches")
@@ -22,6 +25,9 @@ public class IngredientStockBatch extends AuditableEntity {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long batchId;
+
+    @Column(nullable = false)
+    private UUID batchPublicId = UUID.randomUUID();
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "store_id", nullable = false)
@@ -120,4 +126,21 @@ public class IngredientStockBatch extends AuditableEntity {
 		batch.status = StockBatchStatus.OPEN;
 		return batch;
 	}
+
+    public void decreaseQuantity(BigDecimal amount) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new StockException(StockErrorCode.INVALID_WASTE_QUANTITY);
+        }
+
+        if (this.remainingQuantity.compareTo(amount) < 0) {
+            throw new StockException(StockErrorCode.INSUFFICIENT_STOCK);
+        }
+
+        this.remainingQuantity = this.remainingQuantity.subtract(amount);
+
+        if (this.remainingQuantity.signum() <= 0) {
+            this.remainingQuantity = BigDecimal.ZERO;
+            this.status = StockBatchStatus.CLOSED;
+        }
+    }
 }

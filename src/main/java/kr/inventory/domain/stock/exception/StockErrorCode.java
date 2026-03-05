@@ -23,9 +23,12 @@ public enum StockErrorCode implements ErrorModel {
 	USER_NOT_FOUND(HttpStatus.NOT_FOUND, "S012", "사용자를 찾을 수 없습니다."),
 	INGREDIENT_NOT_FOUND(HttpStatus.NOT_FOUND, "S013", "등록된 재료를 찾을 수 없습니다."),
 	INBOUND_ITEMS_NOT_RESOLVED(HttpStatus.CONFLICT, "S014", "미확정 상품이 있습니다. 모든 상품을 확정 후 입고를 완료해주세요."),
-	PURCHASE_ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "S015", "발주서를 찾을 수 없습니다.");
+	PURCHASE_ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "S015", "발주서를 찾을 수 없습니다."),
+    INSUFFICIENT_STOCK(HttpStatus.BAD_REQUEST, "S0016", "현재 재고보다 많은 수량을 폐기할 수 없습니다."),
+    INVALID_WASTE_QUANTITY(HttpStatus.BAD_REQUEST, "S017", "폐기 수량은 0보다 커야 합니다.");
 
-	private final HttpStatus status;
+
+    private final HttpStatus status;
 	private final String code;
 	private final String message;
 }
