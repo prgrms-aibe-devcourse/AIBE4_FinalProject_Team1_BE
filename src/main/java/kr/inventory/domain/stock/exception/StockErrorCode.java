@@ -20,7 +20,8 @@ public enum StockErrorCode implements ErrorModel {
 	INBOUND_NOT_FOUND(HttpStatus.NOT_FOUND, "S009", "입고 내역을 찾을 수 없습니다."),
 	INBOUND_NOT_DRAFT_STATUS(HttpStatus.CONFLICT, "S010", "입고 내역이 DRAFT 상태가 아닙니다."),
 	USER_NOT_FOUND(HttpStatus.NOT_FOUND, "S011", "사용자를 찾을 수 없습니다."),
-	INGREDIENT_NOT_FOUND(HttpStatus.NOT_FOUND, "S012", "등록된 재료를 찾을 수 없습니다.");
+	INGREDIENT_NOT_FOUND(HttpStatus.NOT_FOUND, "S012", "등록된 재료를 찾을 수 없습니다."),
+    STOCK_TAKE_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "S013", "실사 시트에 해당 재료 항목이 존재하지 않습니다.");
 
 	private final HttpStatus status;
 	private final String code;

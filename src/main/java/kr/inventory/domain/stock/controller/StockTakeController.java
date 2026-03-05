@@ -5,11 +5,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.stock.controller.dto.request.StockTakeCreateRequest;
+import kr.inventory.domain.stock.controller.dto.request.StockTakeItemsDraftUpdateRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockTakeDetailResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockTakeSheetResponse;
 import kr.inventory.domain.stock.service.StockTakeService;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -58,6 +58,21 @@ public class StockTakeController {
 		@RequestBody @Valid StockTakeCreateRequest request) {
 		return ResponseEntity.ok(stockTakeService.createStockTakeSheet(principal.getUserId(), storePublicId, request));
 	}
+
+    @Operation(
+            summary = "재고 실사 항목 임시저장(수정)",
+            description = "특정 실사 시트의 항목 수량(stockTakeQty)을 수정하여 임시저장합니다. (CONFIRMED 상태는 수정 불가)"
+    )
+    @PatchMapping("/{sheetPublicId}/items")
+    public ResponseEntity<Void> saveDraftItems(
+            @PathVariable UUID storePublicId,
+            @PathVariable UUID sheetPublicId,
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @RequestBody @Valid StockTakeItemsDraftUpdateRequest request
+    ) {
+        stockTakeService.updateDraftItems(principal.getUserId(), storePublicId, sheetPublicId, request);
+        return ResponseEntity.noContent().build();
+    }
 
 	@Operation(
 		summary = "재고 실사 확정",
