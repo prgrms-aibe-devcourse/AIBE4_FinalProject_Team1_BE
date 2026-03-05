@@ -43,23 +43,6 @@ public final class PurchaseApiDocs {
         - 갱신된 품목 기준으로 총금액을 재계산합니다.
         """;
 
-    public static final String SUBMIT = """
-        발주서를 제출 상태로 변경합니다.
-
-        처리 내용:
-        - DRAFT -> SUBMITTED 상태 전환
-        - 주문번호, 제출자, 제출 시각 기록
-        """;
-
-    public static final String CONFIRM = """
-        제출된 발주서를 확정합니다.
-
-        권한/상태 규칙:
-        - OWNER 권한만 확정할 수 있습니다.
-        - SUBMITTED 상태에서만 확정됩니다.
-        - 확정자와 확정 시각을 저장합니다.
-        """;
-
     public static final String CANCEL = """
         발주서를 취소 상태로 변경합니다.
 
