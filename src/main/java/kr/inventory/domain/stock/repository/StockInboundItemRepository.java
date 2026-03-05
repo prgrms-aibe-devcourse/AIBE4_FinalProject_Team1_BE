@@ -6,11 +6,11 @@ import kr.inventory.domain.stock.entity.StockInboundItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
-public interface StockInboundItemRepository extends JpaRepository<StockInboundItem, Long> {
+public interface StockInboundItemRepository extends JpaRepository<StockInboundItem, Long>, StockInboundItemRepositoryCustom {
 
-	List<StockInboundItem> findByInbound_InboundId(Long inboundId);
-
-    void deleteAllByInbound_InboundId(Long inboundId);
+	List<StockInboundItem> findByInboundInboundId(Long inboundId);
 
 }

@@ -40,34 +40,34 @@ public class WasteService {
 	public void recordWaste(Long userId, UUID storePublicId, WasteRequest request) {
 		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 		Store store = storeRepository.findById(storeId).orElseThrow(() -> new StoreException(
-			StoreErrorCode.STORE_NOT_FOUND));
+				StoreErrorCode.STORE_NOT_FOUND));
 
 		User user = userRepository.findById(userId).orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
 		for (WasteRequest.WasteItem item : request.items()) {
-			IngredientStockBatch batch = batchRepository.findByStoreIdAndBatchPublicId(storeId, item.stockBatchId())
-				.orElseThrow(() -> new StockException(
-					StockErrorCode.INGREDIENT_NOT_FOUND));
+			IngredientStockBatch batch = batchRepository
+					.findByStore_StoreIdAndBatchPublicId(storeId, item.stockBatchId())
+					.orElseThrow(() -> new StockException(
+							StockErrorCode.INGREDIENT_NOT_FOUND));
 
 			batch.decreaseQuantity(item.quantity());
 
 			WasteRecord record = WasteRecord.create(
-				store,
-				batch,
-				batch.getIngredient(),
-				item.quantity(),
-				item.reason(),
-				item.quantity().multiply(batch.getUnitCost()),
-				user,
-				item.wasteDate()
-			);
+					store,
+					batch,
+					batch.getIngredient(),
+					item.quantity(),
+					item.reason(),
+					item.quantity().multiply(batch.getUnitCost()),
+					user,
+					item.wasteDate());
 			wasteRecordRepository.save(record);
 		}
 	}
 
 	@Transactional(readOnly = true)
 	public Page<WasteResponse> getWasteRecords(Long userId, UUID storePublicId, WasteSearchCondition condition,
-		Pageable pageable) {
+			Pageable pageable) {
 		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
 		return wasteRecordRepository.searchWasteRecords(storeId, condition, pageable).map(WasteResponse::from);

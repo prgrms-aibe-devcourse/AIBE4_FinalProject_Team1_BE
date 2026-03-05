@@ -71,13 +71,11 @@ class WasteServiceTest {
 		UUID batchId = UUID.randomUUID();
 
 		WasteRequest request = new WasteRequest(List.of(
-			new WasteRequest.WasteItem(
-				batchId,
-				BigDecimal.TEN,
-				WasteReason.EXPIRED,
-				OffsetDateTime.now()
-			)
-		));
+				new WasteRequest.WasteItem(
+						batchId,
+						BigDecimal.TEN,
+						WasteReason.EXPIRED,
+						OffsetDateTime.now())));
 
 		Store store = mock(Store.class);
 		User user = mock(User.class);
@@ -86,7 +84,7 @@ class WasteServiceTest {
 		given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
 		given(storeRepository.findById(storeId)).willReturn(Optional.of(store));
 		given(userRepository.findById(userId)).willReturn(Optional.of(user));
-		given(batchRepository.findByStoreIdAndBatchPublicId(storeId, batchId)).willReturn(Optional.of(batch));
+		given(batchRepository.findByStore_StoreIdAndBatchPublicId(storeId, batchId)).willReturn(Optional.of(batch));
 		given(batch.getUnitCost()).willReturn(BigDecimal.valueOf(1000));
 
 		// when
@@ -107,13 +105,11 @@ class WasteServiceTest {
 		UUID batchId = UUID.randomUUID();
 
 		WasteRequest request = new WasteRequest(List.of(
-			new WasteRequest.WasteItem(
-				batchId,
-				BigDecimal.TEN,
-				WasteReason.EXPIRED,
-				OffsetDateTime.now()
-			)
-		));
+				new WasteRequest.WasteItem(
+						batchId,
+						BigDecimal.TEN,
+						WasteReason.EXPIRED,
+						OffsetDateTime.now())));
 
 		Store store = mock(Store.class);
 		User user = mock(User.class);
@@ -121,16 +117,16 @@ class WasteServiceTest {
 		given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
 		given(storeRepository.findById(storeId)).willReturn(Optional.of(store));
 		given(userRepository.findById(userId)).willReturn(Optional.of(user));
-		given(batchRepository.findByStoreIdAndBatchPublicId(storeId, batchId)).willReturn(Optional.empty());
+		given(batchRepository.findByStore_StoreIdAndBatchPublicId(storeId, batchId)).willReturn(Optional.empty());
 
 		// when & then
 		assertThatThrownBy(() -> wasteService.recordWaste(userId, storePublicId, request))
-			.isInstanceOf(StockException.class)
-			.satisfies(ex -> {
-				StockException stockEx = (StockException)ex;
-				// 💡 getErrorModel() 혹은 부모의 Getter를 호출하여 비교
-				assertThat(stockEx.getErrorModel()).isEqualTo(StockErrorCode.INGREDIENT_NOT_FOUND);
-			});
+				.isInstanceOf(StockException.class)
+				.satisfies(ex -> {
+					StockException stockEx = (StockException) ex;
+					// 💡 getErrorModel() 혹은 부모의 Getter를 호출하여 비교
+					assertThat(stockEx.getErrorModel()).isEqualTo(StockErrorCode.INGREDIENT_NOT_FOUND);
+				});
 	}
 
 	@Test
