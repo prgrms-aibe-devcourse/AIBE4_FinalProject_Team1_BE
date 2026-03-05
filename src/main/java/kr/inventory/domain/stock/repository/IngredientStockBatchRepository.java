@@ -12,4 +12,7 @@ import java.util.UUID;
 
 public interface IngredientStockBatchRepository
 	extends JpaRepository<IngredientStockBatch, Long>, IngredientStockBatchRepositoryCustom {
+
+	Optional<IngredientStockBatch> findByStoreIdAndBatchPublicId(Long storeId, UUID batchPublicId);
+
 }

@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface SalesOrderItemRepository extends JpaRepository<SalesOrderItem, Long> {
+public interface SalesOrderItemRepository extends JpaRepository<SalesOrderItem, Long>, SalesOrderItemRepositoryCustom {
     List<SalesOrderItem> findBySalesOrderSalesOrderId(Long salesOrderId);
     List<SalesOrderItem> findBySalesOrderSalesOrderIdIn(List<Long> salesOrderIds);
 }

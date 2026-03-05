@@ -1,14 +1,21 @@
 package kr.inventory.domain.sales.repository.impl;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.LockModeType;
 import kr.inventory.domain.sales.controller.dto.response.SalesOrderResponse;
 import kr.inventory.domain.sales.entity.SalesOrder;
 import kr.inventory.domain.sales.entity.SalesOrderItem;
+import kr.inventory.domain.sales.entity.enums.SalesOrderStatus;
+import kr.inventory.domain.sales.entity.enums.SalesOrderType;
 import kr.inventory.domain.sales.repository.SalesOrderItemRepository;
 import kr.inventory.domain.sales.repository.SalesOrderRepositoryCustom;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -87,5 +94,55 @@ public class SalesOrderRepositoryImpl implements SalesOrderRepositoryCustom {
                     return SalesOrderResponse.from(order, items);
                 })
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Page<SalesOrder> findSalesLedgerOrders(
+            Long storeId,
+            OffsetDateTime from,
+            OffsetDateTime to,
+            SalesOrderStatus status,
+            SalesOrderType type,
+            Pageable pageable
+    ) {
+        BooleanExpression[] conditions = {
+                salesOrder.store.storeId.eq(storeId),
+                salesOrder.orderedAt.goe(from),
+                salesOrder.orderedAt.loe(to),
+                salesOrderTypeEq(type),
+                salesOrderStatusEq(status)
+        };
+
+        List<SalesOrder> orders = queryFactory
+                .selectFrom(salesOrder)
+                .leftJoin(salesOrder.diningTable).fetchJoin()
+                .where(conditions)
+                .orderBy(salesOrder.orderedAt.desc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+
+        Long totalCount = queryFactory
+                .select(salesOrder.count())
+                .from(salesOrder)
+                .where(conditions)
+                .fetchOne();
+
+        long safeTotalCount = totalCount == null ? 0L : totalCount;
+        return new PageImpl<>(orders, pageable, safeTotalCount);
+    }
+
+    private BooleanExpression salesOrderTypeEq(SalesOrderType type) {
+        if (type == null) {
+            return null;
+        }
+        return salesOrder.type.eq(type);
+    }
+
+    private BooleanExpression salesOrderStatusEq(SalesOrderStatus status) {
+        if (status == null) {
+            return null;
+        }
+        return salesOrder.status.eq(status);
     }
 }

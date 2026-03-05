@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "waste_records")
@@ -19,59 +21,61 @@ import java.time.LocalDate;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class WasteRecord extends CreatedAtEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long wasteId;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long wasteId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "store_id", nullable = false)
-    private Store store;
+	@Column
+	private UUID wastePublicId = UUID.randomUUID();
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "stock_batch_id", nullable = false)
-    private IngredientStockBatch stockBatch;
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "store_id", nullable = false)
+	private Store store;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "ingredient_id", nullable = false)
-    private Ingredient ingredient;
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "stock_batch_id", nullable = false)
+	private IngredientStockBatch stockBatch;
 
-    @Column(nullable = false, precision = 14, scale = 3)
-    private BigDecimal wasteQuantity;
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "ingredient_id", nullable = false)
+	private Ingredient ingredient;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private WasteReason wasteReason;
+	@Column(nullable = false, precision = 14, scale = 3)
+	private BigDecimal wasteQuantity;
 
-    @Column(nullable = false, precision = 14, scale = 2)
-    private BigDecimal wasteAmount;
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false, length = 20)
+	private WasteReason wasteReason;
 
-    @Column(nullable = false)
-    private LocalDate wasteDate;
+	@Column(nullable = false, precision = 14, scale = 2)
+	private BigDecimal wasteAmount;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "recorded_by_user_id")
-    private User recordedByUser;
+	@Column(nullable = false)
+	private OffsetDateTime wasteDate;
 
-    @Column(columnDefinition = "TEXT")
-    private String notes;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "recorded_by_user_id")
+	private User recordedByUser;
 
-    public static WasteRecord create(
-            Store store,
-            IngredientStockBatch stockBatch,
-            Ingredient ingredient,
-            BigDecimal wasteQuantity,
-            WasteReason wasteReason,
-            BigDecimal wasteAmount,
-            LocalDate wasteDate
-    ) {
-        WasteRecord wasteRecord = new WasteRecord();
-        wasteRecord.store = store;
-        wasteRecord.stockBatch = stockBatch;
-        wasteRecord.ingredient = ingredient;
-        wasteRecord.wasteQuantity = wasteQuantity;
-        wasteRecord.wasteReason = wasteReason;
-        wasteRecord.wasteAmount = wasteAmount;
-        wasteRecord.wasteDate = wasteDate;
-        return wasteRecord;
-    }
+	public static WasteRecord create(
+		Store store,
+		IngredientStockBatch stockBatch,
+		Ingredient ingredient,
+		BigDecimal wasteQuantity,
+		WasteReason wasteReason,
+		BigDecimal wasteAmount,
+		User recordedByUser,
+		OffsetDateTime wasteDate
+	) {
+		WasteRecord wasteRecord = new WasteRecord();
+		wasteRecord.store = store;
+		wasteRecord.stockBatch = stockBatch;
+		wasteRecord.ingredient = ingredient;
+		wasteRecord.wasteQuantity = wasteQuantity;
+		wasteRecord.wasteReason = wasteReason;
+		wasteRecord.wasteAmount = wasteAmount;
+		wasteRecord.recordedByUser = recordedByUser;
+		wasteRecord.wasteDate = wasteDate;
+		return wasteRecord;
+	}
 }

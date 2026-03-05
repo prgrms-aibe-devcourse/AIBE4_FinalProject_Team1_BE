@@ -5,8 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inventory.domain.document.controller.dto.ocr.RawReceiptData;
 import kr.inventory.domain.document.controller.dto.ocr.ReceiptResponse;
 import kr.inventory.domain.document.exception.OcrException;
+import kr.inventory.domain.document.service.DocumentService;
 import kr.inventory.domain.document.service.GeminiService;
 import kr.inventory.domain.document.service.mapper.OcrResultMapper;
+import kr.inventory.global.config.S3StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -23,6 +25,7 @@ public abstract class AbstractGeminiOcrProcessor implements OcrProcessor {
 	private final ObjectMapper objectMapper;
 	private final OcrPromptProvider ocrPromptProvider;
 	private final OcrResultMapper ocrResultMapper;
+	private final S3StorageService s3StorageService;
 
 	@Override
 	public ReceiptResponse process(MultipartFile file, Long storeId) {
@@ -49,7 +52,9 @@ public abstract class AbstractGeminiOcrProcessor implements OcrProcessor {
 
 			RawReceiptData raw = objectMapper.readValue(cleanJson, RawReceiptData.class);
 
-			return ocrResultMapper.mapToReceiptResponse(raw, storeId);
+			String filePath = s3StorageService.upload(file, "private/document");
+
+			return ocrResultMapper.mapToReceiptResponse(raw, storeId, filePath);
 
 		} catch (OcrException e) {
 			log.error("OCR Exception for file {}: {}", file.getOriginalFilename(),

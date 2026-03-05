@@ -55,11 +55,14 @@ public class DocumentOcrService {
 
 			try {
 				ReceiptResponse data = processor.process(file, store.getStoreId());
+
+				String filePath = data.documentPath();
+				if (filePath != null) {
+					documentService.saveDocument(store, file, filePath);
+				}
 				log.info("OCR processing completed for file: {}",
 					file.getOriginalFilename());
 
-				String filePath = s3StorageService.upload(file, "private/document");
-				documentService.saveDocument(store, file, filePath);
 				results.add(data);
 			} catch (Exception e) {
 				log.error("파일 처리 프로세스 중 오류 발생: {}", file.getOriginalFilename(), e);
