@@ -4,7 +4,10 @@ import kr.inventory.domain.stock.entity.StockTakeSheet;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 public interface StockTakeSheetRepository extends JpaRepository<StockTakeSheet,Long>, StockTakeSheetRepositoryCustom {
     List<StockTakeSheet> findAllByStoreIdOrderByCreatedAtDesc(Long storeId);
+    Optional<StockTakeSheet> findBySheetPublicIdAndStoreId(UUID sheetPublicId, Long storeId);
 }

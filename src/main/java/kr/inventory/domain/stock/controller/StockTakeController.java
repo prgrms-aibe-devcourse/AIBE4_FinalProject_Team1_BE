@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.stock.controller.dto.request.StockTakeCreateRequest;
+import kr.inventory.domain.stock.controller.dto.response.StockTakeDetailResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockTakeSheetResponse;
 import kr.inventory.domain.stock.service.StockTakeService;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,18 @@ public class StockTakeController {
 		@AuthenticationPrincipal CustomUserDetails principal) {
 		return ResponseEntity.ok(stockTakeService.getStockTakeSheets(principal.getUserId(), storePublicId));
 	}
+
+    @Operation(
+            summary = "재고 실사 시트 상세 조회",
+            description = "특정 실사 시트의 상세 정보와 포함된 항목들을 조회합니다."
+    )
+    @GetMapping("/{sheetPublicId}")
+    public ResponseEntity<StockTakeDetailResponse> getSheetDetail(
+            @PathVariable UUID storePublicId,
+            @PathVariable UUID sheetPublicId,
+            @AuthenticationPrincipal CustomUserDetails principal) {
+        return ResponseEntity.ok(stockTakeService.getStockTakeSheetDetail(principal.getUserId(), storePublicId, sheetPublicId));
+    }
 
 	@Operation(
 		summary = "재고 실사 시트 생성",

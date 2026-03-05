@@ -6,6 +6,8 @@ import kr.inventory.domain.reference.exception.IngredientException;
 import kr.inventory.domain.reference.repository.IngredientRepository;
 import kr.inventory.domain.stock.controller.dto.request.StockTakeCreateRequest;
 import kr.inventory.domain.stock.controller.dto.request.StockTakeItemRequest;
+import kr.inventory.domain.stock.controller.dto.response.StockTakeDetailResponse;
+import kr.inventory.domain.stock.controller.dto.response.StockTakeItemResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockTakeSheetResponse;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.StockTake;
@@ -49,6 +51,20 @@ public class StockTakeService {
 			.map(StockTakeSheetResponse::from)
 			.toList();
 	}
+
+    @Transactional(readOnly = true)
+    public StockTakeDetailResponse getStockTakeSheetDetail(Long userId, UUID storePublicId, UUID sheetPublicId) {
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+        StockTakeSheet sheet = stockTakeSheetRepository.findBySheetPublicIdAndStoreId(sheetPublicId, storeId)
+                .orElseThrow(() -> new StockException(StockErrorCode.SHEET_NOT_FOUND));
+
+        List<StockTake> items = stockTakeRepository.findBySheet(sheet);
+        List<StockTakeItemResponse> itemResponses = items.stream()
+                .map(StockTakeItemResponse::from)
+                .toList();
+
+        return StockTakeDetailResponse.from(sheet, itemResponses);
+    }
 
 	@Transactional
 	public Long createStockTakeSheet(Long userId, UUID storePublicId, StockTakeCreateRequest request) {
