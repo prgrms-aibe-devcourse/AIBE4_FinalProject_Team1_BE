@@ -91,7 +91,6 @@ public class StockService {
 			))
 			.toList();
 
-		// 2. 배치 일괄 저장
 		ingredientStockBatchRepository.saveAll(batches);
 
 		// TODO: 나중에 여기에 StockLogService.logInbound() 호출 로직을 추가할 예정입니다.
