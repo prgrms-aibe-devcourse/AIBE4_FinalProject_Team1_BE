@@ -5,7 +5,6 @@ import kr.inventory.domain.sales.controller.dto.request.SalesLedgerSearchRequest
 import kr.inventory.domain.sales.controller.dto.response.SalesLedgerOrderDetailResponse;
 import kr.inventory.domain.sales.controller.dto.response.SalesLedgerOrderSummaryResponse;
 import kr.inventory.domain.sales.entity.SalesOrder;
-import kr.inventory.domain.sales.entity.SalesOrderItem;
 import kr.inventory.domain.sales.entity.enums.SalesOrderStatus;
 import kr.inventory.domain.sales.entity.enums.SalesOrderType;
 import kr.inventory.domain.sales.exception.SalesOrderErrorCode;
@@ -88,8 +87,7 @@ class SalesLedgerServiceTest {
         given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(1L);
         given(salesOrderRepository.findSalesLedgerOrders(eq(1L), any(), any(), eq(null), eq(SalesOrderType.DINE_IN), any()))
                 .willReturn(page);
-        SalesOrderItem mockedItem = mockItem(salesOrder);
-        given(salesOrderItemRepository.findBySalesOrderSalesOrderIdIn(List.of(100L))).willReturn(List.of(mockedItem));
+        given(salesOrderItemRepository.countItemsBySalesOrderIds(List.of(100L))).willReturn(java.util.Map.of(100L, 1L));
 
         Page<SalesLedgerOrderSummaryResponse> result = salesLedgerService.getSalesLedgerOrders(
                 userId,
@@ -139,11 +137,5 @@ class SalesLedgerServiceTest {
 
         assertThat(response.orderPublicId()).isEqualTo(orderPublicId);
         assertThat(response.itemCount()).isEqualTo(0);
-    }
-
-    private SalesOrderItem mockItem(SalesOrder salesOrder) {
-        SalesOrderItem item = org.mockito.Mockito.mock(SalesOrderItem.class);
-        org.mockito.Mockito.when(item.getSalesOrder()).thenReturn(salesOrder);
-        return item;
     }
 }

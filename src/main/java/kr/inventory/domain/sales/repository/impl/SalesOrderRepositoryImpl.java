@@ -97,17 +97,26 @@ public class SalesOrderRepositoryImpl implements SalesOrderRepositoryCustom {
     }
 
     @Override
-    public Page<SalesOrder> findSalesLedgerOrders(Long storeId, OffsetDateTime from, OffsetDateTime to, SalesOrderStatus status, SalesOrderType type, Pageable pageable) {
+    public Page<SalesOrder> findSalesLedgerOrders(
+            Long storeId,
+            OffsetDateTime from,
+            OffsetDateTime to,
+            SalesOrderStatus status,
+            SalesOrderType type,
+            Pageable pageable
+    ) {
+        BooleanExpression[] conditions = {
+                salesOrder.store.storeId.eq(storeId),
+                salesOrder.orderedAt.goe(from),
+                salesOrder.orderedAt.loe(to),
+                salesOrderTypeEq(type),
+                salesOrderStatusEq(status)
+        };
+
         List<SalesOrder> orders = queryFactory
                 .selectFrom(salesOrder)
                 .leftJoin(salesOrder.diningTable).fetchJoin()
-                .where(
-                        salesOrder.store.storeId.eq(storeId),
-                        salesOrder.orderedAt.goe(from),
-                        salesOrder.orderedAt.loe(to),
-                        salesOrderTypeEq(type),
-                        salesOrderStatusEq(status)
-                )
+                .where(conditions)
                 .orderBy(salesOrder.orderedAt.desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -116,13 +125,7 @@ public class SalesOrderRepositoryImpl implements SalesOrderRepositoryCustom {
         Long totalCount = queryFactory
                 .select(salesOrder.count())
                 .from(salesOrder)
-                .where(
-                        salesOrder.store.storeId.eq(storeId),
-                        salesOrder.orderedAt.goe(from),
-                        salesOrder.orderedAt.loe(to),
-                        salesOrderTypeEq(type),
-                        salesOrderStatusEq(status)
-                )
+                .where(conditions)
                 .fetchOne();
 
         long safeTotalCount = totalCount == null ? 0L : totalCount;
@@ -130,12 +133,16 @@ public class SalesOrderRepositoryImpl implements SalesOrderRepositoryCustom {
     }
 
     private BooleanExpression salesOrderTypeEq(SalesOrderType type) {
-        if (type == null) return null;
+        if (type == null) {
+            return null;
+        }
         return salesOrder.type.eq(type);
     }
 
     private BooleanExpression salesOrderStatusEq(SalesOrderStatus status) {
-        if (status == null) return null;
+        if (status == null) {
+            return null;
+        }
         return salesOrder.status.eq(status);
     }
 }

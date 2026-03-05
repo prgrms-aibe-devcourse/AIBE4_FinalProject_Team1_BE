@@ -54,13 +54,13 @@ public class SalesLedgerService {
                 pageable
         );
 
-        Map<Long, Integer> itemCountByOrderId = getItemCountMap(orderPage.getContent());
+        Map<Long, Long> itemCountByOrderId = getItemCountMap(orderPage.getContent());
 
         return orderPage.map(order -> {
-            Integer itemCount = itemCountByOrderId.getOrDefault(order.getSalesOrderId(), 0);
+            Long itemCount = itemCountByOrderId.getOrDefault(order.getSalesOrderId(), 0L);
             BigDecimal refundAmount = calculateRefundAmount(order);
             BigDecimal netAmount = calculateNetAmount(order.getTotalAmount(), refundAmount);
-            return SalesLedgerOrderSummaryResponse.from(order, itemCount, refundAmount, netAmount);
+            return SalesLedgerOrderSummaryResponse.from(order, Math.toIntExact(itemCount), refundAmount, netAmount);
         });
     }
 
@@ -88,16 +88,16 @@ public class SalesLedgerService {
         }
     }
 
-    private Map<Long, Integer> getItemCountMap(List<SalesOrder> orders) {
+    private Map<Long, Long> getItemCountMap(List<SalesOrder> orders) {
         if (orders.isEmpty()) {
             return Collections.emptyMap();
         }
 
-        List<Long> orderIds = orders.stream().map(SalesOrder::getSalesOrderId).toList();
-        List<SalesOrderItem> items = salesOrderItemRepository.findBySalesOrderSalesOrderIdIn(orderIds);
+        List<Long> orderIds = orders.stream()
+                .map(SalesOrder::getSalesOrderId)
+                .toList();
 
-        return items.stream()
-                .collect(Collectors.groupingBy(item -> item.getSalesOrder().getSalesOrderId(), Collectors.summingInt(item -> 1)));
+        return salesOrderItemRepository.countItemsBySalesOrderIds(orderIds);
     }
 
     private BigDecimal calculateRefundAmount(SalesOrder order) {
