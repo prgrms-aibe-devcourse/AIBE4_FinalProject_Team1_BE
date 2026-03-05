@@ -15,13 +15,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import kr.inventory.domain.document.service.GeminiService;
 import kr.inventory.domain.document.service.mapper.OcrResultMapper;
+import kr.inventory.global.config.S3StorageService;
 
 @Component
 public class ExcelOcrProcessor extends AbstractGeminiOcrProcessor {
 
 	public ExcelOcrProcessor(GeminiService geminiService,
-		ObjectMapper objectMapper, OcrPromptProvider ocrPromptProvider, OcrResultMapper ocrResultMapper) {
-		super(geminiService, objectMapper, ocrPromptProvider, ocrResultMapper);
+		ObjectMapper objectMapper, OcrPromptProvider ocrPromptProvider, OcrResultMapper ocrResultMapper,
+		S3StorageService s3StorageService) {
+		super(geminiService, objectMapper, ocrPromptProvider, ocrResultMapper, s3StorageService);
 	}
 
 	@Override

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 
 public record ReceiptResponse(
+	String documentPath,
 	VendorField vendor,
 	Field<String> date,
 	Field<String> amount,
@@ -12,12 +13,14 @@ public record ReceiptResponse(
 ) {
 
 	public static ReceiptResponse of(
+		String documentPath,
 		VendorField vendor,
 		Field<String> date,
 		Field<String> amount,
 		List<Item> items
 	) {
 		return new ReceiptResponse(
+			documentPath,
 			Objects.requireNonNull(vendor),
 			Objects.requireNonNull(date),
 			Objects.requireNonNull(amount),
@@ -28,6 +31,7 @@ public record ReceiptResponse(
 	public static ReceiptResponse empty(String msg) {
 		Field<String> errorField = Field.fail(msg);
 		return of(
+			null,
 			new VendorField(Field.fail(msg), Field.fail(msg)),
 			errorField,
 			errorField,

@@ -18,7 +18,7 @@ public class OcrResultMapper {
 	private final VendorRepository vendorRepository;
 	private final IngredientRepository ingredientRepository;
 
-	public ReceiptResponse mapToReceiptResponse(RawReceiptData raw, Long storeId) {
+	public ReceiptResponse mapToReceiptResponse(RawReceiptData raw, Long storeId, String documentPath) {
 
 		ReceiptResponse.Field<Long> matchedVendorId = OcrValidator.validateVendor(
 			raw.vendorName(),
@@ -31,6 +31,7 @@ public class OcrResultMapper {
 			.toList();
 
 		return ReceiptResponse.of(
+			documentPath,
 			new ReceiptResponse.VendorField(
 				matchedVendorId,
 				OcrValidator.validate(raw.vendorName(), "공급처")

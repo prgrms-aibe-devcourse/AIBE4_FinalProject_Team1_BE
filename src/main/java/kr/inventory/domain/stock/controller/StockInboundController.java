@@ -46,11 +46,11 @@ public class StockInboundController {
 		summary = "입고 상세조회",
 		description = "해당 매장의 입고 상세정보를 조회합니다."
 	)
-	@GetMapping("/{inboundId}")
+	@GetMapping("/{inboundPublicId}")
 	public ResponseEntity<StockInboundResponse> getInbound(
 		@AuthenticationPrincipal CustomUserDetails userDetails,
 		@PathVariable("storePublicId") UUID storePublicId,
-		@PathVariable("inboundId") UUID inboundPublicId
+		@PathVariable("inboundPublicId") UUID inboundPublicId
 	) {
 		StockInboundResponse response = stockInboundService.getInbound(userDetails.getUserId(), storePublicId,
 			inboundPublicId);
@@ -76,11 +76,11 @@ public class StockInboundController {
 		summary = "입고 확정",
 		description = "해당 매장의 등록된 입고를 확정해 재고로 배치합니다."
 	)
-	@PostMapping("/{inboundId}/confirm")
+	@PostMapping("/{inboundPublicId}/confirm")
 	public ResponseEntity<Void> confirmInbound(
 		@AuthenticationPrincipal CustomUserDetails userDetails,
 		@PathVariable("storePublicId") UUID storePublicId,
-		@PathVariable("inboundId") UUID inboundPublicId
+		@PathVariable("inboundPublicId") UUID inboundPublicId
 	) {
 		stockInboundService.confirmInbound(userDetails.getUserId(), storePublicId, inboundPublicId);
 		return ResponseEntity.ok().build();
@@ -90,11 +90,11 @@ public class StockInboundController {
 		summary = "입고 삭제",
 		description = "해당매장의 등록된 입고 정보를 삭제합니다."
 	)
-	@DeleteMapping("/{inboundId}")
+	@DeleteMapping("/{inboundPublicId}")
 	public ResponseEntity<Void> deleteInbound(
 		@AuthenticationPrincipal CustomUserDetails userDetails,
 		@PathVariable("storePublicId") UUID storePublicId,
-		@PathVariable("inboundId") UUID inboundPublicId
+		@PathVariable("inboundPublicId") UUID inboundPublicId
 	) {
 		stockInboundService.deleteInbound(userDetails.getUserId(), storePublicId, inboundPublicId);
 		return ResponseEntity.ok().build();
