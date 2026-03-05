@@ -83,9 +83,9 @@ public class StockLog extends CreatedAtEntity {
         log.transactionType = TransactionType.DEDUCTION;
         log.changeQuantity = command.quantity();
         log.balanceAfter = command.balanceAfter();
-        log.referenceType = ReferenceType.SALE;
-        log.referenceId = command.sourceId();
-        log.createdByUser = null;
+        log.referenceType = command.referenceType();
+        log.referenceId = command.referenceId();
+        log.createdByUser = command.createdByUser();
         return log;
     }
 }
