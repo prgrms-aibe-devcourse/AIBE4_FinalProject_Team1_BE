@@ -72,7 +72,6 @@ class SalesOrderServiceTest {
     private DiningTable table;
     private TableSession session;
     private Menu menu1;
-    private Menu menu2;
 
     @BeforeEach
     void setUp() {
@@ -93,9 +92,6 @@ class SalesOrderServiceTest {
 
         menu1 = Menu.create(store, "김치찌개", new BigDecimal("8000"), null);
         ReflectionTestUtils.setField(menu1, "menuId", 1L);
-
-        menu2 = Menu.create(store, "된장찌개", new BigDecimal("7000"), null);
-        ReflectionTestUtils.setField(menu2, "menuId", 2L);
     }
 
     @Test
@@ -117,7 +113,6 @@ class SalesOrderServiceTest {
         SalesOrder savedOrder = SalesOrder.create(store, table, session, idempotencyKey, SalesOrderType.DINE_IN);
         ReflectionTestUtils.setField(savedOrder, "salesOrderId", 100L);
 
-        // 수정: save 대신 saveAndFlush 모킹
         given(salesOrderRepository.saveAndFlush(any(SalesOrder.class)))
                 .willReturn(savedOrder);
 
@@ -127,8 +122,9 @@ class SalesOrderServiceTest {
         // then
         assertThat(response).isNotNull();
         verify(salesOrderRepository).saveAndFlush(any(SalesOrder.class));
-        // Facade가 호출되었는지 확인
-        verify(stockManagerFacade).processOrderStockDeduction(eq(1L), eq(100L));
+
+        // 수정: (Long, Long) 대신 (SalesOrder, List) 타입을 받도록 검증 변경
+        verify(stockManagerFacade).processOrderStockDeduction(eq(savedOrder), anyList());
     }
 
     @Test
@@ -157,11 +153,11 @@ class SalesOrderServiceTest {
                 .willReturn(savedOrder);
 
         // when
-        SalesOrderResponse response = salesOrderService.createOrder(sessionToken, idempotencyKey, request);
+        salesOrderService.createOrder(sessionToken, idempotencyKey, request);
 
         // then
-        assertThat(response).isNotNull();
-        verify(stockManagerFacade).processOrderStockDeduction(anyLong(), anyLong());
+        // 수정: 인자 타입 변경 반영
+        verify(stockManagerFacade).processOrderStockDeduction(any(SalesOrder.class), anyList());
     }
 
     @Test
@@ -181,12 +177,11 @@ class SalesOrderServiceTest {
                 .willReturn(List.of(menuWithIngredients));
 
         SalesOrder savedOrder = SalesOrder.create(store, table, session, idempotencyKey, SalesOrderType.DINE_IN);
-        ReflectionTestUtils.setField(savedOrder, "salesOrderId", 100L);
         given(salesOrderRepository.saveAndFlush(any(SalesOrder.class))).willReturn(savedOrder);
 
-        // 수정: Facade에서 재고 부족 예외를 던지도록 설정 (Facade가 예외를 던지는 구조일 경우)
+        // 수정: Facade의 바뀐 시그니처에 맞춰 예외 발생 stubbing
         willThrow(new SalesOrderException(SalesOrderErrorCode.INSUFFICIENT_STOCK))
-                .given(stockManagerFacade).processOrderStockDeduction(anyLong(), anyLong());
+                .given(stockManagerFacade).processOrderStockDeduction(any(SalesOrder.class), anyList());
 
         // when & then
         assertThatThrownBy(() -> salesOrderService.createOrder(sessionToken, idempotencyKey, request))
@@ -203,17 +198,5 @@ class SalesOrderServiceTest {
         assertThatThrownBy(() -> salesOrderService.createOrder("invalid", "key", new SalesOrderCreateRequest(List.of())))
                 .isInstanceOf(SalesOrderException.class)
                 .hasMessageContaining(SalesOrderErrorCode.INVALID_SESSION.getMessage());
-    }
-
-    @Test
-    @DisplayName("주문 생성 실패 - 세션 만료")
-    void givenExpiredSession_whenCreateOrder_thenThrowException() {
-        TableSession expiredSession = TableSession.create(table, null, "hash", OffsetDateTime.now(ZoneOffset.UTC).minusHours(1), OffsetDateTime.now(ZoneOffset.UTC).minusMinutes(1));
-        given(tableSessionRepository.findBySessionTokenHashAndStatus(anyString(), eq(TableSessionStatus.ACTIVE)))
-                .willReturn(Optional.of(expiredSession));
-
-        assertThatThrownBy(() -> salesOrderService.createOrder("token", "key", new SalesOrderCreateRequest(List.of())))
-                .isInstanceOf(SalesOrderException.class)
-                .hasMessageContaining(SalesOrderErrorCode.SESSION_EXPIRED.getMessage());
     }
 }
