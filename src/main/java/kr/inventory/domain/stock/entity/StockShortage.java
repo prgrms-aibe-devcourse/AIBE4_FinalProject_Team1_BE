@@ -18,7 +18,7 @@ public class StockShortage extends AuditableEntity {
     private Long stockShortageId;
 
     @Column(unique = true, nullable = false, length = 36)
-    private UUID stockShortagePublicId = UUID.randomUUID();
+    private UUID stockShortagePublicId;
 
     @Column(nullable = false)
     private Long storeId;
