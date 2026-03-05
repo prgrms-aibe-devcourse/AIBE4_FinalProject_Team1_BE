@@ -57,16 +57,20 @@ public class StockTakeService {
 		StockTakeSheet sheet = StockTakeSheet.create(storeId, request.title());
 		stockTakeSheetRepository.save(sheet);
 
-		List<Long> ingredientIds = request.items().stream().map(StockTakeItemRequest::ingredientId).toList();
+        List<UUID> ingredientPublicIds = request.items().stream()
+                .map(StockTakeItemRequest::ingredientPublicId)
+                .toList();
 
-		Map<Long, Ingredient> ingredientMap = ingredientRepository.findAllByStoreStoreIdAndIngredientIdIn(storeId,
-			ingredientIds).stream().collect(Collectors.toMap(Ingredient::getIngredientId, Function.identity()));
+        Map<UUID, Ingredient> ingredientMap = ingredientRepository
+                .findAllByStoreStoreIdAndIngredientPublicIdIn(storeId, ingredientPublicIds)
+                .stream()
+                .collect(Collectors.toMap(Ingredient::getIngredientPublicId, Function.identity()));
 
 		List<StockTake> items = request.items().stream()
 			.map(req -> {
-				Ingredient ingredient = Optional.ofNullable(ingredientMap.get(req.ingredientId()))
+				Ingredient ingredient = Optional.ofNullable(ingredientMap.get(req.ingredientPublicId()))
 					.orElseThrow(() -> new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND));
-				return kr.inventory.domain.stock.entity.StockTake.createDraft(sheet, ingredient, req.stocktakeQty());
+                return StockTake.createDraft(sheet, ingredient, req.stockTakeQty());
 			})
 			.toList();
 
