@@ -7,6 +7,7 @@ import kr.inventory.domain.stock.entity.enums.ReferenceType;
 import kr.inventory.domain.stock.entity.enums.TransactionType;
 import kr.inventory.domain.stock.service.command.StockDeductionLogCommand;
 import kr.inventory.domain.stock.service.command.StockInboundLogCommand;
+import kr.inventory.domain.stock.service.command.StockWasteCommand;
 import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.user.entity.User;
 import lombok.AccessLevel;
@@ -75,17 +76,31 @@ public class StockLog extends CreatedAtEntity {
 		return log;
 	}
 
-    public static StockLog createDeductionLog(StockDeductionLogCommand command) {
-        StockLog log = new StockLog();
-        log.store = command.store();
-        log.ingredient = command.ingredient();
-        log.stockBatch = command.batch();
-        log.transactionType = TransactionType.DEDUCTION;
-        log.changeQuantity = command.quantity();
-        log.balanceAfter = command.balanceAfter();
-        log.referenceType = ReferenceType.SALE;
-        log.referenceId = command.sourceId();
-        log.createdByUser = null;
-        return log;
-    }
+	public static StockLog createDeductionLog(StockDeductionLogCommand command) {
+		StockLog log = new StockLog();
+		log.store = command.store();
+		log.ingredient = command.ingredient();
+		log.stockBatch = command.batch();
+		log.transactionType = TransactionType.DEDUCTION;
+		log.changeQuantity = command.quantity();
+		log.balanceAfter = command.balanceAfter();
+		log.referenceType = ReferenceType.SALE;
+		log.referenceId = command.sourceId();
+		log.createdByUser = null;
+		return log;
+	}
+
+	public static StockLog createWasteLog(StockWasteCommand command) {
+		StockLog log = new StockLog();
+		log.store = command.store();
+		log.ingredient = command.ingredient();
+		log.stockBatch = command.batch();
+		log.transactionType = TransactionType.WASTE;
+		log.changeQuantity = command.quantity();
+		log.balanceAfter = command.balanceAfter();
+		log.referenceType = ReferenceType.WASTE;
+		log.referenceId = command.sourceId();
+		log.createdByUser = command.user();
+		return log;
+	}
 }
