@@ -28,32 +28,42 @@ public class StockTake extends AuditableEntity {
     @Column(nullable = false, precision = 14, scale = 3)
     private BigDecimal stockTakeQty;
 
-    @Column(precision = 14, scale = 3)
+    @Column(nullable = false, precision = 14, scale = 3)
     private BigDecimal theoreticalQty;
 
-    @Column(precision = 14, scale = 3)
+    @Column(nullable = false, precision = 14, scale = 3)
     private BigDecimal varianceQty;
 
-    public static StockTake createDraft(StockTakeSheet sheet, Ingredient ingredient, BigDecimal qty){
+    public static StockTake createDraft(
+            StockTakeSheet sheet,
+            Ingredient ingredient,
+            BigDecimal theoreticalQty,
+            BigDecimal stockTakeQty
+    ) {
+        validateQty(theoreticalQty);
+        validateQty(stockTakeQty);
+
         StockTake item = new StockTake();
         item.sheet = sheet;
         item.ingredient = ingredient;
-        item.stockTakeQty = qty;
+        item.theoreticalQty = theoreticalQty;
+        item.stockTakeQty = stockTakeQty;
+        item.varianceQty = stockTakeQty.subtract(theoreticalQty);
         return item;
     }
 
-    public void updateQuantities(BigDecimal theoreticalQty, BigDecimal varianceQty) {
-        this.theoreticalQty = theoreticalQty;
-        this.varianceQty = varianceQty;
+    public void updateStockTakeQty(BigDecimal newQty) {
+        validateQty(newQty);
+        this.stockTakeQty = newQty;
+        this.varianceQty = newQty.subtract(this.theoreticalQty);
     }
 
-    public void updateStockTakeQty(BigDecimal newQty){
-        if(newQty == null){
+    private static void validateQty(BigDecimal qty) {
+        if (qty == null) {
             throw new IllegalArgumentException("수량은 null일 수 없습니다.");
         }
-        if(newQty.compareTo(BigDecimal.ZERO) < 0){
+        if (qty.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("수량은 0 이상이어야 합니다.");
         }
-        this.stockTakeQty = newQty;
     }
 }
