@@ -2,8 +2,7 @@ package kr.inventory.domain.stock.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inventory.domain.auth.security.CustomUserDetails;
-import kr.inventory.domain.stock.controller.dto.request.StockTakeCreateRequest;
-import kr.inventory.domain.stock.controller.dto.request.StockTakeItemRequest;
+import kr.inventory.domain.stock.controller.dto.request.StockTakeSheetCreateRequest;
 import kr.inventory.domain.stock.service.StockTakeService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,11 +47,11 @@ class StockTakeControllerTest {
     void createSheet_Success() throws Exception {
         // given
         UUID ingredientPublicId = UUID.randomUUID();
-        StockTakeItemRequest item = new StockTakeItemRequest(ingredientPublicId, new BigDecimal("50.0"));
-        StockTakeCreateRequest request = new StockTakeCreateRequest("2026-02-14 정기 실사", List.of(item));
+        StockTakeDraftSaveItemRequest item = new StockTakeDraftSaveItemRequest(ingredientPublicId, new BigDecimal("50.0"));
+        StockTakeSheetCreateRequest request = new StockTakeSheetCreateRequest("2026-02-14 정기 실사", List.of(item));
 
         CustomUserDetails userDetails = createMockUser();
-        given(stockTakeService.createStockTakeSheet(eq(userId), eq(storePublicId), any(StockTakeCreateRequest.class)))
+        given(stockTakeService.createStockTakeSheet(eq(userId), eq(storePublicId), any(StockTakeSheetCreateRequest.class)))
                 .willReturn(100L);
 
         // when & then

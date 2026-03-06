@@ -4,8 +4,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import kr.inventory.domain.auth.security.CustomUserDetails;
-import kr.inventory.domain.stock.controller.dto.request.StockTakeCreateRequest;
-import kr.inventory.domain.stock.controller.dto.request.StockTakeItemsDraftUpdateRequest;
+import kr.inventory.domain.stock.controller.dto.request.StockTakeSheetCreateRequest;
+import kr.inventory.domain.stock.controller.dto.request.StockTakeDraftSaveRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockTakeDetailResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockTakeSheetResponse;
 import kr.inventory.domain.stock.service.StockTakeService;
@@ -55,7 +55,7 @@ public class StockTakeController {
 	public ResponseEntity<UUID> createSheet(
 		@PathVariable UUID storePublicId,
 		@AuthenticationPrincipal CustomUserDetails principal,
-		@RequestBody @Valid StockTakeCreateRequest request) {
+		@RequestBody @Valid StockTakeSheetCreateRequest request) {
 		return ResponseEntity.ok(stockTakeService.createStockTakeSheet(principal.getUserId(), storePublicId, request));
 	}
 
@@ -68,7 +68,7 @@ public class StockTakeController {
             @PathVariable UUID storePublicId,
             @PathVariable UUID sheetPublicId,
             @AuthenticationPrincipal CustomUserDetails principal,
-            @RequestBody @Valid StockTakeItemsDraftUpdateRequest request
+            @RequestBody @Valid StockTakeDraftSaveRequest request
     ) {
         stockTakeService.updateDraftItems(principal.getUserId(), storePublicId, sheetPublicId, request);
         return ResponseEntity.noContent().build();

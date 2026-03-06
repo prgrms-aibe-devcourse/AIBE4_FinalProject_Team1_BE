@@ -3,8 +3,7 @@ package kr.inventory.domain.stock.service;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.entity.enums.IngredientStatus;
 import kr.inventory.domain.reference.repository.IngredientRepository;
-import kr.inventory.domain.stock.controller.dto.request.StockTakeCreateRequest;
-import kr.inventory.domain.stock.controller.dto.request.StockTakeItemRequest;
+import kr.inventory.domain.stock.controller.dto.request.StockTakeSheetCreateRequest;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.StockTake;
 import kr.inventory.domain.stock.entity.StockTakeSheet;
@@ -61,8 +60,8 @@ class StockTakeServiceTest {
     void createStockTakeSheet_Success() {
         // given
         UUID ingredientPublicId = UUID.randomUUID();
-        StockTakeItemRequest itemReq = new StockTakeItemRequest(ingredientPublicId, new BigDecimal("50.0"));
-        StockTakeCreateRequest request = new StockTakeCreateRequest("정기 실사", List.of(itemReq));
+        StockTakeDraftSaveItemRequest itemReq = new StockTakeDraftSaveItemRequest(ingredientPublicId, new BigDecimal("50.0"));
+        StockTakeSheetCreateRequest request = new StockTakeSheetCreateRequest("정기 실사", List.of(itemReq));
         Ingredient ingredient = createIngredient(100L);
 
         given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);

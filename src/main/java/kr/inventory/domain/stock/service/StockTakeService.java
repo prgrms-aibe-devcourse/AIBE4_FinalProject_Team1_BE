@@ -5,10 +5,8 @@ import kr.inventory.domain.reference.entity.enums.IngredientStatus;
 import kr.inventory.domain.reference.exception.IngredientErrorCode;
 import kr.inventory.domain.reference.exception.IngredientException;
 import kr.inventory.domain.reference.repository.IngredientRepository;
-import kr.inventory.domain.stock.controller.dto.request.StockTakeCreateRequest;
-import kr.inventory.domain.stock.controller.dto.request.StockTakeItemDraftUpdateRequest;
-import kr.inventory.domain.stock.controller.dto.request.StockTakeItemRequest;
-import kr.inventory.domain.stock.controller.dto.request.StockTakeItemsDraftUpdateRequest;
+import kr.inventory.domain.stock.controller.dto.request.StockTakeSheetCreateRequest;
+import kr.inventory.domain.stock.controller.dto.request.StockTakeDraftSaveRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockTakeDetailResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockTakeItemResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockTakeSheetResponse;
@@ -80,7 +78,7 @@ public class StockTakeService {
     }
 
     @Transactional
-    public UUID createStockTakeSheet(Long userId, UUID storePublicId, StockTakeCreateRequest request) {
+    public UUID createStockTakeSheet(Long userId, UUID storePublicId, StockTakeSheetCreateRequest request) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
         validateDuplicateIngredients(request.items());
 
@@ -92,9 +90,9 @@ public class StockTakeService {
         return sheet.getSheetPublicId();
     }
 
-    private void validateDuplicateIngredients(List<StockTakeItemRequest> itemRequests) {
+    private void validateDuplicateIngredients(List<StockTakeDraftSaveItemRequest> itemRequests) {
         List<UUID> ingredientPublicIds = itemRequests.stream()
-                .map(StockTakeItemRequest::ingredientPublicId)
+                .map(StockTakeDraftSaveItemRequest::ingredientPublicId)
                 .toList();
 
         if (ingredientPublicIds.size() != new LinkedHashSet<>(ingredientPublicIds).size()) {
@@ -108,9 +106,9 @@ public class StockTakeService {
         return sheet;
     }
 
-    private List<StockTake> buildDraftItems(Long storeId, StockTakeSheet sheet, List<StockTakeItemRequest> itemRequests) {
+    private List<StockTake> buildDraftItems(Long storeId, StockTakeSheet sheet, List<StockTakeDraftSaveItemRequest> itemRequests) {
         List<UUID> ingredientPublicIds = itemRequests.stream()
-                .map(StockTakeItemRequest::ingredientPublicId)
+                .map(StockTakeDraftSaveItemRequest::ingredientPublicId)
                 .toList();
 
         Map<UUID, Ingredient> ingredientMap = ingredientRepository
@@ -174,7 +172,7 @@ public class StockTakeService {
     }
 
     @Transactional
-    public void updateDraftItems(Long userId, UUID storePublicId, UUID sheetPublicId, StockTakeItemsDraftUpdateRequest request) {
+    public void updateDraftItems(Long userId, UUID storePublicId, UUID sheetPublicId, StockTakeDraftSaveRequest request) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
         StockTakeSheet sheet = loadSheetForUpdate(sheetPublicId, storeId);
 
@@ -201,7 +199,7 @@ public class StockTakeService {
         }
     }
 
-    private List<UUID> extractDistinctIngredientPublicIds(StockTakeItemsDraftUpdateRequest request) {
+    private List<UUID> extractDistinctIngredientPublicIds(StockTakeDraftSaveRequest request) {
         return request.items().stream()
                 .map(StockTakeItemDraftUpdateRequest::ingredientPublicId)
                 .distinct()
@@ -222,7 +220,7 @@ public class StockTakeService {
         ));
     }
 
-    private void applyDraftUpdatesOrThrow(StockTakeItemsDraftUpdateRequest request, Map<UUID, StockTake> existingMap) {
+    private void applyDraftUpdatesOrThrow(StockTakeDraftSaveRequest request, Map<UUID, StockTake> existingMap) {
         for (StockTakeItemDraftUpdateRequest itemReq : request.items()) {
             UUID ingredientPublicId = itemReq.ingredientPublicId();
             StockTake stockTake = existingMap.get(ingredientPublicId);
