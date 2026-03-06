@@ -46,4 +46,14 @@ public class StockTake extends AuditableEntity {
         this.theoreticalQty = theoreticalQty;
         this.varianceQty = varianceQty;
     }
+
+    public void updateStockTakeQty(BigDecimal newQty){
+        if(newQty == null){
+            throw new IllegalArgumentException("수량은 null일 수 없습니다.");
+        }
+        if(newQty.compareTo(BigDecimal.ZERO) < 0){
+            throw new IllegalArgumentException("수량은 0 이상이어야 합니다.");
+        }
+        this.stockTakeQty = newQty;
+    }
 }

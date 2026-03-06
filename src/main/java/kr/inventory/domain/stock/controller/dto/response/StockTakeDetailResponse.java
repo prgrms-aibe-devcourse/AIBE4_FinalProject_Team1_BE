@@ -4,22 +4,25 @@ import kr.inventory.domain.stock.entity.StockTakeSheet;
 import kr.inventory.domain.stock.entity.enums.StockTakeStatus;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
-public record StockTakeSheetResponse(
+public record StockTakeDetailResponse(
         UUID sheetPublicId,
         String title,
         StockTakeStatus status,
         OffsetDateTime createdAt,
-        OffsetDateTime confirmedAt
+        OffsetDateTime confirmedAt,
+        List<StockTakeItemResponse> items
 ) {
-    public static StockTakeSheetResponse from(StockTakeSheet sheet) {
-        return new StockTakeSheetResponse(
+    public static StockTakeDetailResponse from(StockTakeSheet sheet, List<StockTakeItemResponse> items) {
+        return new StockTakeDetailResponse(
                 sheet.getSheetPublicId(),
                 sheet.getTitle(),
                 sheet.getStatus(),
                 sheet.getCreatedAt(),
-                sheet.getConfirmedAt()
+                sheet.getConfirmedAt(),
+                items
         );
     }
 }

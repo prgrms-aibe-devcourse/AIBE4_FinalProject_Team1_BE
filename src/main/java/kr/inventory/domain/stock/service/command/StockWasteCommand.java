@@ -14,7 +14,7 @@ public record StockWasteCommand(
 	IngredientStockBatch batch,
 	BigDecimal quantity,
 	BigDecimal balanceAfter,
-	Long sourceId,
+	Long referenceId,
 	User user
 ) {
 }

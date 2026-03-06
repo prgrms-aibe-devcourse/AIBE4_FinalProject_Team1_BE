@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.entity.Menu;
+import kr.inventory.domain.reference.entity.enums.IngredientStatus;
 import kr.inventory.domain.reference.repository.IngredientRepository;
 import kr.inventory.domain.sales.entity.SalesOrderItem;
 import kr.inventory.domain.sales.repository.SalesOrderItemRepository;
@@ -48,7 +49,7 @@ public class TheoreticalUsageService {
                     .toList();
 
             Map<UUID, Long> publicToId = ingredientRepository
-                    .findAllByStoreStoreIdAndIngredientPublicIdIn(storeId, publicIds)
+                    .findAllByStoreStoreIdAndIngredientPublicIdInAndStatusNot(storeId, publicIds, IngredientStatus.DELETED)
                     .stream()
                     .collect(Collectors.toMap(Ingredient::getIngredientPublicId, Ingredient::getIngredientId));
 

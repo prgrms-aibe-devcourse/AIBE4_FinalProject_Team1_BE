@@ -71,7 +71,7 @@ public class StockLog extends CreatedAtEntity {
 		log.balanceAfter = command.balanceAfter();
 
 		log.referenceType = ReferenceType.INBOUND;
-		log.referenceId = command.sourceId();
+		log.referenceId = command.referenceId();
 		log.createdByUser = command.user();
 		return log;
 	}
@@ -85,7 +85,7 @@ public class StockLog extends CreatedAtEntity {
 		log.changeQuantity = command.quantity();
 		log.balanceAfter = command.balanceAfter();
 		log.referenceType = ReferenceType.SALE;
-		log.referenceId = command.sourceId();
+		log.referenceId = command.referenceId();
 		log.createdByUser = null;
 		return log;
 	}
@@ -99,7 +99,7 @@ public class StockLog extends CreatedAtEntity {
 		log.changeQuantity = command.quantity();
 		log.balanceAfter = command.balanceAfter();
 		log.referenceType = ReferenceType.WASTE;
-		log.referenceId = command.sourceId();
+		log.referenceId = command.referenceId();
 		log.createdByUser = command.user();
 		return log;
 	}

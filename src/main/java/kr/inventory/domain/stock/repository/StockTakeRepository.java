@@ -6,6 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface StockTakeRepository extends JpaRepository<StockTake,Long> {
+public interface StockTakeRepository extends JpaRepository<StockTake,Long>, StockTakeRepositoryCustom {
     List<StockTake> findBySheet(StockTakeSheet sheet);
 }

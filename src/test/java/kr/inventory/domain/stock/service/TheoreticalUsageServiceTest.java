@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.entity.Menu;
+import kr.inventory.domain.reference.entity.enums.IngredientStatus;
 import kr.inventory.domain.reference.repository.IngredientRepository;
 import kr.inventory.domain.sales.entity.SalesOrderItem;
 import kr.inventory.domain.stock.exception.StockErrorCode;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -27,7 +29,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
@@ -80,7 +82,6 @@ class TheoreticalUsageServiceTest {
         SalesOrderItem item2 = createOrderItem(2L, 3, recipeJson);
         List<SalesOrderItem> items = List.of(item1, item2);
 
-        // 2. Repository 모킹 (UUID를 내부 Long ID로 변환하기 위함)
         Ingredient ing1 = mock(Ingredient.class);
         Ingredient ing2 = mock(Ingredient.class);
 
@@ -89,8 +90,11 @@ class TheoreticalUsageServiceTest {
         given(ing2.getIngredientPublicId()).willReturn(publicId2);
         given(ing2.getIngredientId()).willReturn(200L);
 
-        given(ingredientRepository.findAllByStoreStoreIdAndIngredientPublicIdIn(eq(storeId), anyList()))
-                .willReturn(List.of(ing1, ing2));
+        given(ingredientRepository.findAllByStoreStoreIdAndIngredientPublicIdInAndStatusNot(
+                eq(storeId),
+                ArgumentMatchers.<UUID>anyList(),
+                eq(IngredientStatus.DELETED)
+        )).willReturn(List.of(ing1, ing2));
 
         // when
         Map<Long, BigDecimal> result = theoreticalUsageService.calculateOrderUsage(storeId, items);
