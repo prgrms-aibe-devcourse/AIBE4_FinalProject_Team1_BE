@@ -1,6 +1,7 @@
 package kr.inventory.domain.stock.service;
 
 import kr.inventory.domain.reference.entity.Ingredient;
+import kr.inventory.domain.reference.entity.enums.IngredientStatus;
 import kr.inventory.domain.reference.repository.IngredientRepository;
 import kr.inventory.domain.stock.controller.dto.request.StockTakeCreateRequest;
 import kr.inventory.domain.stock.controller.dto.request.StockTakeItemRequest;
@@ -65,8 +66,11 @@ class StockTakeServiceTest {
         Ingredient ingredient = createIngredient(100L);
 
         given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
-        given(ingredientRepository.findAllByStoreStoreIdAndIngredientIdIn(eq(storeId), anyList())).willReturn(
-                List.of(ingredient));
+        given(ingredientRepository.findAllByStoreStoreIdAndIngredientIdInAndStatusNot(
+                eq(storeId),
+                anyList(),
+                eq(IngredientStatus.DELETED)
+        )).willReturn(List.of(ingredient));
 
         // when
         stockTakeService.createStockTakeSheet(userId, storePublicId, request);
@@ -168,7 +172,7 @@ class StockTakeServiceTest {
     }
 
     private IngredientStockBatch createBatch(Long storeId, Ingredient ingredient, BigDecimal qty) {
-        IngredientStockBatch batch = IngredientStockBatch.createAdjustment(storeId, ingredient, qty, BigDecimal.ZERO);
+        IngredientStockBatch batch = IngredientStockBatch.createAdjustment(ingredient, qty, BigDecimal.ZERO);
         ReflectionTestUtils.setField(batch, "remainingQuantity", qty); // createAdjustment 시 설정되지만 명시적 확인
         return batch;
     }
