@@ -7,6 +7,7 @@ import kr.inventory.domain.dining.entity.TableSession;
 import kr.inventory.domain.dining.entity.enums.TableSessionStatus;
 import kr.inventory.domain.dining.repository.TableSessionRepository;
 import kr.inventory.domain.reference.entity.Menu;
+import kr.inventory.domain.reference.entity.enums.MenuStatus;
 import kr.inventory.domain.reference.repository.MenuRepository;
 import kr.inventory.domain.sales.controller.dto.request.SalesOrderCreateRequest;
 import kr.inventory.domain.sales.controller.dto.request.SalesOrderItemRequest;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -34,6 +36,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -105,10 +108,14 @@ class SalesOrderServiceTest {
 
         given(tableSessionRepository.findBySessionTokenHashAndStatus(anyString(), eq(TableSessionStatus.ACTIVE)))
                 .willReturn(Optional.of(session));
+
         given(salesOrderRepository.findByStoreStoreIdAndIdempotencyKey(anyLong(), eq(idempotencyKey)))
                 .willReturn(Optional.empty());
-        given(menuRepository.findByMenuPublicIdIn(anyList()))
-                .willReturn(List.of(menu1));
+
+        given(menuRepository.findByMenuPublicIdInAndStatusNot(
+                ArgumentMatchers.<UUID>anyList(),
+                eq(MenuStatus.DELETED)
+        )).willReturn(List.of(menu1));
 
         SalesOrder savedOrder = SalesOrder.create(store, table, session, idempotencyKey, SalesOrderType.DINE_IN);
         ReflectionTestUtils.setField(savedOrder, "salesOrderId", 100L);
@@ -123,7 +130,6 @@ class SalesOrderServiceTest {
         assertThat(response).isNotNull();
         verify(salesOrderRepository).saveAndFlush(any(SalesOrder.class));
 
-        // 수정: (Long, Long) 대신 (SalesOrder, List) 타입을 받도록 검증 변경
         verify(stockManagerFacade).processOrderStockDeduction(eq(savedOrder), anyList());
     }
 
@@ -133,18 +139,27 @@ class SalesOrderServiceTest {
         // given
         String sessionToken = "test-token";
         String idempotencyKey = "idempotency-123";
-        JsonNode ingredientsJson = objectMapper.readTree("{\"ingredients\": [{\"ingredientId\": 1, \"quantity\": 0.5}]}");
+
+        JsonNode ingredientsJson =
+                objectMapper.readTree("{\"ingredients\": [{\"ingredientId\": 1, \"quantity\": 0.5}]}");
+
         Menu menuWithIngredients = Menu.create(store, "김치찌개", new BigDecimal("8000"), ingredientsJson);
         ReflectionTestUtils.setField(menuWithIngredients, "menuId", 3L);
 
-        SalesOrderCreateRequest request = new SalesOrderCreateRequest(List.of(new SalesOrderItemRequest(menuWithIngredients.getMenuPublicId(), 1)));
+        SalesOrderCreateRequest request = new SalesOrderCreateRequest(
+                List.of(new SalesOrderItemRequest(menuWithIngredients.getMenuPublicId(), 1))
+        );
 
         given(tableSessionRepository.findBySessionTokenHashAndStatus(anyString(), eq(TableSessionStatus.ACTIVE)))
                 .willReturn(Optional.of(session));
+
         given(salesOrderRepository.findByStoreStoreIdAndIdempotencyKey(anyLong(), eq(idempotencyKey)))
                 .willReturn(Optional.empty());
-        given(menuRepository.findByMenuPublicIdIn(anyList()))
-                .willReturn(List.of(menuWithIngredients));
+
+        given(menuRepository.findByMenuPublicIdInAndStatusNot(
+                ArgumentMatchers.<UUID>anyList(),
+                eq(MenuStatus.DELETED)
+        )).willReturn(List.of(menuWithIngredients));
 
         SalesOrder savedOrder = SalesOrder.create(store, table, session, idempotencyKey, SalesOrderType.DINE_IN);
         ReflectionTestUtils.setField(savedOrder, "salesOrderId", 100L);
@@ -156,7 +171,6 @@ class SalesOrderServiceTest {
         salesOrderService.createOrder(sessionToken, idempotencyKey, request);
 
         // then
-        // 수정: 인자 타입 변경 반영
         verify(stockManagerFacade).processOrderStockDeduction(any(SalesOrder.class), anyList());
     }
 
@@ -166,20 +180,35 @@ class SalesOrderServiceTest {
         // given
         String sessionToken = "test-token";
         String idempotencyKey = "idempotency-123";
-        Menu menuWithIngredients = Menu.create(store, "김치찌개", new BigDecimal("8000"), objectMapper.readTree("{\"ingredients\": []}"));
-        SalesOrderCreateRequest request = new SalesOrderCreateRequest(List.of(new SalesOrderItemRequest(menuWithIngredients.getMenuPublicId(), 1)));
+
+        Menu menuWithIngredients = Menu.create(
+                store,
+                "김치찌개",
+                new BigDecimal("8000"),
+                objectMapper.readTree("{\"ingredients\": []}")
+        );
+
+        SalesOrderCreateRequest request = new SalesOrderCreateRequest(
+                List.of(new SalesOrderItemRequest(menuWithIngredients.getMenuPublicId(), 1))
+        );
 
         given(tableSessionRepository.findBySessionTokenHashAndStatus(anyString(), eq(TableSessionStatus.ACTIVE)))
                 .willReturn(Optional.of(session));
+
         given(salesOrderRepository.findByStoreStoreIdAndIdempotencyKey(anyLong(), eq(idempotencyKey)))
                 .willReturn(Optional.empty());
-        given(menuRepository.findByMenuPublicIdIn(anyList()))
-                .willReturn(List.of(menuWithIngredients));
+
+        // ✅ 변경: StatusNot 반영
+        given(menuRepository.findByMenuPublicIdInAndStatusNot(
+                ArgumentMatchers.<UUID>anyList(),
+                eq(MenuStatus.DELETED)
+        )).willReturn(List.of(menuWithIngredients));
 
         SalesOrder savedOrder = SalesOrder.create(store, table, session, idempotencyKey, SalesOrderType.DINE_IN);
-        given(salesOrderRepository.saveAndFlush(any(SalesOrder.class))).willReturn(savedOrder);
+        given(salesOrderRepository.saveAndFlush(any(SalesOrder.class)))
+                .willReturn(savedOrder);
 
-        // 수정: Facade의 바뀐 시그니처에 맞춰 예외 발생 stubbing
+        // Facade의 바뀐 시그니처에 맞춰 예외 발생 stubbing
         willThrow(new SalesOrderException(SalesOrderErrorCode.INSUFFICIENT_STOCK))
                 .given(stockManagerFacade).processOrderStockDeduction(any(SalesOrder.class), anyList());
 
@@ -195,7 +224,9 @@ class SalesOrderServiceTest {
         given(tableSessionRepository.findBySessionTokenHashAndStatus(anyString(), eq(TableSessionStatus.ACTIVE)))
                 .willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> salesOrderService.createOrder("invalid", "key", new SalesOrderCreateRequest(List.of())))
+        assertThatThrownBy(() ->
+                salesOrderService.createOrder("invalid", "key", new SalesOrderCreateRequest(List.of()))
+        )
                 .isInstanceOf(SalesOrderException.class)
                 .hasMessageContaining(SalesOrderErrorCode.INVALID_SESSION.getMessage());
     }

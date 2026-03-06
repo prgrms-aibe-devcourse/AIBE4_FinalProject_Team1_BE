@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.UUID;
 
 @Entity
 @Getter
@@ -17,6 +18,9 @@ public class StockTakeSheet extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long sheetId;
+
+    @Column(nullable = false, updatable = false)
+    private UUID sheetPublicId;
 
     @Column(name = "store_id", nullable = false)
     private Long storeId;
@@ -32,6 +36,7 @@ public class StockTakeSheet extends AuditableEntity {
 
     public static StockTakeSheet create(Long storeId, String title) {
         StockTakeSheet sheet = new StockTakeSheet();
+        sheet.sheetPublicId = UUID.randomUUID();
         sheet.storeId = storeId;
         sheet.title = title;
         sheet.status = StockTakeStatus.DRAFT;

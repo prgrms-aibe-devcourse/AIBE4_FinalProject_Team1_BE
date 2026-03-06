@@ -57,23 +57,20 @@ public class StockLog extends CreatedAtEntity {
 	@JoinColumn(name = "created_by_user_id")
 	private User createdByUser;
 
-	public static StockLog createInboundLog(
-		StockInboundLogCommand command
-	) {
-		StockLog log = new StockLog();
-		log.store = command.store();
-		log.ingredient = command.ingredient();
-		log.stockBatch = command.batch();
-		log.transactionType = TransactionType.INBOUND;
-		log.changeQuantity = command.quantity();
+    public static StockLog createInboundLog(StockInboundLogCommand command) {
+        StockLog log = new StockLog();
+        log.store = command.store();
+        log.ingredient = command.ingredient();
+        log.stockBatch = command.batch();
+        log.transactionType = command.transactionType();
+        log.changeQuantity = command.quantity();
+        log.balanceAfter = command.balanceAfter();
+        log.referenceType = command.referenceType();
+        log.referenceId = command.referenceId();
+        log.createdByUser = command.user();
 
-		log.balanceAfter = command.balanceAfter();
-
-		log.referenceType = ReferenceType.INBOUND;
-		log.referenceId = command.sourceId();
-		log.createdByUser = command.user();
-		return log;
-	}
+        return log;
+    }
 
     public static StockLog createDeductionLog(StockDeductionLogCommand command) {
         StockLog log = new StockLog();
@@ -83,9 +80,9 @@ public class StockLog extends CreatedAtEntity {
         log.transactionType = TransactionType.DEDUCTION;
         log.changeQuantity = command.quantity();
         log.balanceAfter = command.balanceAfter();
-        log.referenceType = ReferenceType.SALE;
-        log.referenceId = command.sourceId();
-        log.createdByUser = null;
+        log.referenceType = command.referenceType();
+        log.referenceId = command.referenceId();
+        log.createdByUser = command.createdByUser();
         return log;
     }
 }

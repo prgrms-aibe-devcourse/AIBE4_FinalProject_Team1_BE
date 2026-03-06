@@ -4,10 +4,10 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 public record StockTakeItemRequest(
-	@NotNull Long ingredientId,
-
-	@NotNull @PositiveOrZero BigDecimal stocktakeQty
+    @NotNull UUID ingredientPublicId,
+	@NotNull @PositiveOrZero BigDecimal stockTakeQty
 ) {
 }
