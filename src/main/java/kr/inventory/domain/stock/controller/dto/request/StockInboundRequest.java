@@ -4,11 +4,18 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public record StockInboundRequest(
 	Long vendorId,
-	Long sourceDocumentId,
-	Long sourcePurchaseOrderId,
-	@NotEmpty @Valid List<StockInboundItemRequest> items) {
+
+	@NotNull Long sourceDocumentId,
+
+	@NotNull Long sourcePurchaseOrderId,
+
+	@NotNull LocalDate inboundDate,
+
+	@NotEmpty @Valid List<StockInboundItemRequest> items
+) {
 }

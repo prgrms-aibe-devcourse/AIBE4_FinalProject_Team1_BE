@@ -19,7 +19,8 @@ public enum SalesOrderErrorCode implements ErrorModel {
 
     INSUFFICIENT_STOCK(HttpStatus.CONFLICT, "SO008","재고가 부족합니다."),
     ORDER_NOT_REFUNDABLE(HttpStatus.CONFLICT, "SO009","환불할 수 없는 주문입니다."),
-    ORDER_ALREADY_REFUNDED(HttpStatus.CONFLICT, "SO010","이미 환불된 주문입니다.");
+    ORDER_ALREADY_REFUNDED(HttpStatus.CONFLICT, "SO010","이미 환불된 주문입니다."),
+    INVALID_SALES_LEDGER_PERIOD(HttpStatus.BAD_REQUEST, "SO011", "매출 내역 조회 기간이 올바르지 않습니다.");
 
     private final HttpStatus status;
     private final String code;

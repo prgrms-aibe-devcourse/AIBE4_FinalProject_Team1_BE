@@ -1,8 +1,8 @@
 package kr.inventory.domain.reference.service;
 
-import kr.inventory.domain.reference.controller.dto.IngredientCreateRequest;
-import kr.inventory.domain.reference.controller.dto.IngredientResponse;
-import kr.inventory.domain.reference.controller.dto.IngredientUpdateRequest;
+import kr.inventory.domain.reference.controller.dto.request.IngredientCreateRequest;
+import kr.inventory.domain.reference.controller.dto.response.IngredientResponse;
+import kr.inventory.domain.reference.controller.dto.request.IngredientUpdateRequest;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.entity.enums.IngredientStatus;
 import kr.inventory.domain.reference.entity.enums.IngredientUnit;

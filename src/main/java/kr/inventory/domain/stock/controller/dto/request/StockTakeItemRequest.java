@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 
 public record StockTakeItemRequest(
 	@NotNull Long ingredientId,
+
 	@NotNull @PositiveOrZero BigDecimal stocktakeQty
 ) {
 }
