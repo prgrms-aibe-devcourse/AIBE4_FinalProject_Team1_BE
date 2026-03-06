@@ -7,7 +7,4 @@ import java.util.List;
 
 public interface IngredientAliasRepository extends JpaRepository<IngredientAlias, Long> {
 
-    List<IngredientAlias> findAllByStoreStoreId(
-            Long storeId
-    );
 }

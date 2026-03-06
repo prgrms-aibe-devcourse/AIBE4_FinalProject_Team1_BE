@@ -4,7 +4,6 @@ package kr.inventory.domain.stock.normalization.model;
 public record BulkResolveResult(
     int totalCount,
     int autoResolvedCount,
-    int pendingCount,
     int failedCount,
     int skippedCount
 ) {

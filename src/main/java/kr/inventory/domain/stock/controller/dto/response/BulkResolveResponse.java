@@ -6,7 +6,6 @@ import kr.inventory.domain.stock.normalization.model.BulkResolveResult;
 public record BulkResolveResponse(
     int totalCount,
     int autoResolvedCount,
-    int pendingCount,
     int failedCount,
     int skippedCount
 ) {
@@ -14,7 +13,6 @@ public record BulkResolveResponse(
         return new BulkResolveResponse(
             result.totalCount(),
             result.autoResolvedCount(),
-            result.pendingCount(),
             result.failedCount(),
             result.skippedCount()
         );

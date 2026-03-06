@@ -23,6 +23,7 @@ import kr.inventory.domain.stock.repository.IngredientStockBatchRepository;
 import kr.inventory.domain.stock.repository.StockInboundItemRepository;
 import kr.inventory.domain.stock.repository.StockInboundRepository;
 import kr.inventory.domain.stock.repository.StockLogRepository;
+import kr.inventory.domain.stock.normalization.service.IngredientResolutionService;
 import kr.inventory.domain.stock.service.command.StockInboundLogCommand;
 import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.repository.StoreRepository;
@@ -61,6 +62,7 @@ public class StockInboundService {
     private final UserRepository userRepository;
     private final DocumentRepository documentRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
+    private final IngredientResolutionService ingredientResolutionService;
 
     public StockInboundResponse createManualInbound(Long userId, UUID storePublicId, ManualInboundRequest request) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
@@ -148,14 +150,25 @@ public class StockInboundService {
         List<StockInboundItem> items = stockInboundItemRepository.findByInboundInboundId(inbound.getInboundId());
 
         boolean hasUnresolvedItems = items.stream()
-                .anyMatch(item -> item.getResolutionStatus() == ResolutionStatus.PENDING
-                        || item.getResolutionStatus() == ResolutionStatus.FAILED);
+                .anyMatch(item -> item.getResolutionStatus() == ResolutionStatus.FAILED);
 
         if (hasUnresolvedItems) {
             throw new StockException(StockErrorCode.INBOUND_ITEMS_NOT_RESOLVED);
         }
 
         inbound.confirm(user);
+
+        // CONFIRMED 상태 항목만 IngredientMapping에 학습
+        Store store = inbound.getStore();
+        items.stream()
+                .filter(item -> item.getResolutionStatus() == ResolutionStatus.CONFIRMED)
+                .filter(item -> item.getNormalizedRawKey() != null && item.getIngredient() != null)
+                .forEach(item -> ingredientResolutionService.upsertMapping(
+                        store,
+                        storeId,
+                        item.getNormalizedRawKey(),
+                        item.getIngredient()
+                ));
 
         for (StockInboundItem item : items) {
             IngredientStockBatch batch = IngredientStockBatch.createFromInbound(

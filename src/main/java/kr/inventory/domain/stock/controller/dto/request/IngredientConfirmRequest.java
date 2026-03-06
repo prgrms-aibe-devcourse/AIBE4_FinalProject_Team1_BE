@@ -1,10 +1,13 @@
 package kr.inventory.domain.stock.controller.dto.request;
 
-import jakarta.validation.constraints.NotNull;
-
 import java.util.UUID;
 
+// 입고 아이템 재료 매핑 확정 요청 -> 기존 재료 요청 or 새 재료 생성
 public record IngredientConfirmRequest(
-    @NotNull(message = "선택한 재료 ID는 필수입니다.")
-    UUID chosenIngredientPublicId
-) {}
+    UUID existingIngredientPublicId,
+
+    String newIngredientName,
+
+    String newIngredientUnit
+) {
+}

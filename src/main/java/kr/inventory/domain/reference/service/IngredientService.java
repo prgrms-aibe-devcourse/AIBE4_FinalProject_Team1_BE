@@ -42,24 +42,20 @@ public class IngredientService {
         Optional<InboundSpecExtractor.Spec> spec = specExtractor.extract(request.name());
 
         Ingredient ingredient;
-        if (spec.isPresent()) {
-            // 규격 추출 성공: baseName, unit, unitSize 사용
-            ingredient = Ingredient.create(
+        // 규격 추출 성공: baseName, unit, unitSize 사용
+        // 규격 추출 실패: 기존 방식대로 생성 (unitSize=null)
+        ingredient = spec.map(value -> Ingredient.create(
                 store,
-                spec.get().baseName(),
-                spec.get().unit(),
+                value.baseName(),
+                value.unit(),
                 request.lowStockThreshold(),
-                spec.get().unitSize()
-            );
-        } else {
-            // 규격 추출 실패: 기존 방식대로 생성 (unitSize=null)
-            ingredient = Ingredient.create(
+                value.unitSize()
+        )).orElseGet(() -> Ingredient.create(
                 store,
                 request.name(),
                 request.unit(),
                 request.lowStockThreshold()
-            );
-        }
+        ));
 
         ingredientRepository.save(ingredient);
         return IngredientResponse.from(ingredient);
@@ -74,18 +70,14 @@ public class IngredientService {
 
     public IngredientResponse getIngredient(Long userId, UUID storePublicId, UUID ingredientPublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-
         Ingredient ingredient = getValidIngredient(ingredientPublicId, storeId);
-
         return IngredientResponse.from(ingredient);
     }
 
     @Transactional
     public IngredientResponse updateIngredient(Long userId, UUID storePublicId, UUID ingredientPublicId, IngredientUpdateRequest request) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-
         Ingredient ingredient = getValidIngredient(ingredientPublicId, storeId);
-
         ingredient.update(request.name(), request.unit(), request.lowStockThreshold(), request.status());
         return IngredientResponse.from(ingredient);
     }
@@ -93,9 +85,7 @@ public class IngredientService {
     @Transactional
     public void deleteIngredient(Long userId, UUID storePublicId, UUID ingredientPublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-
         Ingredient ingredient = getValidIngredient(ingredientPublicId, storeId);
-
         ingredient.delete();
     }
 
