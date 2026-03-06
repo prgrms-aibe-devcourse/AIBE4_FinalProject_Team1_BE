@@ -53,7 +53,7 @@ public class WasteService {
 	}
 
 	private void processSingleWaste(Store store, WasteRequest.WasteItem item, User currentUser) {
-		IngredientStockBatch batch = batchRepository.findByStoreIdAndBatchPublicId(store.getStoreId(),
+		IngredientStockBatch batch = batchRepository.findByStore_StoreIdAndBatchPublicId(store.getStoreId(),
 				item.stockBatchId())
 			.orElseThrow(() -> new StockException(
 				StockErrorCode.INGREDIENT_NOT_FOUND));
