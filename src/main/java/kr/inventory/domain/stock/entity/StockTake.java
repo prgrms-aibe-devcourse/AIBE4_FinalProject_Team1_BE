@@ -1,8 +1,9 @@
 package kr.inventory.domain.stock.entity;
 
 import jakarta.persistence.*;
-import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.common.AuditableEntity;
+import kr.inventory.domain.reference.entity.Ingredient;
+import kr.inventory.domain.reference.entity.enums.IngredientUnit;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,6 +26,13 @@ public class StockTake extends AuditableEntity {
     @JoinColumn(name = "ingredient_id", nullable = false)
     private Ingredient ingredient;
 
+    @Column(nullable = false, length = 120)
+    private String ingredientName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private IngredientUnit unit;
+
     @Column(nullable = false, precision = 14, scale = 3)
     private BigDecimal stockTakeQty;
 
@@ -46,6 +54,10 @@ public class StockTake extends AuditableEntity {
         StockTake item = new StockTake();
         item.sheet = sheet;
         item.ingredient = ingredient;
+
+        item.ingredientName = ingredient.getName();
+        item.unit = ingredient.getUnit();
+
         item.theoreticalQty = theoreticalQty;
         item.stockTakeQty = stockTakeQty;
         item.varianceQty = stockTakeQty.subtract(theoreticalQty);
