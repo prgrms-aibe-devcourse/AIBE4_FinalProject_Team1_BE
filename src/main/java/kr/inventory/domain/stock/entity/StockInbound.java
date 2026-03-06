@@ -12,6 +12,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
@@ -27,7 +28,7 @@ public class StockInbound extends AuditableEntity {
 	private Long inboundId;
 
 	@Column(nullable = false, updatable = false)
-	private UUID inboundPublicId = UUID.randomUUID();
+	private UUID inboundPublicId;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "store_id", nullable = false)
@@ -45,6 +46,9 @@ public class StockInbound extends AuditableEntity {
 	@JoinColumn(name = "source_purchase_order_id")
 	private PurchaseOrder sourcePurchaseOrder;
 
+    @Column(nullable = false)
+    private LocalDate inboundDate;
+
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 20)
 	private InboundStatus status;
@@ -56,12 +60,14 @@ public class StockInbound extends AuditableEntity {
 	private OffsetDateTime confirmedAt;
 
 	public static StockInbound create(Store store, Vendor vendor, Document sourceDocument,
-		PurchaseOrder sourcePurchaseOrder) {
+		PurchaseOrder sourcePurchaseOrder, LocalDate inboundDate) {
 		StockInbound inbound = new StockInbound();
+        inbound.inboundPublicId = UUID.randomUUID();
 		inbound.store = store;
 		inbound.vendor = vendor;
 		inbound.sourceDocument = sourceDocument;
 		inbound.sourcePurchaseOrder = sourcePurchaseOrder;
+		inbound.inboundDate = inboundDate;
 		inbound.status = InboundStatus.DRAFT;
 		return inbound;
 	}
