@@ -4,8 +4,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import kr.inventory.domain.auth.security.CustomUserDetails;
-import kr.inventory.domain.stock.controller.dto.request.StockTakeSheetCreateRequest;
+import kr.inventory.domain.stock.controller.dto.request.StockTakeConfirmRequest;
 import kr.inventory.domain.stock.controller.dto.request.StockTakeDraftSaveRequest;
+import kr.inventory.domain.stock.controller.dto.request.StockTakeSheetCreateRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockTakeDetailResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockTakeSheetResponse;
 import kr.inventory.domain.stock.service.StockTakeService;
@@ -49,10 +50,10 @@ public class StockTakeController {
 
 	@Operation(
 		summary = "재고 실사 시트 생성",
-		description = "특정 매장의 재고 조사를 위한 새로운 실사 시트를 생성합니다."
+		description = "특정 매장의 재고 실사 시트를 생성하고, 생성 시점의 장부 재고(snapshot)를 저장합니다."
 	)
 	@PostMapping
-	public ResponseEntity<UUID> createSheet(
+	public ResponseEntity<UUID> createStockTakeSheet(
 		@PathVariable UUID storePublicId,
 		@AuthenticationPrincipal CustomUserDetails principal,
 		@RequestBody @Valid StockTakeSheetCreateRequest request) {
@@ -60,30 +61,32 @@ public class StockTakeController {
 	}
 
     @Operation(
-            summary = "재고 실사 항목 임시저장(수정)",
-            description = "특정 실사 시트의 항목 수량(stockTakeQty)을 수정하여 임시저장합니다. (CONFIRMED 상태는 수정 불가)"
+            summary = "재고 실사 초안 저장",
+            description = "특정 실사 시트의 현재 작성 상태를 초안으로 저장합니다. (CONFIRMED 상태는 수정 불가)"
     )
-    @PatchMapping("/{sheetPublicId}/items")
-    public ResponseEntity<Void> saveDraftItems(
+    @PutMapping("/{sheetPublicId}/draft")
+    public ResponseEntity<Void> saveStockTakeDraft(
             @PathVariable UUID storePublicId,
             @PathVariable UUID sheetPublicId,
             @AuthenticationPrincipal CustomUserDetails principal,
             @RequestBody @Valid StockTakeDraftSaveRequest request
     ) {
-        stockTakeService.updateDraftItems(principal.getUserId(), storePublicId, sheetPublicId, request);
+        stockTakeService.saveStockTakeDraft(principal.getUserId(), storePublicId, sheetPublicId, request);
         return ResponseEntity.noContent().build();
     }
 
 	@Operation(
 		summary = "재고 실사 확정",
-		description = "입력된 실사 수량을 바탕으로 장부상 재고를 업데이트하고 조사를 종료합니다."
+		description = "현재 입력된 최종 실사 수량을 기준으로 재고를 조정하고 실사 시트를 확정합니다."
 	)
 	@PostMapping("/{sheetPublicId}/confirm")
-	public ResponseEntity<Void> confirmSheet(
+	public ResponseEntity<Void> confirmStockTakeSheet(
 		@PathVariable UUID storePublicId,
 		@PathVariable UUID sheetPublicId,
-		@AuthenticationPrincipal CustomUserDetails principal) {
-		stockTakeService.confirmSheet(principal.getUserId(), storePublicId, sheetPublicId);
+		@AuthenticationPrincipal CustomUserDetails principal,
+        @RequestBody @Valid StockTakeConfirmRequest request
+    ) {
+		stockTakeService.confirmStockTakeSheet(principal.getUserId(), storePublicId, sheetPublicId, request);
 		return ResponseEntity.noContent().build();
 	}
 }

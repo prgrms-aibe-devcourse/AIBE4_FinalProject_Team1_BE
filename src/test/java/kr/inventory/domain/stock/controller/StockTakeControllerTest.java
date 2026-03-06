@@ -44,7 +44,7 @@ class StockTakeControllerTest {
 
     @Test
     @DisplayName("새로운 실사 시트를 성공적으로 생성한다.")
-    void createSheet_Success() throws Exception {
+    void createStockTakeSheet_Success() throws Exception {
         // given
         UUID ingredientPublicId = UUID.randomUUID();
         StockTakeDraftSaveItemRequest item = new StockTakeDraftSaveItemRequest(ingredientPublicId, new BigDecimal("50.0"));

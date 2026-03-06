@@ -81,7 +81,7 @@ class StockTakeServiceTest {
 
     @Test
     @DisplayName("실사 확정 시, 실제 수량이 장부보다 많으면 새로운 조정 배치가 생성된다.")
-    void confirmSheet_Surplus_CreatesAdjustmentBatch() {
+    void confirmStockTakeSheet_Surplus_CreatesAdjustmentBatch() {
         // given
         StockTakeSheet sheet = createSheet(sheetPublicId, storeId);
         Ingredient ingredient = createIngredient(100L);
@@ -97,7 +97,7 @@ class StockTakeServiceTest {
                 Optional.of(new BigDecimal("1200")));
 
         // when
-        stockTakeService.confirmSheet(userId, storePublicId, sheetPublicId);
+        stockTakeService.confirmStockTakeSheet(userId, storePublicId, sheetPublicId);
 
         // then
         assertThat(batch.getRemainingQuantity()).isEqualByComparingTo("100.0");
@@ -107,7 +107,7 @@ class StockTakeServiceTest {
 
     @Test
     @DisplayName("실사 확정 시, 실제 수량이 장부보다 적으면 기존 배치의 수량이 차감된다.")
-    void confirmSheet_Deficit_UpdatesExistingBatches() {
+    void confirmStockTakeSheet_Deficit_UpdatesExistingBatches() {
         // given
         StockTakeSheet sheet = createSheet(sheetPublicId, storeId);
         Ingredient ingredient = createIngredient(200L);
@@ -120,7 +120,7 @@ class StockTakeServiceTest {
         given(batchRepository.findAvailableBatchesByStoreWithLock(eq(storeId), anyList())).willReturn(List.of(batch));
 
         // when
-        stockTakeService.confirmSheet(userId, storePublicId, sheetPublicId);
+        stockTakeService.confirmStockTakeSheet(userId, storePublicId, sheetPublicId);
 
         // then
         assertThat(batch.getRemainingQuantity()).isEqualByComparingTo("30.0");
@@ -129,7 +129,7 @@ class StockTakeServiceTest {
 
     @Test
     @DisplayName("이미 확정된 시트를 다시 확정하려 하면 예외가 발생한다.")
-    void confirmSheet_AlreadyConfirmed_ThrowsException() {
+    void confirmStockTakeSheet_AlreadyConfirmed_ThrowsException() {
         // given
         StockTakeSheet sheet = createSheet(sheetPublicId, storeId);
         sheet.confirm();
@@ -138,7 +138,7 @@ class StockTakeServiceTest {
         given(sheetRepository.findBySheetPublicIdAndStoreIdWithLock(sheetPublicId, storeId)).willReturn(Optional.of(sheet));
 
         // when & then
-        assertThatThrownBy(() -> stockTakeService.confirmSheet(userId, storePublicId, sheetPublicId))
+        assertThatThrownBy(() -> stockTakeService.confirmStockTakeSheet(userId, storePublicId, sheetPublicId))
                 .isInstanceOf(StockException.class);
         // .hasMessageContaining("이미 확정된 시트입니다."); // StockErrorCode에 따라 메시지 검증
     }
