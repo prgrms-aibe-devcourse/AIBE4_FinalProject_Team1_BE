@@ -62,7 +62,7 @@ public class PurchaseOrderService {
         savedPurchaseOrder.assignOrderNo(orderNo);
 
         List<PurchaseOrderItem> items = request.items().stream()
-                .map(req -> PurchaseOrderItem.create(req.itemName(), req.quantity(), req.unitPrice()))
+                .map(req -> PurchaseOrderItem.create(req.itemName(), req.quantity(), req.unit(), req.unitPrice()))
                 .toList();
         items.forEach(item -> item.assignOrder(savedPurchaseOrder));
         List<PurchaseOrderItem> savedItems = purchaseOrderItemRepository.saveAll(items);
@@ -103,7 +103,7 @@ public class PurchaseOrderService {
         purchaseOrderItemRepository.deleteAllInBatch(oldItems);
 
         List<PurchaseOrderItem> newItems = request.items().stream()
-                .map(req -> PurchaseOrderItem.create(req.itemName(), req.quantity(), req.unitPrice()))
+                .map(req -> PurchaseOrderItem.create(req.itemName(), req.quantity(), req.unit(), req.unitPrice()))
                 .toList();
         newItems.forEach(item -> item.assignOrder(purchaseOrder));
         List<PurchaseOrderItem> savedItems = purchaseOrderItemRepository.saveAll(newItems);

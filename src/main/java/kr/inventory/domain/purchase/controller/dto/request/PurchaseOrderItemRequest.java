@@ -13,6 +13,8 @@ public record PurchaseOrderItemRequest(
         @NotNull(message = "quantity는 필수입니다.")
         @Positive(message = "quantity는 1 이상이어야 합니다.")
         Integer quantity,
+        @NotBlank(message = "unit은 필수입니다.")
+        String unit,
         @NotNull(message = "unitPrice는 필수입니다.")
         @DecimalMin(value = "0.0", inclusive = false, message = "unitPrice는 0보다 커야 합니다.")
         BigDecimal unitPrice
