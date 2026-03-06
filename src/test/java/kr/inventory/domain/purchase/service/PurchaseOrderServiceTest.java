@@ -96,8 +96,8 @@ class PurchaseOrderServiceTest {
                 // given
                 Long userId = 1L;
 
-                PurchaseOrderItemRequest item1 = new PurchaseOrderItemRequest("양파", 10, new BigDecimal("1000"));
-                PurchaseOrderItemRequest item2 = new PurchaseOrderItemRequest("감자", 20, new BigDecimal("800"));
+                PurchaseOrderItemRequest item1 = new PurchaseOrderItemRequest("양파", 10, "EA",  new BigDecimal("1000"));
+                PurchaseOrderItemRequest item2 = new PurchaseOrderItemRequest("감자", 20, "KG", new BigDecimal("800"));
                 PurchaseOrderCreateRequest request = new PurchaseOrderCreateRequest(vendorPublicId,
                                 List.of(item1, item2));
 
@@ -114,8 +114,8 @@ class PurchaseOrderServiceTest {
                                 .willReturn(purchaseOrder);
 
                 List<PurchaseOrderItem> savedItems = List.of(
-                                PurchaseOrderItem.create("양파", 10, new BigDecimal("1000")),
-                                PurchaseOrderItem.create("감자", 20, new BigDecimal("800")));
+                                PurchaseOrderItem.create("양파", 10, "EA", new BigDecimal("1000")),
+                                PurchaseOrderItem.create("감자", 20, "KG", new BigDecimal("800")));
                 given(purchaseOrderItemRepository.saveAll(anyList()))
                                 .willReturn(savedItems);
 
@@ -175,7 +175,7 @@ class PurchaseOrderServiceTest {
                                 .willReturn(Optional.of(purchaseOrder));
 
                 List<PurchaseOrderItem> items = List.of(
-                                PurchaseOrderItem.create("양파", 10, new BigDecimal("1000")));
+                                PurchaseOrderItem.create("양파", 10, "EA", new BigDecimal("1000")));
                 given(purchaseOrderItemRepository.findByPurchaseOrderPurchaseOrderId(1L))
                                 .willReturn(items);
 
@@ -195,7 +195,7 @@ class PurchaseOrderServiceTest {
                 // given
                 Long userId = 1L;
 
-                PurchaseOrderItemRequest item1 = new PurchaseOrderItemRequest("당근", 15, new BigDecimal("1200"));
+                PurchaseOrderItemRequest item1 = new PurchaseOrderItemRequest("당근", 15, "KG", new BigDecimal("1200"));
                 PurchaseOrderUpdateRequest request = new PurchaseOrderUpdateRequest(vendorPublicId, List.of(item1));
 
                 given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId))
@@ -211,12 +211,12 @@ class PurchaseOrderServiceTest {
                                 .willReturn(Optional.of(vendor));
 
                 List<PurchaseOrderItem> oldItems = List.of(
-                                PurchaseOrderItem.create("양파", 10, new BigDecimal("1000")));
+                                PurchaseOrderItem.create("양파", 10, "EA", new BigDecimal("1000")));
                 given(purchaseOrderItemRepository.findByPurchaseOrderPurchaseOrderId(1L))
                                 .willReturn(oldItems);
 
                 List<PurchaseOrderItem> newItems = List.of(
-                                PurchaseOrderItem.create("당근", 15, new BigDecimal("1200")));
+                                PurchaseOrderItem.create("당근", 15, "KG", new BigDecimal("1200")));
                 given(purchaseOrderItemRepository.saveAll(anyList()))
                                 .willReturn(newItems);
 

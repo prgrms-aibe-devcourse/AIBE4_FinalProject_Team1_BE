@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 public record PurchaseOrderItemResponse(
         String itemName,
         Integer quantity,
+        String unit,
         BigDecimal unitPrice,
         BigDecimal lineAmount
 ) {
@@ -14,6 +15,7 @@ public record PurchaseOrderItemResponse(
         return new PurchaseOrderItemResponse(
                 item.getItemName(),
                 item.getQuantity(),
+                item.getUnit(),
                 item.getUnitPrice(),
                 item.getLineAmount()
         );
