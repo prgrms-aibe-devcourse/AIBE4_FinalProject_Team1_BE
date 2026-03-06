@@ -52,7 +52,7 @@ public class StockTakeController {
 		description = "특정 매장의 재고 조사를 위한 새로운 실사 시트를 생성합니다."
 	)
 	@PostMapping
-	public ResponseEntity<Long> createSheet(
+	public ResponseEntity<UUID> createSheet(
 		@PathVariable UUID storePublicId,
 		@AuthenticationPrincipal CustomUserDetails principal,
 		@RequestBody @Valid StockTakeCreateRequest request) {

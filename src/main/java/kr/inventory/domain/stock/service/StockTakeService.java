@@ -79,7 +79,7 @@ public class StockTakeService {
     }
 
     @Transactional
-    public Long createStockTakeSheet(Long userId, UUID storePublicId, StockTakeCreateRequest request) {
+    public UUID createStockTakeSheet(Long userId, UUID storePublicId, StockTakeCreateRequest request) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
         StockTakeSheet sheet = createAndSaveSheet(storeId, request.title());
 
@@ -87,7 +87,7 @@ public class StockTakeService {
 
         stockTakeRepository.saveAll(items);
 
-        return sheet.getSheetId();
+        return sheet.getSheetPublicId();
     }
 
     private StockTakeSheet createAndSaveSheet(Long storeId, String title) {
