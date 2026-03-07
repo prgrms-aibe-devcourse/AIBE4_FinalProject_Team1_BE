@@ -10,6 +10,7 @@ public record StockShortageItemResponse(
         UUID stockShortagePublicId,
         UUID ingredientPublicId,
         String ingredientName,
+        String unit,
         BigDecimal requiredAmount,
         BigDecimal shortageAmount
 ) {
@@ -18,6 +19,7 @@ public record StockShortageItemResponse(
                 shortage.getStockShortagePublicId(),
                 ingredient.getIngredientPublicId(),
                 ingredient.getName(),
+                ingredient.getUnit().name(),
                 shortage.getRequiredAmount(),
                 shortage.getShortageAmount()
         );
