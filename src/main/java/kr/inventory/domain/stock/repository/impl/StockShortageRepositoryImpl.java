@@ -20,9 +20,10 @@ public class StockShortageRepositoryImpl implements StockShortageRepositoryCusto
     public Page<Long> findDistinctSalesOrderIdsByStoreId(Long storeId, Pageable pageable) {
         List<Long> content = queryFactory
                 .select(stockShortage.salesOrderId)
-                .distinct()
                 .from(stockShortage)
                 .where(stockShortage.storeId.eq(storeId))
+                .groupBy(stockShortage.salesOrderId)
+                .orderBy(stockShortage.createdAt.max().desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
