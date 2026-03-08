@@ -4,6 +4,7 @@ import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.repository.IngredientRepository;
 import kr.inventory.domain.sales.entity.SalesOrder;
 import kr.inventory.domain.sales.repository.SalesOrderRepository;
+import kr.inventory.domain.stock.controller.dto.request.StockShortageSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockShortageGroupResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockShortageItemResponse;
 import kr.inventory.domain.stock.entity.StockShortage;
@@ -58,10 +59,19 @@ public class StockShortageService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<StockShortageGroupResponse> getShortagesGroupedByOrder(Long userId, UUID storePublicId, Pageable pageable) {
+    public PageResponse<StockShortageGroupResponse> getShortagesGroupedByOrder(
+            Long userId,
+            UUID storePublicId,
+            StockShortageSearchRequest searchRequest,
+            Pageable pageable
+    ) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
-        Page<Long> salesOrderIdsPage = stockShortageRepository.findDistinctSalesOrderIdsByStoreId(storeId, pageable);
+        Page<Long> salesOrderIdsPage = stockShortageRepository.findDistinctSalesOrderIdsByStoreId(
+                storeId,
+                searchRequest,
+                pageable
+        );
 
         List<Long> salesOrderIds = salesOrderIdsPage.getContent();
 
@@ -76,12 +86,18 @@ public class StockShortageService {
             );
         }
 
-        List<StockShortage> shortages = stockShortageRepository.findAllBySalesOrderIdIn(salesOrderIds);
+        List<StockShortage> shortages = stockShortageRepository.findAllBySalesOrderIds(
+                salesOrderIds,
+                searchRequest
+        );
 
         Map<Long, SalesOrder> salesOrderMap = salesOrderRepository.findAllById(salesOrderIds).stream()
                 .collect(Collectors.toMap(SalesOrder::getSalesOrderId, Function.identity()));
 
-        List<Long> ingredientIds = shortages.stream().map(StockShortage::getIngredientId).distinct().toList();
+        List<Long> ingredientIds = shortages.stream()
+                .map(StockShortage::getIngredientId)
+                .distinct()
+                .toList();
 
         Map<Long, Ingredient> ingredientMap = ingredientRepository.findAllById(ingredientIds).stream()
                 .collect(Collectors.toMap(Ingredient::getIngredientId, Function.identity()));
