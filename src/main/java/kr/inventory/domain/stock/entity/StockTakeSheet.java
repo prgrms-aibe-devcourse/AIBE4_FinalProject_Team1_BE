@@ -47,4 +47,11 @@ public class StockTakeSheet extends AuditableEntity {
         this.status = StockTakeStatus.CONFIRMED;
         this.confirmedAt = OffsetDateTime.now(ZoneOffset.UTC);
     }
+
+    public void updateTitle(String title) {
+        if (title == null || title.isBlank()) {
+            throw new IllegalArgumentException("전표 제목은 비어 있을 수 없습니다.");
+        }
+        this.title = title;
+    }
 }

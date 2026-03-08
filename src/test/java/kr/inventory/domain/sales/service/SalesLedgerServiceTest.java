@@ -13,6 +13,7 @@ import kr.inventory.domain.sales.repository.SalesOrderItemRepository;
 import kr.inventory.domain.sales.repository.SalesOrderRepository;
 import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.service.StoreAccessValidator;
+import kr.inventory.global.dto.PageResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -89,16 +90,16 @@ class SalesLedgerServiceTest {
                 .willReturn(page);
         given(salesOrderItemRepository.countItemsBySalesOrderIds(List.of(100L))).willReturn(java.util.Map.of(100L, 1L));
 
-        Page<SalesLedgerOrderSummaryResponse> result = salesLedgerService.getSalesLedgerOrders(
+        PageResponse<SalesLedgerOrderSummaryResponse> result = salesLedgerService.getSalesLedgerOrders(
                 userId,
                 storePublicId,
                 request,
                 PageRequest.of(0, 20)
         );
 
-        assertThat(result.getTotalElements()).isEqualTo(1);
-        assertThat(result.getContent().get(0).itemCount()).isEqualTo(1);
-        assertThat(result.getContent().get(0).netAmount()).isEqualTo(new BigDecimal("15000"));
+        assertThat(result.totalElements()).isEqualTo(1);
+        assertThat(result.content().get(0).itemCount()).isEqualTo(1);
+        assertThat(result.content().get(0).netAmount()).isEqualTo(new BigDecimal("15000"));
     }
 
     @Test

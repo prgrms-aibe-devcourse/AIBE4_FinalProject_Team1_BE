@@ -120,16 +120,19 @@ class SalesOrderServiceTest {
         SalesOrder savedOrder = SalesOrder.create(store, table, session, idempotencyKey, SalesOrderType.DINE_IN);
         ReflectionTestUtils.setField(savedOrder, "salesOrderId", 100L);
 
-        given(salesOrderRepository.saveAndFlush(any(SalesOrder.class)))
+        given(salesOrderRepository.save(any(SalesOrder.class)))
                 .willReturn(savedOrder);
+
+        given(salesOrderItemRepository.saveAll(anyList()))
+                .willReturn(List.of());
 
         // when
         SalesOrderResponse response = salesOrderService.createOrder(sessionToken, idempotencyKey, request);
 
         // then
         assertThat(response).isNotNull();
-        verify(salesOrderRepository).saveAndFlush(any(SalesOrder.class));
-
+        verify(salesOrderRepository).save(any(SalesOrder.class));
+        verify(salesOrderItemRepository).saveAll(anyList());
         verify(stockManagerFacade).processOrderStockDeduction(eq(savedOrder), anyList());
     }
 
@@ -164,13 +167,18 @@ class SalesOrderServiceTest {
         SalesOrder savedOrder = SalesOrder.create(store, table, session, idempotencyKey, SalesOrderType.DINE_IN);
         ReflectionTestUtils.setField(savedOrder, "salesOrderId", 100L);
 
-        given(salesOrderRepository.saveAndFlush(any(SalesOrder.class)))
+        given(salesOrderRepository.save(any(SalesOrder.class)))
                 .willReturn(savedOrder);
+
+        given(salesOrderItemRepository.saveAll(anyList()))
+                .willReturn(List.of());
 
         // when
         salesOrderService.createOrder(sessionToken, idempotencyKey, request);
 
         // then
+        verify(salesOrderRepository).save(any(SalesOrder.class));
+        verify(salesOrderItemRepository).saveAll(anyList());
         verify(stockManagerFacade).processOrderStockDeduction(any(SalesOrder.class), anyList());
     }
 
@@ -205,8 +213,11 @@ class SalesOrderServiceTest {
         )).willReturn(List.of(menuWithIngredients));
 
         SalesOrder savedOrder = SalesOrder.create(store, table, session, idempotencyKey, SalesOrderType.DINE_IN);
-        given(salesOrderRepository.saveAndFlush(any(SalesOrder.class)))
+        given(salesOrderRepository.save(any(SalesOrder.class)))
                 .willReturn(savedOrder);
+
+        given(salesOrderItemRepository.saveAll(anyList()))
+                .willReturn(List.of());
 
         // Facade의 바뀐 시그니처에 맞춰 예외 발생 stubbing
         willThrow(new SalesOrderException(SalesOrderErrorCode.INSUFFICIENT_STOCK))

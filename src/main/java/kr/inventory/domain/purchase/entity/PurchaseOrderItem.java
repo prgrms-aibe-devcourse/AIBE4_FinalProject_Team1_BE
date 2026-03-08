@@ -36,16 +36,20 @@ public class PurchaseOrderItem extends CreatedAtEntity {
     @Column(nullable = false)
     private Integer quantity;
 
+    @Column(nullable = false, length = 50)
+    private String unit;
+
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal unitPrice;
 
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal lineAmount;
 
-    public static PurchaseOrderItem create(String itemName, Integer quantity, BigDecimal unitPrice) {
+    public static PurchaseOrderItem create(String itemName, Integer quantity, String unit, BigDecimal unitPrice) {
         PurchaseOrderItem item = new PurchaseOrderItem();
         item.itemName = itemName;
         item.quantity = quantity;
+        item.unit = unit;
         item.unitPrice = unitPrice;
         item.lineAmount = unitPrice.multiply(BigDecimal.valueOf(quantity));
         return item;
