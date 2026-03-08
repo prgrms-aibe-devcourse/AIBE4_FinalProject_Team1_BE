@@ -15,7 +15,6 @@ public record StockSummaryResponse(
 	Long batchCount,                  // 해당 재료의 유효한 배치 개수
 	LocalDate minExpirationDate       // 가장 빠른 유통기한
 ) {
-	// QueryDSL Projections.constructor에서 사용할 생성자 역할을 수행합니다.
 	public StockSummaryResponse(
 		UUID ingredientId,
 		String ingredientName,

@@ -54,3 +54,5 @@ nul
 
 # ssm
 .ssm-logs/
+
+/insert_data.sql

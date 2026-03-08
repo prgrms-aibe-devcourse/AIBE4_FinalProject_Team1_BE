@@ -43,7 +43,7 @@ public class StockLogRepositoryImpl implements StockLogRepositoryCustom {
 		List<StockLog> content = queryFactory
 			.selectFrom(stockLog)
 			.join(stockLog.ingredient, ingredient).fetchJoin()
-			.leftJoin(stockLog.createdByUser, user).fetchJoin() // 시스템 자동일 경우 null일 수 있으므로 leftJoin
+			.leftJoin(stockLog.createdByUser, user).fetchJoin()
 			.where(predicates)
 			.orderBy(stockLog.createdAt.desc())
 			.offset(pageable.getOffset())
@@ -53,8 +53,6 @@ public class StockLogRepositoryImpl implements StockLogRepositoryCustom {
 		JPAQuery<Long> countQuery = queryFactory
 			.select(stockLog.count())
 			.from(stockLog)
-			// 카운트 시에는 ingredientName 검색이 없다면 fetchJoin이 필요 없지만,
-			// ingredientName 검색 조건이 포함되어 있으므로 ingredient join은 필요함
 			.leftJoin(stockLog.ingredient, ingredient)
 			.where(predicates);
 
@@ -80,18 +78,12 @@ public class StockLogRepositoryImpl implements StockLogRepositoryCustom {
 	private BooleanExpression dateBetween(OffsetDateTime start, OffsetDateTime end) {
 		if (start == null && end == null)
 			return null;
-
-		// 시작 시간만 있는 경우: 해당 시점 이후 (보통 시작일의 00:00:00으로 맞춰서 들어옴)
 		if (start != null && end == null) {
 			return stockLog.createdAt.goe(start);
 		}
-
-		// 종료 시간만 있는 경우: 해당 시점 이전 (보통 종료일의 23:59:59로 맞춰서 들어옴)
 		if (start == null) {
 			return stockLog.createdAt.loe(end);
 		}
-
-		// 둘 다 있는 경우: 사이값
 		return stockLog.createdAt.between(start, end);
 	}
 }
