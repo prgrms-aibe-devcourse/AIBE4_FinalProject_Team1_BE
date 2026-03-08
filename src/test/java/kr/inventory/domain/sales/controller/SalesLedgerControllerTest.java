@@ -6,11 +6,11 @@ import kr.inventory.domain.sales.controller.dto.response.SalesLedgerOrderSummary
 import kr.inventory.domain.sales.entity.enums.SalesOrderStatus;
 import kr.inventory.domain.sales.entity.enums.SalesOrderType;
 import kr.inventory.domain.sales.service.SalesLedgerService;
+import kr.inventory.global.dto.PageResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -65,7 +65,9 @@ class SalesLedgerControllerTest {
                 BigDecimal.ZERO,
                 new BigDecimal("23000")
         );
-        Page<SalesLedgerOrderSummaryResponse> response = new PageImpl<>(List.of(content), PageRequest.of(0, 20), 1);
+        PageResponse<SalesLedgerOrderSummaryResponse> response = PageResponse.from(
+                new PageImpl<>(List.of(content), PageRequest.of(0, 20), 1)
+        );
 
         given(salesLedgerService.getSalesLedgerOrders(eq(userId), eq(storePublicId), any(), any())).willReturn(response);
 

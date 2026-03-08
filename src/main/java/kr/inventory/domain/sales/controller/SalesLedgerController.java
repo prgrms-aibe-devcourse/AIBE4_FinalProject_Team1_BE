@@ -8,8 +8,8 @@ import kr.inventory.domain.sales.controller.dto.request.SalesLedgerSearchRequest
 import kr.inventory.domain.sales.controller.dto.response.SalesLedgerOrderDetailResponse;
 import kr.inventory.domain.sales.controller.dto.response.SalesLedgerOrderSummaryResponse;
 import kr.inventory.domain.sales.service.SalesLedgerService;
+import kr.inventory.global.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
@@ -28,14 +28,13 @@ public class SalesLedgerController {
 
     @GetMapping
     @Operation(summary = "매출 내역 목록 조회", description = "기간/상태/주문유형 기준으로 매출 내역을 조회합니다.")
-    public ResponseEntity<Page<SalesLedgerOrderSummaryResponse>> getSalesLedgerOrders(
+    public ResponseEntity<PageResponse<SalesLedgerOrderSummaryResponse>> getSalesLedgerOrders(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable UUID storePublicId,
             @Valid @ModelAttribute SalesLedgerSearchRequest request,
             @PageableDefault(size = 20) Pageable pageable
     ) {
-        // TODO: 공통 PageResponse 확정 후 Page -> PageResponse 변환 적용
-        Page<SalesLedgerOrderSummaryResponse> response = salesLedgerService.getSalesLedgerOrders(
+        PageResponse<SalesLedgerOrderSummaryResponse> response = salesLedgerService.getSalesLedgerOrders(
                 principal.getUserId(),
                 storePublicId,
                 request,
