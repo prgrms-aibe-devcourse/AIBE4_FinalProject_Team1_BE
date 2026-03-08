@@ -34,7 +34,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.stock.controller.dto.request.WasteRequest;
-import kr.inventory.domain.stock.controller.dto.request.WasteSearchCondition;
+import kr.inventory.domain.stock.controller.dto.request.WasteSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.WasteResponse;
 import kr.inventory.domain.stock.entity.enums.WasteReason;
 import kr.inventory.domain.stock.service.WasteService;
@@ -91,7 +91,7 @@ class WasteControllerTest {
 		UUID storeId = UUID.randomUUID();
 		Page<WasteResponse> responsePage = new PageImpl<>(List.of());
 
-		given(wasteService.getWasteRecords(any(), eq(storeId), any(WasteSearchCondition.class), any(Pageable.class)))
+		given(wasteService.getWasteRecords(any(), eq(storeId), any(WasteSearchRequest.class), any(Pageable.class)))
 			.willReturn(responsePage);
 
 		// when & then

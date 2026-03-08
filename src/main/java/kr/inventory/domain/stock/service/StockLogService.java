@@ -3,7 +3,7 @@ package kr.inventory.domain.stock.service;
 import java.util.UUID;
 
 import jakarta.persistence.EntityNotFoundException;
-import kr.inventory.domain.stock.controller.dto.request.StockLogSearchCondition;
+import kr.inventory.domain.stock.controller.dto.request.StockLogSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockLogResponse;
 import kr.inventory.domain.stock.entity.StockLog;
 import kr.inventory.domain.stock.repository.StockLogRepository;
@@ -11,7 +11,6 @@ import kr.inventory.domain.stock.service.command.StockDeductionLogCommand;
 import kr.inventory.domain.stock.service.command.StockInboundLogCommand;
 import kr.inventory.domain.stock.service.command.StockWasteCommand;
 import kr.inventory.domain.store.entity.Store;
-import kr.inventory.domain.store.exception.StoreException;
 import kr.inventory.domain.store.repository.StoreRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +44,7 @@ public class StockLogService {
 	public Page<StockLogResponse> getStockLogs(
 		Long userId,
 		UUID storePublicId,
-		StockLogSearchCondition condition,
+		StockLogSearchRequest condition,
 		Pageable pageable
 	) {
 		Store store = storeRepository.findById(storeAccessValidator.validateAndGetStoreId(userId, storePublicId))

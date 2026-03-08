@@ -9,16 +9,14 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.support.PageableExecutionUtils;
-import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
-import kr.inventory.domain.stock.controller.dto.request.WasteSearchCondition;
+import kr.inventory.domain.stock.controller.dto.request.WasteSearchRequest;
 import kr.inventory.domain.stock.entity.WasteRecord;
 import kr.inventory.domain.stock.entity.enums.WasteReason;
 import kr.inventory.domain.stock.repository.WasteRecordRepositoryCustom;
@@ -30,7 +28,7 @@ public class WasteRecordRepositoryImpl implements WasteRecordRepositoryCustom {
 	private final JPAQueryFactory queryFactory;
 
 	@Override
-	public Page<WasteRecord> searchWasteRecords(Long storeId, WasteSearchCondition condition, Pageable pageable) {
+	public Page<WasteRecord> searchWasteRecords(Long storeId, WasteSearchRequest condition, Pageable pageable) {
 
 		// 1. 데이터 조회 쿼리
 		List<WasteRecord> content = queryFactory

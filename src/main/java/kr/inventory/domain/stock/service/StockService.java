@@ -6,6 +6,7 @@ import kr.inventory.domain.stock.repository.IngredientStockBatchRepository;
 import kr.inventory.domain.stock.service.command.StockDeductionLogCommand;
 import kr.inventory.domain.stock.service.command.StockDeductionRequest;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,7 +21,7 @@ import java.util.stream.Collectors;
 @Transactional
 public class StockService {
 	private final IngredientStockBatchRepository ingredientStockBatchRepository;
-    private final StockLogService stockLogService;
+	private final StockLogService stockLogService;
 
 	public Map<Long, BigDecimal> deductStockWithFEFO(StockDeductionRequest request) {
 		List<Long> sortedIds = getSortedIngredientIds(request.usageMap());
@@ -56,7 +57,8 @@ public class StockService {
 			.collect(Collectors.groupingBy(IngredientStockBatch::getIngredientId));
 	}
 
-	private BigDecimal deductIngredientStock(List<IngredientStockBatch> batches, BigDecimal needAmount, Long salesOrderId) {
+	private BigDecimal deductIngredientStock(List<IngredientStockBatch> batches, BigDecimal needAmount,
+		Long salesOrderId) {
 		BigDecimal remaining = needAmount;
 
 		for (IngredientStockBatch batch : batches) {
@@ -65,34 +67,19 @@ public class StockService {
 
 			BigDecimal actualDeducted = batch.deductWithClamp(remaining);
 
-            if(actualDeducted.signum() > 0){
-                StockDeductionLogCommand logCommand = StockDeductionLogCommand.forSale(
-                        batch,
-                        actualDeducted,
-                        batch.getRemainingQuantity(),
-                        salesOrderId
-                );
+			if (actualDeducted.signum() > 0) {
+				StockDeductionLogCommand logCommand = StockDeductionLogCommand.forSale(
+					batch,
+					actualDeducted,
+					batch.getRemainingQuantity(),
+					salesOrderId
+				);
 
-                stockLogService.logDeduction(logCommand);
-            }
+				stockLogService.logDeduction(logCommand);
+			}
 			remaining = remaining.subtract(actualDeducted);
 		}
 
 		return remaining;
-	}
-
-	public void registerInboundStock(List<StockInboundItem> items) {
-
-		List<IngredientStockBatch> batches = items.stream()
-			.map(item -> IngredientStockBatch.createFromInbound(
-				item.getIngredient(),
-				item
-
-			))
-			.toList();
-
-		ingredientStockBatchRepository.saveAll(batches);
-
-		// TODO: 나중에 여기에 StockLogService.logInbound() 호출 로직을 추가할 예정입니다.
 	}
 }

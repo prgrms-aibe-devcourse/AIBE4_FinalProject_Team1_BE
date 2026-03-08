@@ -1,9 +1,12 @@
 package kr.inventory.domain.stock.repository.impl;
 
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import jakarta.persistence.LockModeType;
+import kr.inventory.domain.stock.controller.dto.request.StockSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockSummaryResponse;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.enums.StockBatchStatus;
@@ -20,6 +23,11 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static kr.inventory.domain.stock.entity.QIngredientStockBatch.ingredientStockBatch;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.support.PageableExecutionUtils;
+import org.springframework.util.StringUtils;
 
 @RequiredArgsConstructor
 public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchRepositoryCustom {
@@ -108,10 +116,15 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
 	}
 
 	@Override
-	public List<StockSummaryResponse> findStockSummaryList(Long storeId) {
-		return queryFactory
+	public Page<StockSummaryResponse> findStockSummaryList(
+		Long storeId,
+		StockSearchRequest condition,
+		Pageable pageable
+	) {
+		// 1. 데이터 조회 쿼리 (Content)
+		List<StockSummaryResponse> content = queryFactory
 			.select(Projections.constructor(StockSummaryResponse.class,
-				ingredientStockBatch.ingredient.ingredientId,
+				ingredientStockBatch.ingredient.ingredientPublicId,
 				ingredientStockBatch.ingredient.name,
 				ingredientStockBatch.remainingQuantity.sum(),
 				ingredientStockBatch.ingredient.unit,
@@ -121,12 +134,36 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
 			.from(ingredientStockBatch)
 			.where(
 				ingredientStockBatch.store.storeId.eq(storeId),
-				ingredientStockBatch.status.eq(StockBatchStatus.OPEN)
+				ingredientStockBatch.status.eq(StockBatchStatus.OPEN),
+				ingredientNameContains(condition.ingredientName())
 			)
-			.groupBy(ingredientStockBatch.ingredient.ingredientId,
+			.groupBy(
+				ingredientStockBatch.ingredient.ingredientPublicId,
 				ingredientStockBatch.ingredient.name,
-				ingredientStockBatch.ingredient.unit)
+				ingredientStockBatch.ingredient.unit
+			)
+			.offset(pageable.getOffset())
+			.limit(pageable.getPageSize())
+			.orderBy(ingredientStockBatch.ingredient.name.asc())
 			.fetch();
+
+		JPAQuery<Long> countQuery = queryFactory
+			.select(ingredientStockBatch.ingredient.ingredientPublicId.countDistinct())
+			.from(ingredientStockBatch)
+			.where(
+				ingredientStockBatch.store.storeId.eq(storeId),
+				ingredientStockBatch.status.eq(StockBatchStatus.OPEN),
+				ingredientNameContains(condition.ingredientName())
+			);
+
+		// 3. Page 객체 반환 (PageableExecutionUtils 사용 시 count 쿼리 최적화 지원)
+		return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
+	}
+
+	private BooleanExpression ingredientNameContains(String ingredientName) {
+		return StringUtils.hasText(ingredientName)
+			? ingredientStockBatch.ingredient.name.contains(ingredientName)
+			: null;
 	}
 
 	@Override
