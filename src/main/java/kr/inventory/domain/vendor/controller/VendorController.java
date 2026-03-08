@@ -49,7 +49,7 @@ public class VendorController {
             @PathVariable UUID storePublicId,
             @AuthenticationPrincipal CustomUserDetails principal,
             @ModelAttribute VendorSearchRequest searchRequest,
-            @PageableDefault(size = 10, sort = "createdAt", direction = DESC) Pageable pageable
+            @PageableDefault(size = 20, sort = "createdAt", direction = DESC) Pageable pageable
     ) {
         PageResponse<VendorResponse> response = vendorService.getVendorsByStore(
                 principal.getUserId(),
@@ -57,9 +57,9 @@ public class VendorController {
                 searchRequest,
                 pageable
         );
+
         return ResponseEntity.ok(response);
     }
-
 
     @Operation(summary = "거래처 상세 조회", description = "거래처 상세 정보를 조회합니다")
     @GetMapping("/{vendorPublicId}")

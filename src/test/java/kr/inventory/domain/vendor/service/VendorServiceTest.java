@@ -6,6 +6,7 @@ import kr.inventory.domain.store.exception.StoreException;
 import kr.inventory.domain.store.repository.StoreRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import kr.inventory.domain.vendor.controller.dto.request.VendorCreateRequest;
+import kr.inventory.domain.vendor.controller.dto.request.VendorSearchRequest;
 import kr.inventory.domain.vendor.controller.dto.response.VendorResponse;
 import kr.inventory.domain.vendor.controller.dto.request.VendorUpdateRequest;
 import kr.inventory.domain.vendor.entity.Vendor;
@@ -13,12 +14,17 @@ import kr.inventory.domain.vendor.entity.enums.VendorStatus;
 import kr.inventory.domain.vendor.exception.VendorErrorCode;
 import kr.inventory.domain.vendor.exception.VendorException;
 import kr.inventory.domain.vendor.repository.VendorRepository;
+import kr.inventory.global.dto.PageResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
@@ -35,320 +41,323 @@ import static org.mockito.Mockito.verify;
 @DisplayName("VendorService 단위 테스트")
 class VendorServiceTest {
 
-    @Mock
-    private VendorRepository vendorRepository;
+        @Mock
+        private VendorRepository vendorRepository;
 
-    @Mock
-    private StoreRepository storeRepository;
+        @Mock
+        private StoreRepository storeRepository;
 
-    @Mock
-    private StoreAccessValidator storeAccessValidator;
+        @Mock
+        private StoreAccessValidator storeAccessValidator;
 
-    @InjectMocks
-    private VendorService vendorService;
+        @InjectMocks
+        private VendorService vendorService;
 
-    @Test
-    @DisplayName("거래처 등록 성공")
-    void givenValidRequest_whenCreateVendor_thenSuccess() {
-        // given
-        Long userId = 1L;
-        UUID storePublicId = UUID.randomUUID();
-        Long storeId = 1L;
-        Store store = Store.create("청춘식당", "1234567890");
-        ReflectionTestUtils.setField(store, "storeId", storeId);
+        @Test
+        @DisplayName("거래처 등록 성공")
+        void givenValidRequest_whenCreateVendor_thenSuccess() {
+                // given
+                Long userId = 1L;
+                UUID storePublicId = UUID.randomUUID();
+                Long storeId = 1L;
+                Store store = Store.create("청춘식당", "1234567890");
+                ReflectionTestUtils.setField(store, "storeId", storeId);
 
-        VendorCreateRequest request = new VendorCreateRequest(
-                "신선마트",
-                "김철수",
-                "010-1234-5678",
-                "fresh@market.com",
-                2
-        );
+                VendorCreateRequest request = new VendorCreateRequest(
+                                "신선마트",
+                                "김철수",
+                                "010-1234-5678",
+                                "fresh@market.com",
+                                2);
 
-        Vendor vendor = Vendor.create(
-                store,
-                request.name(),
-                request.contactPerson(),
-                request.phone(),
-                request.email(),
-                request.leadTimeDays()
-        );
+                Vendor vendor = Vendor.create(
+                                store,
+                                request.name(),
+                                request.contactPerson(),
+                                request.phone(),
+                                request.email(),
+                                request.leadTimeDays());
 
-        given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
-        given(storeRepository.findById(storeId)).willReturn(Optional.of(store));
-        given(vendorRepository.existsByStoreStoreIdAndName(storeId, request.name())).willReturn(false);
-        given(vendorRepository.save(any(Vendor.class))).willReturn(vendor);
+                given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
+                given(storeRepository.findById(storeId)).willReturn(Optional.of(store));
+                given(vendorRepository.existsByStoreStoreIdAndName(storeId, request.name())).willReturn(false);
+                given(vendorRepository.save(any(Vendor.class))).willReturn(vendor);
 
-        // when
-        VendorResponse response = vendorService.createVendor(userId, storePublicId, request);
+                // when
+                VendorResponse response = vendorService.createVendor(userId, storePublicId, request);
 
-        // then
-        assertThat(response).isNotNull();
-        assertThat(response.name()).isEqualTo("신선마트");
-        assertThat(response.contactPerson()).isEqualTo("김철수");
-        assertThat(response.phone()).isEqualTo("010-1234-5678");
-        assertThat(response.email()).isEqualTo("fresh@market.com");
-        assertThat(response.leadTimeDays()).isEqualTo(2);
-        assertThat(response.status()).isEqualTo(VendorStatus.ACTIVE);
+                // then
+                assertThat(response).isNotNull();
+                assertThat(response.name()).isEqualTo("신선마트");
+                assertThat(response.contactPerson()).isEqualTo("김철수");
+                assertThat(response.phone()).isEqualTo("010-1234-5678");
+                assertThat(response.email()).isEqualTo("fresh@market.com");
+                assertThat(response.leadTimeDays()).isEqualTo(2);
+                assertThat(response.status()).isEqualTo(VendorStatus.ACTIVE);
 
-        verify(storeAccessValidator).validateAndGetStoreId(userId, storePublicId);
-        verify(storeRepository).findById(storeId);
-        verify(vendorRepository).existsByStoreStoreIdAndName(storeId, request.name());
-        verify(vendorRepository).save(any(Vendor.class));
-    }
+                verify(storeAccessValidator).validateAndGetStoreId(userId, storePublicId);
+                verify(storeRepository).findById(storeId);
+                verify(vendorRepository).existsByStoreStoreIdAndName(storeId, request.name());
+                verify(vendorRepository).save(any(Vendor.class));
+        }
 
-    @Test
-    @DisplayName("거래처 등록 실패 - 매장 없음")
-    void givenInvalidStoreId_whenCreateVendor_thenThrowException() {
-        // given
-        Long userId = 1L;
-        UUID storePublicId = UUID.randomUUID();
-        Long storeId = 999L;
-        VendorCreateRequest request = new VendorCreateRequest(
-                "신선마트",
-                "김철수",
-                "010-1234-5678",
-                "fresh@market.com",
-                2
-        );
+        @Test
+        @DisplayName("거래처 등록 실패 - 매장 없음")
+        void givenInvalidStoreId_whenCreateVendor_thenThrowException() {
+                // given
+                Long userId = 1L;
+                UUID storePublicId = UUID.randomUUID();
+                Long storeId = 999L;
+                VendorCreateRequest request = new VendorCreateRequest(
+                                "신선마트",
+                                "김철수",
+                                "010-1234-5678",
+                                "fresh@market.com",
+                                2);
 
-        given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
-        given(storeRepository.findById(storeId)).willReturn(Optional.empty());
+                given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
+                given(storeRepository.findById(storeId)).willReturn(Optional.empty());
 
-        // when & then
-        assertThatThrownBy(() -> vendorService.createVendor(userId, storePublicId, request))
-                .isInstanceOf(StoreException.class)
-                .extracting("errorModel")
-                .isEqualTo(StoreErrorCode.STORE_NOT_FOUND);
+                // when & then
+                assertThatThrownBy(() -> vendorService.createVendor(userId, storePublicId, request))
+                                .isInstanceOf(StoreException.class)
+                                .extracting("errorModel")
+                                .isEqualTo(StoreErrorCode.STORE_NOT_FOUND);
 
-        verify(storeAccessValidator).validateAndGetStoreId(userId, storePublicId);
-        verify(storeRepository).findById(storeId);
-    }
+                verify(storeAccessValidator).validateAndGetStoreId(userId, storePublicId);
+                verify(storeRepository).findById(storeId);
+        }
 
-    @Test
-    @DisplayName("거래처 등록 실패 - 거래처명 중복")
-    void givenDuplicateName_whenCreateVendor_thenThrowException() {
-        // given
-        Long userId = 1L;
-        UUID storePublicId = UUID.randomUUID();
-        Long storeId = 1L;
-        Store store = Store.create("청춘식당", "1234567890");
+        @Test
+        @DisplayName("거래처 등록 실패 - 거래처명 중복")
+        void givenDuplicateName_whenCreateVendor_thenThrowException() {
+                // given
+                Long userId = 1L;
+                UUID storePublicId = UUID.randomUUID();
+                Long storeId = 1L;
+                Store store = Store.create("청춘식당", "1234567890");
 
-        VendorCreateRequest request = new VendorCreateRequest(
-                "신선마트",
-                "김철수",
-                "010-1234-5678",
-                "fresh@market.com",
-                2
-        );
+                VendorCreateRequest request = new VendorCreateRequest(
+                                "신선마트",
+                                "김철수",
+                                "010-1234-5678",
+                                "fresh@market.com",
+                                2);
 
-        given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
-        given(storeRepository.findById(storeId)).willReturn(Optional.of(store));
-        given(vendorRepository.existsByStoreStoreIdAndName(storeId, request.name())).willReturn(true);
+                given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
+                given(storeRepository.findById(storeId)).willReturn(Optional.of(store));
+                given(vendorRepository.existsByStoreStoreIdAndName(storeId, request.name())).willReturn(true);
 
-        // when & then
-        assertThatThrownBy(() -> vendorService.createVendor(userId, storePublicId, request))
-                .isInstanceOf(VendorException.class)
-                .extracting("errorModel")
-                .isEqualTo(VendorErrorCode.VENDOR_DUPLICATE_NAME);
+                // when & then
+                assertThatThrownBy(() -> vendorService.createVendor(userId, storePublicId, request))
+                                .isInstanceOf(VendorException.class)
+                                .extracting("errorModel")
+                                .isEqualTo(VendorErrorCode.VENDOR_DUPLICATE_NAME);
 
-        verify(storeAccessValidator).validateAndGetStoreId(userId, storePublicId);
-        verify(storeRepository).findById(storeId);
-        verify(vendorRepository).existsByStoreStoreIdAndName(storeId, request.name());
-    }
+                verify(storeAccessValidator).validateAndGetStoreId(userId, storePublicId);
+                verify(storeRepository).findById(storeId);
+                verify(vendorRepository).existsByStoreStoreIdAndName(storeId, request.name());
+        }
 
-    @Test
-    @DisplayName("매장별 거래처 목록 조회 성공")
-    void givenStorePublicId_whenGetVendorsByStore_thenReturnList() {
-        // given
-        Long userId = 1L;
-        UUID storePublicId = UUID.randomUUID();
-        Long storeId = 1L;
-        Store store = Store.create("청춘식당", "1234567890");
+        @Test
+        @DisplayName("매장별 거래처 목록 조회 성공")
+        void givenStorePublicId_whenGetVendorsByStore_thenReturnList() {
+                // given
+                Long userId = 1L;
+                UUID storePublicId = UUID.randomUUID();
+                Long storeId = 1L;
+                Store store = Store.create("청춘식당", "1234567890");
 
-        Vendor vendor1 = Vendor.create(store, "신선마트", "김철수", "010-1111-1111", "v1@test.com", 1);
-        Vendor vendor2 = Vendor.create(store, "농협마트", "이영희", "010-2222-2222", "v2@test.com", 2);
+                Vendor vendor1 = Vendor.create(store, "신선마트", "김철수", "010-1111-1111", "v1@test.com", 1);
+                Vendor vendor2 = Vendor.create(store, "농협마트", "이영희", "010-2222-2222", "v2@test.com", 2);
 
-        given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
-        given(vendorRepository.findByStoreIdWithFilters(storeId, VendorStatus.ACTIVE))
-                .willReturn(List.of(vendor1, vendor2));
+                VendorSearchRequest searchRequest = new VendorSearchRequest(VendorStatus.ACTIVE, null);
+                Pageable pageable = PageRequest.of(0, 10);
+                Page<Vendor> vendorPage = new PageImpl<>(List.of(vendor1, vendor2), pageable, 2);
 
-        // when
-        List<VendorResponse> responses = vendorService.getVendorsByStore(userId, storePublicId, VendorStatus.ACTIVE);
+                given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
+                given(vendorRepository.findByStoreIdWithFilters(eq(storeId), eq(VendorStatus.ACTIVE), any(),
+                                eq(pageable)))
+                                .willReturn(vendorPage);
 
-        // then
-        assertThat(responses).hasSize(2);
-        assertThat(responses.get(0).name()).isEqualTo("신선마트");
-        assertThat(responses.get(1).name()).isEqualTo("농협마트");
+                // when
+                PageResponse<VendorResponse> responses = vendorService.getVendorsByStore(userId, storePublicId,
+                                searchRequest, pageable);
 
-        verify(storeAccessValidator).validateAndGetStoreId(userId, storePublicId);
-        verify(vendorRepository).findByStoreIdWithFilters(storeId, VendorStatus.ACTIVE);
-    }
+                // then
+                assertThat(responses.content()).hasSize(2);
+                assertThat(responses.content().get(0).name()).isEqualTo("신선마트");
+                assertThat(responses.content().get(1).name()).isEqualTo("농협마트");
 
-    @Test
-    @DisplayName("거래처 상세 조회 성공")
-    void givenVendorPublicId_whenGetVendor_thenReturnVendor() {
-        // given
-        Long userId = 1L;
-        UUID storePublicId = UUID.randomUUID();
-        UUID vendorPublicId = UUID.randomUUID();
-        Long storeId = 1L;
+                verify(storeAccessValidator).validateAndGetStoreId(userId, storePublicId);
+                verify(vendorRepository).findByStoreIdWithFilters(eq(storeId), eq(VendorStatus.ACTIVE), any(),
+                                eq(pageable));
+        }
 
-        Store store = Store.create("청춘식당", "1234567890");
-        ReflectionTestUtils.setField(store, "storeId", storeId);
+        @Test
+        @DisplayName("거래처 상세 조회 성공")
+        void givenVendorPublicId_whenGetVendor_thenReturnVendor() {
+                // given
+                Long userId = 1L;
+                UUID storePublicId = UUID.randomUUID();
+                UUID vendorPublicId = UUID.randomUUID();
+                Long storeId = 1L;
 
-        Vendor vendor = Vendor.create(store, "신선마트", "김철수", "010-1234-5678", "fresh@market.com", 2);
+                Store store = Store.create("청춘식당", "1234567890");
+                ReflectionTestUtils.setField(store, "storeId", storeId);
 
-        given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
-        given(vendorRepository.findByVendorPublicId(vendorPublicId)).willReturn(Optional.of(vendor));
+                Vendor vendor = Vendor.create(store, "신선마트", "김철수", "010-1234-5678", "fresh@market.com", 2);
 
-        // when
-        VendorResponse response = vendorService.getVendor(storePublicId, vendorPublicId, userId);
+                given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
+                given(vendorRepository.findByVendorPublicId(vendorPublicId)).willReturn(Optional.of(vendor));
 
-        // then
-        assertThat(response).isNotNull();
-        assertThat(response.name()).isEqualTo("신선마트");
-        assertThat(response.contactPerson()).isEqualTo("김철수");
+                // when
+                VendorResponse response = vendorService.getVendor(storePublicId, vendorPublicId, userId);
 
-        verify(storeAccessValidator).validateAndGetStoreId(userId, storePublicId);
-        verify(vendorRepository).findByVendorPublicId(vendorPublicId);
-    }
+                // then
+                assertThat(response).isNotNull();
+                assertThat(response.name()).isEqualTo("신선마트");
+                assertThat(response.contactPerson()).isEqualTo("김철수");
 
-    @Test
-    @DisplayName("거래처 상세 조회 실패 - 거래처 없음")
-    void givenInvalidVendorPublicId_whenGetVendor_thenThrowException() {
-        // given
-        Long userId = 1L;
-        UUID storePublicId = UUID.randomUUID();
-        UUID vendorPublicId = UUID.randomUUID();
-        Long storeId = 1L;
+                verify(storeAccessValidator).validateAndGetStoreId(userId, storePublicId);
+                verify(vendorRepository).findByVendorPublicId(vendorPublicId);
+        }
 
-        given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
-        given(vendorRepository.findByVendorPublicId(vendorPublicId)).willReturn(Optional.empty());
+        @Test
+        @DisplayName("거래처 상세 조회 실패 - 거래처 없음")
+        void givenInvalidVendorPublicId_whenGetVendor_thenThrowException() {
+                // given
+                Long userId = 1L;
+                UUID storePublicId = UUID.randomUUID();
+                UUID vendorPublicId = UUID.randomUUID();
+                Long storeId = 1L;
 
-        // when & then
-        assertThatThrownBy(() -> vendorService.getVendor(storePublicId, vendorPublicId, userId))
-                .isInstanceOf(VendorException.class)
-                .extracting("errorModel")
-                .isEqualTo(VendorErrorCode.VENDOR_NOT_FOUND);
+                given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
+                given(vendorRepository.findByVendorPublicId(vendorPublicId)).willReturn(Optional.empty());
 
-        verify(storeAccessValidator).validateAndGetStoreId(userId, storePublicId);
-        verify(vendorRepository).findByVendorPublicId(vendorPublicId);
-    }
+                // when & then
+                assertThatThrownBy(() -> vendorService.getVendor(storePublicId, vendorPublicId, userId))
+                                .isInstanceOf(VendorException.class)
+                                .extracting("errorModel")
+                                .isEqualTo(VendorErrorCode.VENDOR_NOT_FOUND);
 
-    @Test
-    @DisplayName("거래처 수정 성공")
-    void givenValidRequest_whenUpdateVendor_thenSuccess() {
-        // given
-        Long userId = 1L;
-        UUID storePublicId = UUID.randomUUID();
-        UUID vendorPublicId = UUID.randomUUID();
-        Long storeId = 1L;
+                verify(storeAccessValidator).validateAndGetStoreId(userId, storePublicId);
+                verify(vendorRepository).findByVendorPublicId(vendorPublicId);
+        }
 
-        Store store = Store.create("청춘식당", "1234567890");
-        ReflectionTestUtils.setField(store, "storeId", storeId);
+        @Test
+        @DisplayName("거래처 수정 성공")
+        void givenValidRequest_whenUpdateVendor_thenSuccess() {
+                // given
+                Long userId = 1L;
+                UUID storePublicId = UUID.randomUUID();
+                UUID vendorPublicId = UUID.randomUUID();
+                Long storeId = 1L;
 
-        Vendor vendor = Vendor.create(store, "신선마트", "김철수", "010-1234-5678", "fresh@market.com", 2);
+                Store store = Store.create("청춘식당", "1234567890");
+                ReflectionTestUtils.setField(store, "storeId", storeId);
 
-        VendorUpdateRequest request = new VendorUpdateRequest(
-                "박영수",
-                "010-9999-9999",
-                "updated@market.com",
-                3
-        );
+                Vendor vendor = Vendor.create(store, "신선마트", "김철수", "010-1234-5678", "fresh@market.com", 2);
 
-        given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
-        given(vendorRepository.findByVendorPublicId(vendorPublicId)).willReturn(Optional.of(vendor));
+                VendorUpdateRequest request = new VendorUpdateRequest(
+                                "박영수",
+                                "010-9999-9999",
+                                "updated@market.com",
+                                3,
+                                VendorStatus.ACTIVE);
 
-        // when
-        VendorResponse response = vendorService.updateVendor(storePublicId, vendorPublicId, userId, request);
+                given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
+                given(vendorRepository.findByVendorPublicId(vendorPublicId)).willReturn(Optional.of(vendor));
 
-        // then
-        assertThat(response).isNotNull();
-        assertThat(response.contactPerson()).isEqualTo("박영수");
-        assertThat(response.phone()).isEqualTo("010-9999-9999");
-        assertThat(response.email()).isEqualTo("updated@market.com");
-        assertThat(response.leadTimeDays()).isEqualTo(3);
+                // when
+                VendorResponse response = vendorService.updateVendor(storePublicId, vendorPublicId, userId, request);
 
-        verify(storeAccessValidator).validateAndGetStoreId(userId, storePublicId);
-        verify(vendorRepository).findByVendorPublicId(vendorPublicId);
-    }
+                // then
+                assertThat(response).isNotNull();
+                assertThat(response.contactPerson()).isEqualTo("박영수");
+                assertThat(response.phone()).isEqualTo("010-9999-9999");
+                assertThat(response.email()).isEqualTo("updated@market.com");
+                assertThat(response.leadTimeDays()).isEqualTo(3);
 
-    @Test
-    @DisplayName("거래처 수정 실패 - 거래처 없음")
-    void givenInvalidVendorPublicId_whenUpdateVendor_thenThrowException() {
-        // given
-        Long userId = 1L;
-        UUID storePublicId = UUID.randomUUID();
-        UUID vendorPublicId = UUID.randomUUID();
-        Long storeId = 1L;
+                verify(storeAccessValidator).validateAndGetStoreId(userId, storePublicId);
+                verify(vendorRepository).findByVendorPublicId(vendorPublicId);
+        }
 
-        VendorUpdateRequest request = new VendorUpdateRequest(
-                "박영수",
-                "010-9999-9999",
-                "updated@market.com",
-                3
-        );
+        @Test
+        @DisplayName("거래처 수정 실패 - 거래처 없음")
+        void givenInvalidVendorPublicId_whenUpdateVendor_thenThrowException() {
+                // given
+                Long userId = 1L;
+                UUID storePublicId = UUID.randomUUID();
+                UUID vendorPublicId = UUID.randomUUID();
+                Long storeId = 1L;
 
-        given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
-        given(vendorRepository.findByVendorPublicId(vendorPublicId)).willReturn(Optional.empty());
+                VendorUpdateRequest request = new VendorUpdateRequest(
+                                "박영수",
+                                "010-9999-9999",
+                                "updated@market.com",
+                                3,
+                                VendorStatus.ACTIVE);
 
-        // when & then
-        assertThatThrownBy(() -> vendorService.updateVendor(storePublicId, vendorPublicId, userId, request))
-                .isInstanceOf(VendorException.class)
-                .extracting("errorModel")
-                .isEqualTo(VendorErrorCode.VENDOR_NOT_FOUND);
+                given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
+                given(vendorRepository.findByVendorPublicId(vendorPublicId)).willReturn(Optional.empty());
 
-        verify(storeAccessValidator).validateAndGetStoreId(userId, storePublicId);
-        verify(vendorRepository).findByVendorPublicId(vendorPublicId);
-    }
+                // when & then
+                assertThatThrownBy(() -> vendorService.updateVendor(storePublicId, vendorPublicId, userId, request))
+                                .isInstanceOf(VendorException.class)
+                                .extracting("errorModel")
+                                .isEqualTo(VendorErrorCode.VENDOR_NOT_FOUND);
 
-    @Test
-    @DisplayName("거래처 비활성화 성공")
-    void givenVendorPublicId_whenDeactivateVendor_thenSuccess() {
-        // given
-        Long userId = 1L;
-        UUID storePublicId = UUID.randomUUID();
-        UUID vendorPublicId = UUID.randomUUID();
-        Long storeId = 1L;
+                verify(storeAccessValidator).validateAndGetStoreId(userId, storePublicId);
+                verify(vendorRepository).findByVendorPublicId(vendorPublicId);
+        }
 
-        Store store = Store.create("청춘식당", "1234567890");
-        ReflectionTestUtils.setField(store, "storeId", storeId);
+        @Test
+        @DisplayName("거래처 비활성화 성공")
+        void givenVendorPublicId_whenDeactivateVendor_thenSuccess() {
+                // given
+                Long userId = 1L;
+                UUID storePublicId = UUID.randomUUID();
+                UUID vendorPublicId = UUID.randomUUID();
+                Long storeId = 1L;
 
-        Vendor vendor = Vendor.create(store, "신선마트", "김철수", "010-1234-5678", "fresh@market.com", 2);
+                Store store = Store.create("청춘식당", "1234567890");
+                ReflectionTestUtils.setField(store, "storeId", storeId);
 
-        given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
-        given(vendorRepository.findByVendorPublicId(vendorPublicId)).willReturn(Optional.of(vendor));
+                Vendor vendor = Vendor.create(store, "신선마트", "김철수", "010-1234-5678", "fresh@market.com", 2);
 
-        // when
-        vendorService.deactivateVendor(storePublicId, vendorPublicId, userId);
+                given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
+                given(vendorRepository.findByVendorPublicId(vendorPublicId)).willReturn(Optional.of(vendor));
 
-        // then
-        assertThat(vendor.getStatus()).isEqualTo(VendorStatus.INACTIVE);
+                // when
+                vendorService.deactivateVendor(storePublicId, vendorPublicId, userId);
 
-        verify(storeAccessValidator).validateAndGetStoreId(userId, storePublicId);
-        verify(vendorRepository).findByVendorPublicId(vendorPublicId);
-    }
+                // then
+                assertThat(vendor.getStatus()).isEqualTo(VendorStatus.INACTIVE);
 
-    @Test
-    @DisplayName("거래처 비활성화 실패 - 거래처 없음")
-    void givenInvalidVendorPublicId_whenDeactivateVendor_thenThrowException() {
-        // given
-        Long userId = 1L;
-        UUID storePublicId = UUID.randomUUID();
-        UUID vendorPublicId = UUID.randomUUID();
-        Long storeId = 1L;
+                verify(storeAccessValidator).validateAndGetStoreId(userId, storePublicId);
+                verify(vendorRepository).findByVendorPublicId(vendorPublicId);
+        }
 
-        given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
-        given(vendorRepository.findByVendorPublicId(vendorPublicId)).willReturn(Optional.empty());
+        @Test
+        @DisplayName("거래처 비활성화 실패 - 거래처 없음")
+        void givenInvalidVendorPublicId_whenDeactivateVendor_thenThrowException() {
+                // given
+                Long userId = 1L;
+                UUID storePublicId = UUID.randomUUID();
+                UUID vendorPublicId = UUID.randomUUID();
+                Long storeId = 1L;
 
-        // when & then
-        assertThatThrownBy(() -> vendorService.deactivateVendor(storePublicId, vendorPublicId, userId))
-                .isInstanceOf(VendorException.class)
-                .extracting("errorModel")
-                .isEqualTo(VendorErrorCode.VENDOR_NOT_FOUND);
+                given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
+                given(vendorRepository.findByVendorPublicId(vendorPublicId)).willReturn(Optional.empty());
 
-        verify(storeAccessValidator).validateAndGetStoreId(userId, storePublicId);
-        verify(vendorRepository).findByVendorPublicId(vendorPublicId);
-    }
+                // when & then
+                assertThatThrownBy(() -> vendorService.deactivateVendor(storePublicId, vendorPublicId, userId))
+                                .isInstanceOf(VendorException.class)
+                                .extracting("errorModel")
+                                .isEqualTo(VendorErrorCode.VENDOR_NOT_FOUND);
+
+                verify(storeAccessValidator).validateAndGetStoreId(userId, storePublicId);
+                verify(vendorRepository).findByVendorPublicId(vendorPublicId);
+        }
 }
