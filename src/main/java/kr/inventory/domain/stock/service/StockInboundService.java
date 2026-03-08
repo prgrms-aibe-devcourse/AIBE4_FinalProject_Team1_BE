@@ -8,6 +8,7 @@ import kr.inventory.domain.purchase.entity.PurchaseOrder;
 import kr.inventory.domain.purchase.repository.PurchaseOrderRepository;
 import kr.inventory.domain.stock.controller.dto.request.ManualInboundRequest;
 import kr.inventory.domain.stock.controller.dto.request.StockInboundRequest;
+import kr.inventory.domain.stock.controller.dto.request.StockInboundSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockInboundItemResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockInboundListResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockInboundResponse;
@@ -109,11 +110,10 @@ public class StockInboundService {
 
         List<StockInboundItem> items = stockInboundItemRepository.findByInboundInboundId(inbound.getInboundId());
 
-        boolean hasUnresolvedItems = items.stream()
-                .anyMatch(item -> item.getResolutionStatus() == ResolutionStatus.FAILED
-                        || item.getIngredient() == null);
+        boolean hasFailedItems = items.stream()
+                .anyMatch(item -> item.getResolutionStatus() == ResolutionStatus.FAILED);
 
-        if (hasUnresolvedItems) {
+        if (hasFailedItems) {
             throw new StockException(StockErrorCode.INBOUND_ITEMS_NOT_RESOLVED);
         }
 
@@ -132,6 +132,10 @@ public class StockInboundService {
                 ));
 
         for (StockInboundItem item : items) {
+            if (item.getIngredient() == null) {
+                continue;
+            }
+
             IngredientStockBatch batch = IngredientStockBatch.createFromInbound(
                     item.getIngredient(),
                     item
@@ -175,6 +179,7 @@ public class StockInboundService {
     public PageResponse<StockInboundListResponse> getInbounds(
             Long userId,
             UUID storePublicId,
+            StockInboundSearchRequest searchRequest,
             Pageable pageable
     ) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
@@ -182,7 +187,7 @@ public class StockInboundService {
         List<InboundStatus> targetStatuses = List.of(InboundStatus.CONFIRMED, InboundStatus.DRAFT);
 
         Page<StockInbound> inboundPage = stockInboundRepository
-                .findByStoreStoreIdAndStatusIn(storeId, targetStatuses, pageable);
+                .searchInbounds(storeId, targetStatuses, searchRequest, pageable);
 
         List<Long> inboundIds = inboundPage.getContent().stream()
                 .map(StockInbound::getInboundId)
@@ -202,7 +207,6 @@ public class StockInboundService {
             return StockInboundListResponse.from(
                     inbound,
                     aggregate.itemCount(),
-                    aggregate.unresolvedItemCount(),
                     aggregate.totalCost()
             );
         });

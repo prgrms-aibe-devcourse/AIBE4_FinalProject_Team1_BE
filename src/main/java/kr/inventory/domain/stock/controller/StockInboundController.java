@@ -6,16 +6,12 @@ import jakarta.validation.Valid;
 import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.stock.controller.dto.request.IngredientConfirmRequest;
 import kr.inventory.domain.stock.controller.dto.request.ManualInboundRequest;
-import kr.inventory.domain.stock.controller.dto.request.StockInboundRequest;
-import kr.inventory.domain.stock.controller.dto.response.BulkResolveResponse;
-import kr.inventory.domain.stock.controller.dto.response.BulkProductNormalizeResponse;
-import kr.inventory.domain.stock.controller.dto.response.IngredientConfirmResponse;
-import kr.inventory.domain.stock.controller.dto.response.StockInboundListResponse;
-import kr.inventory.domain.stock.controller.dto.response.StockInboundResponse;
-import kr.inventory.global.dto.PageResponse;
+import kr.inventory.domain.stock.controller.dto.request.StockInboundSearchRequest;
+import kr.inventory.domain.stock.controller.dto.response.*;
 import kr.inventory.domain.stock.normalization.service.IngredientResolutionService;
 import kr.inventory.domain.stock.normalization.service.ProductNormalizationService;
 import kr.inventory.domain.stock.service.StockInboundService;
+import kr.inventory.global.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -112,11 +108,13 @@ public class StockInboundController {
     public ResponseEntity<PageResponse<StockInboundListResponse>> getInbounds(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable UUID storePublicId,
+            @ModelAttribute StockInboundSearchRequest searchRequest,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         PageResponse<StockInboundListResponse> response = stockInboundService.getInbounds(
                 principal.getUserId(),
                 storePublicId,
+                searchRequest,
                 pageable
         );
         return ResponseEntity.ok(response);
