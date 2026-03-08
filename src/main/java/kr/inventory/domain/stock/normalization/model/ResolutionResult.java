@@ -30,16 +30,16 @@ public record ResolutionResult(
         );
     }
 
-    public static ResolutionResult pending(String key, String full, double confidence, List<CandidateInfo> candidates) {
+    public static ResolutionResult autoSuggestedWithoutIngredient(String key, String full) {
         return new ResolutionResult(
-                ResolutionStatus.FAILED,
+                ResolutionStatus.AUTO_SUGGESTED,
                 key,
                 full,
-                BigDecimal.valueOf(confidence),
+                BigDecimal.ZERO,
                 null,
                 null,
                 null,
-                candidates
+                List.of()
         );
     }
 

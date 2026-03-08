@@ -47,17 +47,6 @@ public class StockInboundController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "문서 기반 입고 등록 (OCR)")
-    @PostMapping("/from-document")
-    public ResponseEntity<StockInboundResponse> createInboundFromDocument(
-        @AuthenticationPrincipal CustomUserDetails principal,
-        @PathVariable UUID storePublicId,
-        @RequestBody @Valid StockInboundRequest request
-    ) {
-        StockInboundResponse response = stockInboundService.createInboundFromDocument(principal.getUserId(), storePublicId, request);
-        return ResponseEntity.ok(response);
-    }
-
     @Operation(summary = "입고 확정")
     @PostMapping("/{inboundPublicId}/confirm")
     public ResponseEntity<Void> confirmInbound(

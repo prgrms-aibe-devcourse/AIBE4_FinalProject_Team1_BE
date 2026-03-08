@@ -10,6 +10,7 @@ import kr.inventory.domain.reference.repository.IngredientRepository;
 import kr.inventory.domain.stock.controller.dto.request.IngredientConfirmRequest;
 import kr.inventory.domain.stock.controller.dto.response.BulkResolveResponse;
 import kr.inventory.domain.stock.controller.dto.response.IngredientConfirmResponse;
+import kr.inventory.domain.stock.controller.dto.response.ItemResolveResult;
 import kr.inventory.domain.stock.entity.StockInbound;
 import kr.inventory.domain.stock.entity.StockInboundItem;
 import kr.inventory.domain.stock.entity.enums.ResolutionStatus;
@@ -74,11 +75,14 @@ public class IngredientResolutionService {
 
         int autoResolvedCount = 0;
         int failedCount = 0;
+        List<ItemResolveResult> itemResults = new ArrayList<>();
 
         for (StockInboundItem item : targetItems) {
+            PreparedResolutionSource source = prepareResolutionSource(item, aliasMap);
+
             try {
                 validateInboundItemScopeOrThrow(item, storeId, inboundPublicId);
-                ResolutionResult result = resolveInternal(storeId, aliasMap, activeIngredients, item);
+                ResolutionResult result = resolveInternal(storeId, activeIngredients, item, source);
 
                 switch (result.status()) {
                     case AUTO_SUGGESTED -> autoResolvedCount++;
@@ -86,8 +90,29 @@ public class IngredientResolutionService {
                     default -> {
                     }
                 }
+
+                itemResults.add(new ItemResolveResult(
+                        item.getInboundItemPublicId(),
+                        item.getRawProductName(),
+                        source.normalizedRawKey(),
+                        source.normalizedRawFull(),
+                        item.getResolutionStatus(),
+                        item.getIngredient() != null ? item.getIngredient().getIngredientPublicId() : null,
+                        item.getIngredient() != null ? item.getIngredient().getName() : null
+                ));
             } catch (Exception e) {
                 failedCount++;
+                item.updateResolution(ResolutionStatus.FAILED, null, null);
+
+                itemResults.add(new ItemResolveResult(
+                        item.getInboundItemPublicId(),
+                        item.getRawProductName(),
+                        source.normalizedRawKey(),
+                        source.normalizedRawFull(),
+                        ResolutionStatus.FAILED,
+                        null,
+                        null
+                ));
             }
         }
 
@@ -95,67 +120,59 @@ public class IngredientResolutionService {
                 targetItems.size(),
                 autoResolvedCount,
                 failedCount,
-                skippedCount
+                skippedCount,
+                itemResults
         );
         return BulkResolveResponse.from(result);
     }
 
     private ResolutionResult resolveInternal(Long storeId,
-                                             Map<String, String> aliasMap,
                                              List<Ingredient> activeIngredients,
-                                             StockInboundItem inboundItem) {
-        RawProductNameNormalizer.NormalizedResult normalized = normalizer.normalize(inboundItem.getRawProductName());
-        String normalizedFull = normalized.normalizedFull() == null ? "" : normalized.normalizedFull();
-
-        List<String> tokens = buildCandidateTokens(normalized, aliasMap);
-        if (tokens.isEmpty()) {
-            ResolutionResult result = ResolutionResult.failed("", normalizedFull);
-            inboundItem.updateNormalizedKeys("", normalizedFull);
+                                             StockInboundItem inboundItem,
+                                             PreparedResolutionSource source) {
+        if (source.tokens().isEmpty()) {
+            ResolutionResult result = ResolutionResult.failed(
+                    source.normalizedRawKey(),
+                    source.normalizedRawFull()
+            );
             inboundItem.updateResolution(result.status(), null, null);
             return result;
         }
 
-        String canonicalKey = extractCanonicalKey(tokens);
-        inboundItem.updateNormalizedKeys(canonicalKey, normalizedFull);
+        String canonicalKey = source.normalizedRawKey();
 
         Optional<IngredientMapping> mapping = ingredientMappingRepository.findActiveStoreLevelMapping(storeId, canonicalKey);
         if (mapping.isPresent()) {
             Ingredient ingredient = mapping.get().getIngredient();
             if (isUsableIngredient(ingredient, storeId)) {
                 inboundItem.updateResolution(ResolutionStatus.AUTO_SUGGESTED, ingredient, null);
-                return ResolutionResult.confirmed(canonicalKey, normalizedFull, ingredient);
+                return ResolutionResult.confirmed(canonicalKey, source.normalizedRawFull(), ingredient);
             }
         }
 
-        if (activeIngredients == null || activeIngredients.isEmpty()) {
-            inboundItem.updateResolution(ResolutionStatus.FAILED, null, null);
-            return ResolutionResult.failed(canonicalKey, normalizedFull);
+        if (activeIngredients != null && !activeIngredients.isEmpty()) {
+            List<ScoredCandidate> scored = scoreCandidates(source.tokens(), activeIngredients);
+            if (!scored.isEmpty()) {
+                List<ScoredCandidate> top = scored.stream()
+                        .limit(InboundItemResolutionConstants.TOP_N_CANDIDATES)
+                        .toList();
+
+                double topScore = top.get(0).score;
+                double secondScore = top.size() >= 2 ? top.get(1).score : 0.0;
+
+                boolean confidentAuto = topScore >= InboundItemResolutionConstants.AUTO_SCORE_THRESHOLD
+                        && (top.size() == 1 || (topScore - secondScore >= InboundItemResolutionConstants.AUTO_GAP_THRESHOLD));
+
+                if (confidentAuto) {
+                    Ingredient chosen = top.get(0).ingredient;
+                    inboundItem.updateResolution(ResolutionStatus.AUTO_SUGGESTED, chosen, null);
+                    return ResolutionResult.confirmed(canonicalKey, source.normalizedRawFull(), chosen);
+                }
+            }
         }
 
-        List<ScoredCandidate> scored = scoreCandidates(tokens, activeIngredients);
-        if (scored.isEmpty()) {
-            inboundItem.updateResolution(ResolutionStatus.FAILED, null, null);
-            return ResolutionResult.failed(canonicalKey, normalizedFull);
-        }
-
-        List<ScoredCandidate> top = scored.stream()
-                .limit(InboundItemResolutionConstants.TOP_N_CANDIDATES)
-                .toList();
-
-        double topScore = top.get(0).score;
-        double secondScore = top.size() >= 2 ? top.get(1).score : 0.0;
-
-        boolean confidentAuto = topScore >= InboundItemResolutionConstants.AUTO_SCORE_THRESHOLD
-                && (top.size() == 1 || (topScore - secondScore >= InboundItemResolutionConstants.AUTO_GAP_THRESHOLD));
-
-        if (confidentAuto) {
-            Ingredient chosen = top.get(0).ingredient;
-            inboundItem.updateResolution(ResolutionStatus.AUTO_SUGGESTED, chosen, null);
-            return ResolutionResult.confirmed(canonicalKey, normalizedFull, chosen);
-        }
-
-        inboundItem.updateResolution(ResolutionStatus.FAILED, null, null);
-        return ResolutionResult.failed(canonicalKey, normalizedFull);
+        inboundItem.updateResolution(ResolutionStatus.AUTO_SUGGESTED, null, null);
+        return ResolutionResult.autoSuggestedWithoutIngredient(canonicalKey, source.normalizedRawFull());
     }
 
     @Transactional
@@ -216,22 +233,8 @@ public class IngredientResolutionService {
             }
         }
 
-        String key = inboundItem.getNormalizedRawKey();
-        if (key == null || key.isBlank()) {
-            Map<String, String> aliasMap = loadAliasMap();
-            RawProductNameNormalizer.NormalizedResult normalized = normalizer.normalize(inboundItem.getRawProductName());
-            List<String> tokens = buildCandidateTokens(normalized, aliasMap);
-
-            if (tokens.isEmpty()) {
-                throw new StockException(StockErrorCode.INBOUND_ITEM_NOT_FOUND);
-            }
-
-            key = extractCanonicalKey(tokens);
-            inboundItem.updateNormalizedKeys(
-                    key,
-                    normalized.normalizedFull() == null ? "" : normalized.normalizedFull()
-            );
-        }
+        Map<String, String> aliasMap = loadAliasMap();
+        PreparedResolutionSource source = prepareResolutionSource(inboundItem, aliasMap);
 
         inboundItem.confirmResolution(ingredient);
 
@@ -239,7 +242,7 @@ public class IngredientResolutionService {
                 inboundItemPublicId,
                 ingredient.getIngredientPublicId(),
                 ingredient.getName(),
-                key,
+                source.normalizedRawKey(),
                 false
         );
     }
@@ -260,7 +263,6 @@ public class IngredientResolutionService {
         if (!hasExisting && !hasNewName) {
             throw new StockException(StockErrorCode.INVALID_REQUEST);
         }
-
     }
 
     private boolean hasExistingIngredient(IngredientConfirmRequest request) {
@@ -285,6 +287,24 @@ public class IngredientResolutionService {
         } catch (IllegalArgumentException e) {
             return kr.inventory.domain.reference.entity.enums.IngredientUnit.EA;
         }
+    }
+
+    private PreparedResolutionSource prepareResolutionSource(StockInboundItem inboundItem,
+                                                             Map<String, String> aliasMap) {
+        RawProductNameNormalizer.NormalizedResult normalized = normalizer.normalize(inboundItem.getRawProductName());
+        String normalizedFull = normalized.normalizedFull() == null ? "" : normalized.normalizedFull();
+
+        List<String> tokens = buildCandidateTokens(normalized, aliasMap);
+        String canonicalKey = tokens.isEmpty() ? "" : extractCanonicalKey(tokens);
+
+        return new PreparedResolutionSource(canonicalKey, normalizedFull, tokens);
+    }
+
+    private record PreparedResolutionSource(
+            String normalizedRawKey,
+            String normalizedRawFull,
+            List<String> tokens
+    ) {
     }
 
     private static class ScoredCandidate {
@@ -450,7 +470,6 @@ public class IngredientResolutionService {
         return new ArrayList<>(deduplicated);
     }
 
-    // 입고 최종 확정 시점에서만 호출
     public boolean upsertMapping(Store store, Long storeId, String key, Ingredient ingredient) {
         if (key == null || key.isBlank()) return false;
 

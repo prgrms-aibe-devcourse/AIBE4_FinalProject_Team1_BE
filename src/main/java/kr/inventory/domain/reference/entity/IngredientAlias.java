@@ -37,8 +37,4 @@ public class IngredientAlias extends AuditableEntity {
         entity.canonical = canonical;
         return entity;
     }
-
-    public void updateCanonical(String canonical) {
-        this.canonical = canonical;
-    }
 }
