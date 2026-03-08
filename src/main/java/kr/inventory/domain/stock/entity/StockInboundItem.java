@@ -112,7 +112,7 @@ public class StockInboundItem extends CreatedAtEntity {
         String specText
     ) {
         StockInboundItem item = create(inbound, rawName, quantity, unitCost, expirationDate);
-        item.resolutionStatus = ResolutionStatus.PENDING;
+        item.resolutionStatus = null; // 자동 정규화 전까지 미정
         item.specText = specText;
         return item;
     }

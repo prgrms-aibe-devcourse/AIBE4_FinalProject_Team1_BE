@@ -19,7 +19,7 @@ public record ResolutionResult(
 ) {
     public static ResolutionResult confirmed(String key, String full, Ingredient ingredient) {
         return new ResolutionResult(
-                ResolutionStatus.AUTO_RESOLVED,
+                ResolutionStatus.AUTO_SUGGESTED,
                 key,
                 full,
                 BigDecimal.ONE,
@@ -30,16 +30,16 @@ public record ResolutionResult(
         );
     }
 
-    public static ResolutionResult pending(String key, String full, double confidence, List<CandidateInfo> candidates) {
+    public static ResolutionResult autoSuggestedWithoutIngredient(String key, String full) {
         return new ResolutionResult(
-                ResolutionStatus.PENDING,
+                ResolutionStatus.AUTO_SUGGESTED,
                 key,
                 full,
-                BigDecimal.valueOf(confidence),
+                BigDecimal.ZERO,
                 null,
                 null,
                 null,
-                candidates
+                List.of()
         );
     }
 

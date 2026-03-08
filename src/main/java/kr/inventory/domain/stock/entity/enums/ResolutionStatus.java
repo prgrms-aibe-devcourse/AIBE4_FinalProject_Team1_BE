@@ -4,11 +4,9 @@ package kr.inventory.domain.stock.entity.enums;
 // 입고 아이템 재료 매핑 상태
 public enum ResolutionStatus {
 
-    PENDING, // 후보가 있으나 사용자 확정 필요 (중간 유사도)
+    AUTO_SUGGESTED, // 시스템이 재료를 자동 추천해서 값이 들어가 있는 상태, 사용자는 필요하면 수정 가능
 
-    AUTO_RESOLVED, // 자동 매칭 완료 (매핑 테이블 확정 또는 높은 유사도)
+    CONFIRMED, // 사용자가 직접 재료를 선택하거나 새 재료를 생성해서 연결한 상태
 
-    CONFIRMED, // 사용자가 수동으로 확정 완료
-
-    FAILED // 매칭 실패 (후보 없음 또는 낮은 유사도), 사용자가 후보 선택 또는 새 재료 생성 필요
+    FAILED // 현재 연결된 재료값이 없는 상태, 최종 확정 불가
 }

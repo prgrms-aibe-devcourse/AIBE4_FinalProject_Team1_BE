@@ -43,10 +43,11 @@ public class StockInboundItemRepositoryImpl implements StockInboundItemRepositor
             return Collections.emptyList();
         }
 
-        // resolutionStatus가 null 이거나 CONFIRMED가 아니면 미해결로 간주
+        // null or FAILED -> 정규화 미해결
+        // AUTO_SUGGESTED or CONFIRMED -> 정규화 해결
         NumberExpression<Long> unresolvedOne = new CaseBuilder()
                 .when(stockInboundItem.resolutionStatus.isNull()
-                        .or(stockInboundItem.resolutionStatus.ne(ResolutionStatus.CONFIRMED)))
+                        .or(stockInboundItem.resolutionStatus.eq(ResolutionStatus.FAILED)))
                 .then(1L)
                 .otherwise(0L);
 
