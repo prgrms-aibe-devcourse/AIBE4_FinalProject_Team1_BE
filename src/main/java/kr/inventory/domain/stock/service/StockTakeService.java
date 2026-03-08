@@ -5,10 +5,7 @@ import kr.inventory.domain.reference.entity.enums.IngredientStatus;
 import kr.inventory.domain.reference.exception.IngredientErrorCode;
 import kr.inventory.domain.reference.exception.IngredientException;
 import kr.inventory.domain.reference.repository.IngredientRepository;
-import kr.inventory.domain.stock.controller.dto.request.StockTakeConfirmRequest;
-import kr.inventory.domain.stock.controller.dto.request.StockTakeDraftSaveRequest;
-import kr.inventory.domain.stock.controller.dto.request.StockTakeItemQuantityRequest;
-import kr.inventory.domain.stock.controller.dto.request.StockTakeSheetCreateRequest;
+import kr.inventory.domain.stock.controller.dto.request.*;
 import kr.inventory.domain.stock.controller.dto.response.StockTakeDetailResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockTakeItemResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockTakeSheetResponse;
@@ -29,8 +26,11 @@ import kr.inventory.domain.store.repository.StoreRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import kr.inventory.domain.user.entity.User;
 import kr.inventory.domain.user.repository.UserRepository;
+import kr.inventory.global.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,12 +53,29 @@ public class StockTakeService {
     private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
-    public List<StockTakeSheetResponse> getStockTakeSheets(Long userId, UUID storePublicId) {
+    public PageResponse<StockTakeSheetResponse> getStockTakeSheets(
+            Long userId,
+            UUID storePublicId,
+            StockTakeSheetSearchRequest request,
+            Pageable pageable
+    ) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        List<StockTakeSheet> sheets = stockTakeSheetRepository.findAllByStoreIdOrderByCreatedAtDesc(storeId);
-        return sheets.stream()
-                .map(StockTakeSheetResponse::from)
-                .toList();
+
+        validateSearchRange(request);
+
+        Page<StockTakeSheet> page = stockTakeSheetRepository
+                .searchStockTakeSheets(storeId, request, pageable);
+
+        Page<StockTakeSheetResponse> responsePage =
+                page.map(StockTakeSheetResponse::from);
+
+        return PageResponse.from(responsePage);
+    }
+
+    private void validateSearchRange(StockTakeSheetSearchRequest request) {
+        if (request.from() != null && request.to() != null && request.from().isAfter(request.to())) {
+            throw new IllegalArgumentException("조회 시작일시는 종료일시보다 늦을 수 없습니다.");
+        }
     }
 
     @Transactional(readOnly = true)
