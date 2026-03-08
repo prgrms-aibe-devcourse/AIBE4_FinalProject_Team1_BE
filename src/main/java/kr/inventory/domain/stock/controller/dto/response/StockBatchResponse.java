@@ -3,12 +3,13 @@ package kr.inventory.domain.stock.controller.dto.response;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.enums.StockBatchStatus;
 
 public record StockBatchResponse(
-	Long stockBatchId,
+	UUID stockBatchId,
 	String rawProductName,
 	BigDecimal remainingQuantity,
 	LocalDate expirationDate,
@@ -17,8 +18,8 @@ public record StockBatchResponse(
 ) {
 	public static StockBatchResponse from(IngredientStockBatch batch) {
 		return new StockBatchResponse(
-			batch.getBatchId(),
-			batch.getInboundItem().getRawProductName(),
+			batch.getBatchPublicId(),
+			batch.getInboundItem().getProductDisplayName(),
 			batch.getRemainingQuantity(),
 			batch.getExpirationDate(),
 			batch.getCreatedAt(),

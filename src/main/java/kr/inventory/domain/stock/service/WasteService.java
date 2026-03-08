@@ -7,9 +7,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.persistence.EntityNotFoundException;
 import kr.inventory.domain.stock.controller.dto.request.WasteRequest;
-import kr.inventory.domain.stock.controller.dto.request.WasteSearchCondition;
+import kr.inventory.domain.stock.controller.dto.request.WasteSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.WasteResponse;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.WasteRecord;
@@ -86,7 +85,7 @@ public class WasteService {
 	}
 
 	@Transactional(readOnly = true)
-	public Page<WasteResponse> getWasteRecords(Long userId, UUID storePublicId, WasteSearchCondition condition,
+	public Page<WasteResponse> getWasteRecords(Long userId, UUID storePublicId, WasteSearchRequest condition,
 		Pageable pageable) {
 		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
