@@ -7,6 +7,7 @@ import kr.inventory.domain.purchase.entity.PurchaseOrder;
 import kr.inventory.domain.user.entity.User;
 import kr.inventory.domain.vendor.entity.Vendor;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -21,6 +22,7 @@ public record StockInboundResponse(
     Long sourceDocumentId,
     Long sourcePurchaseOrderId,
     InboundStatus status,
+    LocalDate inboundDate,
     Long confirmedByUserId,
     String confirmedByUserName,
     OffsetDateTime confirmedAt,
@@ -43,6 +45,7 @@ public record StockInboundResponse(
             sourceDocument != null ? sourceDocument.getDocumentId() : null,
             sourcePurchaseOrder != null ? sourcePurchaseOrder.getPurchaseOrderId() : null,
             inbound.getStatus(),
+            inbound.getInboundDate(),
             confirmedByUser != null ? confirmedByUser.getUserId() : null,
             confirmedByUser != null ? confirmedByUser.getName() : null,
             inbound.getConfirmedAt(),
