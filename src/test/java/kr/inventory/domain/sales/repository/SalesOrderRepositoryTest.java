@@ -4,7 +4,6 @@ import kr.inventory.domain.dining.entity.DiningTable;
 import kr.inventory.domain.dining.entity.TableSession;
 import kr.inventory.domain.dining.repository.DiningTableRepository;
 import kr.inventory.domain.dining.repository.TableSessionRepository;
-import kr.inventory.domain.sales.controller.dto.response.SalesOrderResponse;
 import kr.inventory.domain.sales.entity.SalesOrder;
 import kr.inventory.domain.sales.entity.enums.SalesOrderStatus;
 import kr.inventory.domain.sales.entity.enums.SalesOrderType;
@@ -20,10 +19,11 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -137,13 +137,13 @@ class SalesOrderRepositoryTest {
         entityManager.clear();
 
         // when
-        List<SalesOrderResponse> responses = salesOrderRepository.findStoreOrders(store.getStoreId());
+        Page<SalesOrder> page = salesOrderRepository.findStoreOrders(store.getStoreId(), PageRequest.of(0, 10));
 
         // then
-        assertThat(responses).hasSize(2);
+        assertThat(page.getContent()).hasSize(2);
         // 최신순 정렬 확인
-        assertThat(responses.get(0).orderPublicId()).isEqualTo(order2.getOrderPublicId());
-        assertThat(responses.get(1).orderPublicId()).isEqualTo(order1.getOrderPublicId());
+        assertThat(page.getContent().get(0).getOrderPublicId()).isEqualTo(order2.getOrderPublicId());
+        assertThat(page.getContent().get(1).getOrderPublicId()).isEqualTo(order1.getOrderPublicId());
     }
 
     @Test
@@ -168,11 +168,11 @@ class SalesOrderRepositoryTest {
         entityManager.clear();
 
         // when
-        List<SalesOrderResponse> responses = salesOrderRepository.findStoreOrders(store.getStoreId());
+        Page<SalesOrder> page = salesOrderRepository.findStoreOrders(store.getStoreId(), PageRequest.of(0, 10));
 
         // then
-        assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).orderPublicId()).isEqualTo(order1.getOrderPublicId());
+        assertThat(page.getContent()).hasSize(1);
+        assertThat(page.getContent().get(0).getOrderPublicId()).isEqualTo(order1.getOrderPublicId());
     }
 
     @Test

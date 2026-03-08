@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Long> {
+public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Long>, PurchaseOrderRepositoryCustom {
     List<PurchaseOrder> findAllByStoreStoreIdOrderByPurchaseOrderIdDesc(Long storeId);
 
     Optional<PurchaseOrder> findByPurchaseOrderPublicId(UUID purchaseOrderPublicId);

@@ -3,19 +3,16 @@ package kr.inventory.domain.stock.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.inventory.domain.auth.security.CustomUserDetails;
+import kr.inventory.domain.stock.controller.dto.request.StockShortageSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockShortageGroupResponse;
 import kr.inventory.domain.stock.service.StockShortageService;
 import kr.inventory.global.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
@@ -32,7 +29,8 @@ public class StockShortageController {
     public ResponseEntity<PageResponse<StockShortageGroupResponse>> getShortages(
             @PathVariable UUID storePublicId,
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(stockShortageService.getShortagesGroupedByOrder(principal.getUserId(), storePublicId, pageable));
+            @ModelAttribute StockShortageSearchRequest searchRequest,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(stockShortageService.getShortagesGroupedByOrder(principal.getUserId(), storePublicId, searchRequest, pageable));
     }
 }

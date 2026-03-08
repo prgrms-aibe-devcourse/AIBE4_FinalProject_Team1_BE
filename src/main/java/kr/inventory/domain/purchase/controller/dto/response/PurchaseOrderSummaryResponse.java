@@ -9,7 +9,6 @@ import java.util.UUID;
 
 public record PurchaseOrderSummaryResponse(
         UUID purchaseOrderPublicId,
-        Long storeId,
         UUID vendorPublicId,
         String vendorName,
         String orderNo,
@@ -19,7 +18,6 @@ public record PurchaseOrderSummaryResponse(
         Vendor vendor = purchaseOrder.getVendor();
         return new PurchaseOrderSummaryResponse(
                 purchaseOrder.getPurchaseOrderPublicId(),
-                purchaseOrder.getStore().getStoreId(),
                 vendor == null ? null : vendor.getVendorPublicId(),
                 vendor == null ? null : vendor.getName(),
                 purchaseOrder.getOrderNo(),

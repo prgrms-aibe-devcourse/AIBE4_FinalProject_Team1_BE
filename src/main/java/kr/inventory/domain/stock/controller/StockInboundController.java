@@ -4,15 +4,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import kr.inventory.domain.auth.security.CustomUserDetails;
-import kr.inventory.domain.stock.controller.dto.request.BulkIngredientConfirmRequest;
 import kr.inventory.domain.stock.controller.dto.request.IngredientConfirmRequest;
 import kr.inventory.domain.stock.controller.dto.request.ManualInboundRequest;
 import kr.inventory.domain.stock.controller.dto.request.StockInboundRequest;
-import kr.inventory.domain.stock.controller.dto.response.BulkIngredientConfirmResponse;
 import kr.inventory.domain.stock.controller.dto.response.BulkResolveResponse;
 import kr.inventory.domain.stock.controller.dto.response.BulkProductNormalizeResponse;
 import kr.inventory.domain.stock.controller.dto.response.IngredientConfirmResponse;
-import kr.inventory.domain.stock.controller.dto.response.IngredientResolveResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockInboundListResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockInboundResponse;
 import kr.inventory.global.dto.PageResponse;
@@ -50,17 +47,6 @@ public class StockInboundController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "문서 기반 입고 등록 (OCR)")
-    @PostMapping("/from-document")
-    public ResponseEntity<StockInboundResponse> createInboundFromDocument(
-        @AuthenticationPrincipal CustomUserDetails principal,
-        @PathVariable UUID storePublicId,
-        @RequestBody @Valid StockInboundRequest request
-    ) {
-        StockInboundResponse response = stockInboundService.createInboundFromDocument(principal.getUserId(), storePublicId, request);
-        return ResponseEntity.ok(response);
-    }
-
     @Operation(summary = "입고 확정")
     @PostMapping("/{inboundPublicId}/confirm")
     public ResponseEntity<Void> confirmInbound(
@@ -87,54 +73,20 @@ public class StockInboundController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "입고 아이템 재료 정규화 후보 산출(단건)")
-    @PostMapping("/{inboundPublicId}/items/{inboundItemPublicId}/ingredient-mapping/resolve")
-    public ResponseEntity<IngredientResolveResponse> resolveIngredientMapping(
-            @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable UUID storePublicId,
-            @PathVariable UUID inboundPublicId,
-            @PathVariable UUID inboundItemPublicId
-    ) {
-        IngredientResolveResponse response = ingredientResolutionService.resolve(
-                principal.getUserId(),
-                storePublicId,
-                inboundPublicId,
-                inboundItemPublicId
-        );
-        return ResponseEntity.ok(response);
-    }
-
-    @Operation(summary = "입고 아이템 재료 정규화 확정(단건)")
+    @Operation(summary = "입고 아이템 재료 매핑 확정 (기존 재료 선택 또는 새 재료 생성)")
     @PutMapping("/{inboundPublicId}/items/{inboundItemPublicId}/ingredient-mapping")
     public ResponseEntity<IngredientConfirmResponse> confirmIngredientMapping(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable UUID storePublicId,
             @PathVariable UUID inboundPublicId,
             @PathVariable UUID inboundItemPublicId,
-            @RequestBody @Valid IngredientConfirmRequest request
+            @RequestBody IngredientConfirmRequest request
     ) {
         IngredientConfirmResponse response = ingredientResolutionService.confirm(
                 principal.getUserId(),
                 storePublicId,
                 inboundPublicId,
                 inboundItemPublicId,
-                request.chosenIngredientPublicId()
-        );
-        return ResponseEntity.ok(response);
-    }
-
-    @Operation(summary = "입고 아이템 재료 매핑 일괄 확정")
-    @PutMapping("/{inboundPublicId}/items/ingredient-mapping")
-    public ResponseEntity<BulkIngredientConfirmResponse> confirmAllIngredientMapping(
-            @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable UUID storePublicId,
-            @PathVariable UUID inboundPublicId,
-            @RequestBody @Valid BulkIngredientConfirmRequest request
-    ) {
-        BulkIngredientConfirmResponse response = ingredientResolutionService.confirmAllForInbound(
-                principal.getUserId(),
-                storePublicId,
-                inboundPublicId,
                 request
         );
         return ResponseEntity.ok(response);

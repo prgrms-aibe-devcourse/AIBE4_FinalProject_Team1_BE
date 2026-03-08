@@ -154,24 +154,6 @@ public class DefaultRawProductNameNormalizer implements RawProductNameNormalizer
         if (keyTokens == null || keyTokens.isEmpty()) {
             return "";
         }
-
-        // 1) tail word 우선
-        for (String token : keyTokens) {
-            if (InboundItemResolutionConstants.CANONICAL_TAIL_WORDS.contains(token)) {
-                return token;
-            }
-        }
-
-        // 2) 결합 토큰에서 헤드워드 추출 (서울우유 -> 우유, 롯데햄 -> 햄 등)
-        for (String headword : InboundItemResolutionConstants.CANONICAL_SUBSTRING_HEADWORDS) {
-            for (String token : keyTokens) {
-                if (token != null && token.contains(headword)) {
-                    return headword;
-                }
-            }
-        }
-
-        // 3) 일반 케이스: 브랜드는 앞에 붙는 경우가 많으므로 마지막 토큰 우선
         return keyTokens.get(keyTokens.size() - 1);
     }
 }

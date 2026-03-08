@@ -1,6 +1,5 @@
 package kr.inventory.domain.stock.normalization.constant;
 
-import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -25,17 +24,12 @@ public final class InboundItemResolutionConstants {
             "케이스", "case", "box",
             "단", "통", "캔", "병",
 
-            // 형태/가공
-            "슬라이스", "사각", "채", "분말", "가루",
-            "업소용",
-
-            // 옵션
-            "무염", "유염"
+            // 형태/운영 표현
+            "업소용"
     );
 
     public static final Set<String> KEY_DESCRIPTION_STOP_WORDS = Set.of(
             "두꺼운", "얇은", "큰", "작은",
-            "토스트", "샐러드",
             "개봉", "개봉후", "보관", "보관용"
     );
 
@@ -70,17 +64,4 @@ public final class InboundItemResolutionConstants {
 
     public static final Pattern PROMOTION_PACK_TOKEN =
             Pattern.compile("^\\d+[x*+]\\d+$|^\\d+개입$", Pattern.CASE_INSENSITIVE);
-
-
-    public static final Set<String> CANONICAL_TAIL_WORDS = Set.of(
-            "케첩", "잼", "소스", "드레싱", "시럽"
-    );
-
-    public static final List<String> CANONICAL_SUBSTRING_HEADWORDS = List.of(
-            "우유", "간장", "식용유",
-            "식빵", "버터", "치즈", "햄", "베이컨", "계란",
-            "양배추", "양파", "감자", "대파",
-            "마요네즈", "케첩", "잼",
-            "라면", "참치", "밀가루", "닭가슴살"
-    );
 }

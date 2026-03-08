@@ -5,10 +5,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.reference.controller.dto.request.IngredientCreateRequest;
+import kr.inventory.domain.reference.controller.dto.request.IngredientSearchRequest;
 import kr.inventory.domain.reference.controller.dto.request.IngredientUpdateRequest;
 import kr.inventory.domain.reference.controller.dto.response.IngredientResponse;
 import kr.inventory.domain.reference.service.IngredientService;
+import kr.inventory.global.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -35,8 +39,21 @@ public class IngredientController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @Operation(summary = "식재료 목록 조회", description = "매장의 모든 식재료를 조회합니다.")
+    @Operation(summary = "식재료 페이징 목록 조회", description = "name 검색 조건과 함께 식재료 목록을 페이징 조회합니다.")
     @GetMapping
+    public ResponseEntity<PageResponse<IngredientResponse>> getIngredientsPage(
+            @PathVariable UUID storePublicId,
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @ModelAttribute IngredientSearchRequest searchRequest,
+            @PageableDefault(size = 20) Pageable pageable
+    ) {
+        PageResponse<IngredientResponse> response =
+                ingredientService.getIngredientsPage(principal.getUserId(), storePublicId, searchRequest, pageable);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "식재료 목록 조회", description = "매장의 모든 식재료를 조회합니다.")
+    @GetMapping("/all")
     public ResponseEntity<List<IngredientResponse>> getIngredients(
             @PathVariable UUID storePublicId,
             @AuthenticationPrincipal CustomUserDetails principal) {

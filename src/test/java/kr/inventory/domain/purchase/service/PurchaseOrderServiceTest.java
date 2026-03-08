@@ -17,7 +17,9 @@ import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.repository.StoreRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import kr.inventory.domain.vendor.entity.Vendor;
+import kr.inventory.domain.purchase.controller.dto.request.PurchaseOrderSearchRequest;
 import kr.inventory.domain.vendor.repository.VendorRepository;
+import kr.inventory.global.dto.PageResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,6 +27,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
@@ -64,6 +70,9 @@ class PurchaseOrderServiceTest {
         @Mock
         private StoreAccessValidator storeAccessValidator;
 
+        @Mock
+        private kr.inventory.domain.user.repository.UserRepository userRepository;
+
         private Store store;
         private Vendor vendor;
         private PurchaseOrder purchaseOrder;
@@ -96,12 +105,12 @@ class PurchaseOrderServiceTest {
                 // given
                 Long userId = 1L;
 
-                PurchaseOrderItemRequest item1 = new PurchaseOrderItemRequest("양파", 10, "EA",  new BigDecimal("1000"));
+                PurchaseOrderItemRequest item1 = new PurchaseOrderItemRequest("양파", 10, "EA", new BigDecimal("1000"));
                 PurchaseOrderItemRequest item2 = new PurchaseOrderItemRequest("감자", 20, "KG", new BigDecimal("800"));
                 PurchaseOrderCreateRequest request = new PurchaseOrderCreateRequest(vendorPublicId,
                                 List.of(item1, item2));
 
-                given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId))
+                given(storeAccessValidator.validateAndGetStoreIdForActiveMembers(userId, storePublicId))
                                 .willReturn(1L);
 
                 given(storeRepository.findById(1L))
@@ -137,26 +146,32 @@ class PurchaseOrderServiceTest {
         void givenValidUser_whenGetPurchaseOrders_thenSuccess() {
                 // given
                 Long userId = 1L;
+                PurchaseOrderSearchRequest searchRequest = new PurchaseOrderSearchRequest(null, null);
+                Pageable pageable = PageRequest.of(0, 10);
 
                 PurchaseOrder order1 = PurchaseOrder.create(store);
                 ReflectionTestUtils.setField(order1, "purchaseOrderId", 1L);
                 PurchaseOrder order2 = PurchaseOrder.create(store);
                 ReflectionTestUtils.setField(order2, "purchaseOrderId", 2L);
 
-                given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId))
+                given(storeAccessValidator.validateAndGetStoreIdForActiveMembers(userId, storePublicId))
                                 .willReturn(1L);
 
-                given(purchaseOrderRepository.findAllByStoreStoreIdOrderByPurchaseOrderIdDesc(1L))
-                                .willReturn(List.of(order2, order1));
+                Page<PurchaseOrder> page = new PageImpl<>(List.of(order2, order1), pageable, 2);
+                given(purchaseOrderRepository.findByStoreIdWithFilters(eq(1L), eq(searchRequest), any(Pageable.class)))
+                                .willReturn(page);
 
                 // when
-                List<PurchaseOrderSummaryResponse> responses = purchaseOrderService.getPurchaseOrders(userId,
-                                storePublicId);
+                PageResponse<PurchaseOrderSummaryResponse> response = purchaseOrderService.getPurchaseOrders(userId,
+                                storePublicId, searchRequest, pageable);
 
                 // then
-                assertThat(responses).hasSize(2);
-                assertThat(responses.get(0).purchaseOrderPublicId()).isEqualTo(order2.getPurchaseOrderPublicId());
-                assertThat(responses.get(1).purchaseOrderPublicId()).isEqualTo(order1.getPurchaseOrderPublicId());
+                assertThat(response.content()).hasSize(2);
+                assertThat(response.content().get(0).purchaseOrderPublicId())
+                                .isEqualTo(order2.getPurchaseOrderPublicId());
+                assertThat(response.content().get(1).purchaseOrderPublicId())
+                                .isEqualTo(order1.getPurchaseOrderPublicId());
+                assertThat(response.totalElements()).isEqualTo(2);
         }
 
         @Test
@@ -165,7 +180,7 @@ class PurchaseOrderServiceTest {
                 // given
                 Long userId = 1L;
 
-                given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId))
+                given(storeAccessValidator.validateAndGetStoreIdForActiveMembers(userId, storePublicId))
                                 .willReturn(1L);
 
                 given(purchaseOrderValidator.validateAccessAndGetPurchaseOrderId(userId, purchaseOrderPublicId))
@@ -198,7 +213,7 @@ class PurchaseOrderServiceTest {
                 PurchaseOrderItemRequest item1 = new PurchaseOrderItemRequest("당근", 15, "KG", new BigDecimal("1200"));
                 PurchaseOrderUpdateRequest request = new PurchaseOrderUpdateRequest(vendorPublicId, List.of(item1));
 
-                given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId))
+                given(storeAccessValidator.validateAndGetStoreIdForActiveMembers(userId, storePublicId))
                                 .willReturn(1L);
 
                 given(purchaseOrderValidator.validateAccessAndGetPurchaseOrderId(userId, purchaseOrderPublicId))
@@ -229,7 +244,7 @@ class PurchaseOrderServiceTest {
                 assertThat(response.items()).hasSize(1);
                 assertThat(response.totalAmount()).isEqualByComparingTo(new BigDecimal("18000"));
 
-                verify(purchaseOrderItemRepository).deleteAll(oldItems);
+                verify(purchaseOrderItemRepository).deleteAllInBatch(oldItems);
                 verify(purchaseOrderItemRepository).saveAll(anyList());
         }
 
@@ -239,7 +254,7 @@ class PurchaseOrderServiceTest {
                 // given
                 Long userId = 1L;
 
-                given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId))
+                given(storeAccessValidator.validateAndGetStoreIdForActiveMembers(userId, storePublicId))
                                 .willReturn(1L);
 
                 given(purchaseOrderValidator.validateAccessAndGetPurchaseOrderId(userId, purchaseOrderPublicId))
@@ -268,7 +283,7 @@ class PurchaseOrderServiceTest {
                 Long userId = 1L;
                 byte[] expectedPdfBytes = "PDF_CONTENT".getBytes();
 
-                given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId))
+                given(storeAccessValidator.validateAndGetStoreIdForActiveMembers(userId, storePublicId))
                                 .willReturn(1L);
 
                 given(purchaseOrderValidator.validateAccessAndGetPurchaseOrderId(userId, purchaseOrderPublicId))

@@ -1,6 +1,7 @@
 package kr.inventory.domain.reference.service;
 
 import kr.inventory.domain.reference.controller.dto.request.IngredientCreateRequest;
+import kr.inventory.domain.reference.controller.dto.request.IngredientSearchRequest;
 import kr.inventory.domain.reference.controller.dto.response.IngredientResponse;
 import kr.inventory.domain.reference.controller.dto.request.IngredientUpdateRequest;
 import kr.inventory.domain.reference.entity.Ingredient;
@@ -14,7 +15,10 @@ import kr.inventory.domain.store.exception.StoreErrorCode;
 import kr.inventory.domain.store.exception.StoreException;
 import kr.inventory.domain.store.repository.StoreRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
+import kr.inventory.global.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,24 +46,20 @@ public class IngredientService {
         Optional<InboundSpecExtractor.Spec> spec = specExtractor.extract(request.name());
 
         Ingredient ingredient;
-        if (spec.isPresent()) {
-            // 규격 추출 성공: baseName, unit, unitSize 사용
-            ingredient = Ingredient.create(
+        // 규격 추출 성공: baseName, unit, unitSize 사용
+        // 규격 추출 실패: 기존 방식대로 생성 (unitSize=null)
+        ingredient = spec.map(value -> Ingredient.create(
                 store,
-                spec.get().baseName(),
-                spec.get().unit(),
+                value.baseName(),
+                value.unit(),
                 request.lowStockThreshold(),
-                spec.get().unitSize()
-            );
-        } else {
-            // 규격 추출 실패: 기존 방식대로 생성 (unitSize=null)
-            ingredient = Ingredient.create(
+                value.unitSize()
+        )).orElseGet(() -> Ingredient.create(
                 store,
                 request.name(),
                 request.unit(),
                 request.lowStockThreshold()
-            );
-        }
+        ));
 
         ingredientRepository.save(ingredient);
         return IngredientResponse.from(ingredient);
@@ -74,18 +74,29 @@ public class IngredientService {
 
     public IngredientResponse getIngredient(Long userId, UUID storePublicId, UUID ingredientPublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-
         Ingredient ingredient = getValidIngredient(ingredientPublicId, storeId);
-
         return IngredientResponse.from(ingredient);
+    }
+
+    public PageResponse<IngredientResponse> getIngredientsPage(
+            Long userId,
+            UUID storePublicId,
+            IngredientSearchRequest searchRequest,
+            Pageable pageable
+    ){
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
+        Page<IngredientResponse> page = ingredientRepository
+                .searchByStoreIdAndName(storeId, searchRequest.name(), IngredientStatus.DELETED, pageable)
+                .map(IngredientResponse::from);
+
+        return PageResponse.from(page);
     }
 
     @Transactional
     public IngredientResponse updateIngredient(Long userId, UUID storePublicId, UUID ingredientPublicId, IngredientUpdateRequest request) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-
         Ingredient ingredient = getValidIngredient(ingredientPublicId, storeId);
-
         ingredient.update(request.name(), request.unit(), request.lowStockThreshold(), request.status());
         return IngredientResponse.from(ingredient);
     }
@@ -93,9 +104,7 @@ public class IngredientService {
     @Transactional
     public void deleteIngredient(Long userId, UUID storePublicId, UUID ingredientPublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-
         Ingredient ingredient = getValidIngredient(ingredientPublicId, storeId);
-
         ingredient.delete();
     }
 
