@@ -27,8 +27,9 @@ public enum StockErrorCode implements ErrorModel {
     INSUFFICIENT_STOCK(HttpStatus.BAD_REQUEST, "S0016", "현재 재고보다 많은 수량을 폐기할 수 없습니다."),
     INVALID_WASTE_QUANTITY(HttpStatus.BAD_REQUEST, "S017", "폐기 수량은 0보다 커야 합니다."),
     STOCK_TAKE_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "S018", "실사 시트에 해당 재료 항목이 존재하지 않습니다."),
-    DUPLICATED_STOCK_TAKE_ITEM(HttpStatus.CONFLICT, "S019", "중복된 실사 항목이 존재합니다."),
-    INVALID_STOCK_TAKE_CONFIRM_REQUEST(HttpStatus.BAD_REQUEST, "S020", "유효하지 않은 실사 요청입니다.");
+    INVALID_REQUEST(HttpStatus.BAD_REQUEST, "S019", "잘못된 요청입니다."),
+    DUPLICATED_STOCK_TAKE_ITEM(HttpStatus.CONFLICT, "S020", "중복된 실사 항목이 존재합니다."),
+    INVALID_STOCK_TAKE_CONFIRM_REQUEST(HttpStatus.BAD_REQUEST, "S021", "유효하지 않은 실사 요청입니다.");
 
 	private final HttpStatus status;
 	private final String code;
