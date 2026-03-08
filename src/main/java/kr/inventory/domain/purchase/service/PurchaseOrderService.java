@@ -2,6 +2,7 @@ package kr.inventory.domain.purchase.service;
 
 import kr.inventory.domain.purchase.constant.PurchaseOrderConstant;
 import kr.inventory.domain.purchase.controller.dto.request.PurchaseOrderCreateRequest;
+import kr.inventory.domain.purchase.controller.dto.request.PurchaseOrderSearchRequest;
 import kr.inventory.domain.purchase.controller.dto.request.PurchaseOrderUpdateRequest;
 import kr.inventory.domain.purchase.controller.dto.response.PurchaseOrderDetailResponse;
 import kr.inventory.domain.purchase.controller.dto.response.PurchaseOrderSummaryResponse;
@@ -15,10 +16,15 @@ import kr.inventory.domain.purchase.validator.PurchaseOrderValidator;
 import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.repository.StoreRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
+import kr.inventory.domain.user.entity.User;
+import kr.inventory.domain.user.repository.UserRepository;
 import kr.inventory.domain.vendor.entity.Vendor;
 import kr.inventory.domain.vendor.entity.enums.VendorStatus;
 import kr.inventory.domain.vendor.repository.VendorRepository;
+import kr.inventory.global.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,13 +40,14 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class PurchaseOrderService {
 
-    private static final DateTimeFormatter ORDER_NO_DATE_FORMATTER =
-            DateTimeFormatter.ofPattern(PurchaseOrderConstant.ORDER_NO_DATE_PATTERN);
+    private static final DateTimeFormatter ORDER_NO_DATE_FORMATTER = DateTimeFormatter
+            .ofPattern(PurchaseOrderConstant.ORDER_NO_DATE_PATTERN);
 
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
     private final StoreRepository storeRepository;
     private final VendorRepository vendorRepository;
+    private final UserRepository userRepository;
     private final PurchaseOrderPdfService purchaseOrderPdfService;
     private final PurchaseOrderValidator purchaseOrderValidator;
     private final StoreAccessValidator storeAccessValidator;
@@ -58,7 +65,8 @@ public class PurchaseOrderService {
         purchaseOrder.assignVendor(vendor);
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
 
-        String orderNo = generateOrderNumber(savedPurchaseOrder.getPurchaseOrderId(), OffsetDateTime.now(ZoneOffset.UTC));
+        String orderNo = generateOrderNumber(savedPurchaseOrder.getPurchaseOrderId(),
+                OffsetDateTime.now(ZoneOffset.UTC));
         savedPurchaseOrder.assignOrderNo(orderNo);
 
         List<PurchaseOrderItem> items = request.items().stream()
@@ -72,26 +80,32 @@ public class PurchaseOrderService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         savedPurchaseOrder.updateTotalAmount(totalAmount);
 
-        return PurchaseOrderDetailResponse.from(savedPurchaseOrder, savedItems);
+        return PurchaseOrderDetailResponse.from(savedPurchaseOrder, savedItems, null);
     }
 
     @Transactional(readOnly = true)
-    public List<PurchaseOrderSummaryResponse> getPurchaseOrders(Long userId, UUID storePublicId) {
+    public PageResponse<PurchaseOrderSummaryResponse> getPurchaseOrders(
+            Long userId,
+            UUID storePublicId,
+            PurchaseOrderSearchRequest searchRequest,
+            Pageable pageable) {
         Long storeId = storeAccessValidator.validateAndGetStoreIdForActiveMembers(userId, storePublicId);
-        return purchaseOrderRepository.findAllByStoreStoreIdOrderByPurchaseOrderIdDesc(storeId).stream()
-                .map(PurchaseOrderSummaryResponse::from)
-                .toList();
+        Page<PurchaseOrder> page = purchaseOrderRepository.findByStoreIdWithFilters(storeId, searchRequest, pageable);
+        return PageResponse.from(page.map(PurchaseOrderSummaryResponse::from));
     }
 
     @Transactional(readOnly = true)
     public PurchaseOrderDetailResponse getPurchaseOrder(Long userId, UUID storePublicId, UUID purchaseOrderPublicId) {
         PurchaseOrder purchaseOrder = validateAndGetPurchaseOrder(userId, storePublicId, purchaseOrderPublicId);
-        List<PurchaseOrderItem> items = purchaseOrderItemRepository.findByPurchaseOrderPurchaseOrderId(purchaseOrder.getPurchaseOrderId());
-        return PurchaseOrderDetailResponse.from(purchaseOrder, items);
+        List<PurchaseOrderItem> items = purchaseOrderItemRepository
+                .findByPurchaseOrderPurchaseOrderId(purchaseOrder.getPurchaseOrderId());
+        UUID canceledByUserPublicId = getCanceledByUserPublicId(purchaseOrder.getCanceledByUserId());
+        return PurchaseOrderDetailResponse.from(purchaseOrder, items, canceledByUserPublicId);
     }
 
     @Transactional
-    public PurchaseOrderDetailResponse update(Long userId, UUID storePublicId, UUID purchaseOrderPublicId, PurchaseOrderUpdateRequest request) {
+    public PurchaseOrderDetailResponse update(Long userId, UUID storePublicId, UUID purchaseOrderPublicId,
+            PurchaseOrderUpdateRequest request) {
         PurchaseOrder purchaseOrder = validateAndGetPurchaseOrder(userId, storePublicId, purchaseOrderPublicId);
         purchaseOrderValidator.requireCancelable(purchaseOrder.getStatus());
         purchaseOrderValidator.requireItemsNotEmpty(request.items());
@@ -99,7 +113,8 @@ public class PurchaseOrderService {
         Vendor vendor = resolveVendorOrThrow(purchaseOrder.getStore().getStoreId(), request.vendorPublicId());
         purchaseOrder.assignVendor(vendor);
 
-        List<PurchaseOrderItem> oldItems = purchaseOrderItemRepository.findByPurchaseOrderPurchaseOrderId(purchaseOrder.getPurchaseOrderId());
+        List<PurchaseOrderItem> oldItems = purchaseOrderItemRepository
+                .findByPurchaseOrderPurchaseOrderId(purchaseOrder.getPurchaseOrderId());
         purchaseOrderItemRepository.deleteAllInBatch(oldItems);
 
         List<PurchaseOrderItem> newItems = request.items().stream()
@@ -113,7 +128,8 @@ public class PurchaseOrderService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         purchaseOrder.updateTotalAmount(totalAmount);
 
-        return PurchaseOrderDetailResponse.from(purchaseOrder, savedItems);
+        UUID canceledByUserPublicId = getCanceledByUserPublicId(purchaseOrder.getCanceledByUserId());
+        return PurchaseOrderDetailResponse.from(purchaseOrder, savedItems, canceledByUserPublicId);
     }
 
     @Transactional
@@ -121,8 +137,11 @@ public class PurchaseOrderService {
         PurchaseOrder purchaseOrder = validateAndGetPurchaseOrder(userId, storePublicId, purchaseOrderPublicId);
         purchaseOrderValidator.requireCancelable(purchaseOrder.getStatus());
         purchaseOrder.cancel(userId, OffsetDateTime.now(ZoneOffset.UTC));
-        List<PurchaseOrderItem> items = purchaseOrderItemRepository.findByPurchaseOrderPurchaseOrderId(purchaseOrder.getPurchaseOrderId());
-        return PurchaseOrderDetailResponse.from(purchaseOrder, items);
+
+        UUID canceledByUserPublicId = getCanceledByUserPublicId(userId);
+        List<PurchaseOrderItem> items = purchaseOrderItemRepository
+                .findByPurchaseOrderPurchaseOrderId(purchaseOrder.getPurchaseOrderId());
+        return PurchaseOrderDetailResponse.from(purchaseOrder, items, canceledByUserPublicId);
     }
 
     @Transactional(readOnly = true)
@@ -132,7 +151,8 @@ public class PurchaseOrderService {
     }
 
     private PurchaseOrder validateAndGetPurchaseOrder(Long userId, UUID storePublicId, UUID purchaseOrderPublicId) {
-        Long purchaseOrderId = purchaseOrderValidator.validateAccessAndGetPurchaseOrderId(userId, purchaseOrderPublicId);
+        Long purchaseOrderId = purchaseOrderValidator.validateAccessAndGetPurchaseOrderId(userId,
+                purchaseOrderPublicId);
         return purchaseOrderRepository.findById(purchaseOrderId)
                 .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_NOT_FOUND));
     }
@@ -149,6 +169,15 @@ public class PurchaseOrderService {
         return vendor;
     }
 
+    private UUID getCanceledByUserPublicId(Long canceledByUserId) {
+        if (canceledByUserId == null) {
+            return null;
+        }
+        return userRepository.findById(canceledByUserId)
+                .map(User::getPublicId)
+                .orElse(null);
+    }
+
     private String generateOrderNumber(Long purchaseOrderId, OffsetDateTime orderedAt) {
         String datePart = orderedAt.format(ORDER_NO_DATE_FORMATTER);
         String sequencePart = String.format(PurchaseOrderConstant.ORDER_NO_SEQUENCE_FORMAT, purchaseOrderId);
@@ -156,7 +185,6 @@ public class PurchaseOrderService {
                 PurchaseOrderConstant.ORDER_NO_SEPARATOR,
                 PurchaseOrderConstant.ORDER_NO_PREFIX,
                 datePart,
-                sequencePart
-        );
+                sequencePart);
     }
 }
