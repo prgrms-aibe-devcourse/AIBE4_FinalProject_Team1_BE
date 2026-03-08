@@ -3,6 +3,8 @@ package kr.inventory.domain.stock.entity;
 import jakarta.persistence.*;
 import kr.inventory.domain.common.AuditableEntity;
 import kr.inventory.domain.stock.entity.enums.StockTakeStatus;
+import kr.inventory.domain.stock.exception.StockErrorCode;
+import kr.inventory.domain.stock.exception.StockException;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -50,7 +52,7 @@ public class StockTakeSheet extends AuditableEntity {
 
     public void updateTitle(String title) {
         if (title == null || title.isBlank()) {
-            throw new IllegalArgumentException("전표 제목은 비어 있을 수 없습니다.");
+            throw new StockException(StockErrorCode.INVALID_SLIP_TITLE);
         }
         this.title = title;
     }

@@ -7,15 +7,17 @@ import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.stock.controller.dto.request.StockTakeConfirmRequest;
 import kr.inventory.domain.stock.controller.dto.request.StockTakeDraftSaveRequest;
 import kr.inventory.domain.stock.controller.dto.request.StockTakeSheetCreateRequest;
+import kr.inventory.domain.stock.controller.dto.request.StockTakeSheetSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockTakeDetailResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockTakeSheetResponse;
 import kr.inventory.domain.stock.service.StockTakeService;
+import kr.inventory.global.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @Tag(name = "재고 실사(StockTake)", description = "매장 재고 실사 관리 API")
@@ -25,16 +27,26 @@ import java.util.UUID;
 public class StockTakeController {
 	private final StockTakeService stockTakeService;
 
-	@Operation(
-		summary = "재고 실사 시트 목록 조회",
-		description = "특정 매장의 모든 재고 실사 시트 목록을 조회합니다."
-	)
-	@GetMapping
-	public ResponseEntity<List<StockTakeSheetResponse>> getSheets(
-		@PathVariable UUID storePublicId,
-		@AuthenticationPrincipal CustomUserDetails principal) {
-		return ResponseEntity.ok(stockTakeService.getStockTakeSheets(principal.getUserId(), storePublicId));
-	}
+    @Operation(
+            summary = "재고 실사 시트 목록 조회",
+            description = "특정 매장의 재고 실사 시트 목록을 페이징 및 검색 조건으로 조회합니다."
+    )
+    @GetMapping
+    public ResponseEntity<PageResponse<StockTakeSheetResponse>> getSheets(
+            @PathVariable UUID storePublicId,
+            StockTakeSheetSearchRequest request,
+            Pageable pageable,
+            @AuthenticationPrincipal CustomUserDetails principal
+    ) {
+        return ResponseEntity.ok(
+                stockTakeService.getStockTakeSheets(
+                        principal.getUserId(),
+                        storePublicId,
+                        request,
+                        pageable
+                )
+        );
+    }
 
     @Operation(
             summary = "재고 실사 시트 상세 조회",
