@@ -116,7 +116,7 @@ public class PurchaseOrderPdfService {
     }
 
     /**
-     * 헤더 정보 렌더링 (주문번호, 매장명, 거래처)
+     * 헤더 정보 렌더링 (주문번호, 매장명, 거래처, 상태)
      */
     private float renderHeader(
             PDPageContentStream contentStream,
@@ -145,6 +145,13 @@ public class PurchaseOrderPdfService {
             cursorY = writeLine(contentStream, regularFont, vendorName, fontSize, x, cursorY);
         }
 
+        // 상태
+        String statusLabel = purchaseOrder.getStatus().name().equals("ORDERED")
+                ? PurchaseOrderConstant.PDF_STATUS_ORDERED
+                : PurchaseOrderConstant.PDF_STATUS_CANCELED;
+        String status = PurchaseOrderConstant.PDF_STATUS_LABEL + statusLabel;
+        cursorY = writeLine(contentStream, regularFont, status, fontSize, x, cursorY);
+
         return cursorY - PurchaseOrderConstant.PDF_SECTION_SPACING;
     }
 
@@ -167,11 +174,12 @@ public class PurchaseOrderPdfService {
         // 컬럼 너비 계산
         float col1Width = tableWidth * PurchaseOrderConstant.PDF_TABLE_COL_ITEM_NAME_RATIO;
         float col2Width = tableWidth * PurchaseOrderConstant.PDF_TABLE_COL_QUANTITY_RATIO;
-        float col3Width = tableWidth * PurchaseOrderConstant.PDF_TABLE_COL_UNIT_PRICE_RATIO;
-        float col4Width = tableWidth * PurchaseOrderConstant.PDF_TABLE_COL_LINE_AMOUNT_RATIO;
+        float col3Width = tableWidth * PurchaseOrderConstant.PDF_TABLE_COL_UNIT_RATIO;
+        float col4Width = tableWidth * PurchaseOrderConstant.PDF_TABLE_COL_UNIT_PRICE_RATIO;
+        float col5Width = tableWidth * PurchaseOrderConstant.PDF_TABLE_COL_LINE_AMOUNT_RATIO;
 
         // 테이블 헤더
-        cursorY = drawTableHeader(contentStream, boldFont, x, cursorY, col1Width, col2Width, col3Width, col4Width, tableWidth);
+        cursorY = drawTableHeader(contentStream, boldFont, x, cursorY, col1Width, col2Width, col3Width, col4Width, col5Width, tableWidth);
 
         // 테이블 바디
         for (PurchaseOrderItem item : items) {
@@ -184,9 +192,11 @@ public class PurchaseOrderPdfService {
                     col2Width,
                     col3Width,
                     col4Width,
+                    col5Width,
                     tableWidth,
                     item.getItemName(),
                     String.valueOf(item.getQuantity()),
+                    item.getUnit(),
                     formatCurrency(item.getUnitPrice()),
                     formatCurrency(item.getLineAmount())
             );
@@ -210,6 +220,7 @@ public class PurchaseOrderPdfService {
             float col2Width,
             float col3Width,
             float col4Width,
+            float col5Width,
             float tableWidth
     ) throws IOException {
         int fontSize = PurchaseOrderConstant.PDF_TABLE_HEADER_FONT_SIZE;
@@ -224,7 +235,7 @@ public class PurchaseOrderPdfService {
         contentStream.beginText();
         contentStream.setFont(boldFont, fontSize);
 
-        // 품목명
+        // 품목명 (왼쪽 정렬)
         contentStream.newLineAtOffset(x + PurchaseOrderConstant.PDF_TABLE_CELL_PADDING, textY);
         contentStream.showText(PurchaseOrderConstant.PDF_TABLE_HEADER_ITEM_NAME);
 
@@ -234,12 +245,18 @@ public class PurchaseOrderPdfService {
         contentStream.newLineAtOffset(qtyX - (x + PurchaseOrderConstant.PDF_TABLE_CELL_PADDING), 0);
         contentStream.showText(PurchaseOrderConstant.PDF_TABLE_HEADER_QUANTITY);
 
+        // 단위 (가운데 정렬)
+        float unitWidth = boldFont.getStringWidth(PurchaseOrderConstant.PDF_TABLE_HEADER_UNIT) / 1000 * fontSize;
+        float unitX = x + col1Width + col2Width + (col3Width / 2) - (unitWidth / 2);
+        contentStream.newLineAtOffset(unitX - qtyX, 0);
+        contentStream.showText(PurchaseOrderConstant.PDF_TABLE_HEADER_UNIT);
+
         // 단가 (오른쪽 정렬)
         String unitPriceHeader = PurchaseOrderConstant.PDF_TABLE_HEADER_UNIT_PRICE;
         float unitPriceWidth = boldFont.getStringWidth(unitPriceHeader) / 1000 * fontSize;
-        float unitPriceX = x + col1Width + col2Width + col3Width - unitPriceWidth -
+        float unitPriceX = x + col1Width + col2Width + col3Width + col4Width - unitPriceWidth -
                 PurchaseOrderConstant.PDF_TABLE_CELL_PADDING;
-        contentStream.newLineAtOffset(unitPriceX - qtyX, 0);
+        contentStream.newLineAtOffset(unitPriceX - unitX, 0);
         contentStream.showText(unitPriceHeader);
 
         // 금액 (오른쪽 정렬)
@@ -257,11 +274,12 @@ public class PurchaseOrderPdfService {
         drawLine(contentStream, x, newY, x + tableWidth, newY);
 
         // 세로 구분선 (왼쪽부터 오른쪽으로)
-        drawLine(contentStream, x, y, x, newY);  // ← 왼쪽 선 추가!
+        drawLine(contentStream, x, y, x, newY);
         drawLine(contentStream, x + col1Width, y, x + col1Width, newY);
         drawLine(contentStream, x + col1Width + col2Width, y, x + col1Width + col2Width, newY);
         drawLine(contentStream, x + col1Width + col2Width + col3Width, y, x + col1Width + col2Width + col3Width, newY);
-        drawLine(contentStream, x + tableWidth, y, x + tableWidth, newY);  // ← 오른쪽 선 추가!
+        drawLine(contentStream, x + col1Width + col2Width + col3Width + col4Width, y, x + col1Width + col2Width + col3Width + col4Width, newY);
+        drawLine(contentStream, x + tableWidth, y, x + tableWidth, newY);
 
         return newY;
     }
@@ -278,9 +296,11 @@ public class PurchaseOrderPdfService {
             float col2Width,
             float col3Width,
             float col4Width,
+            float col5Width,
             float tableWidth,
             String itemName,
             String quantity,
+            String unit,
             String unitPrice,
             String lineAmount
     ) throws IOException {
@@ -302,11 +322,17 @@ public class PurchaseOrderPdfService {
         contentStream.newLineAtOffset(qtyX - (x + PurchaseOrderConstant.PDF_TABLE_CELL_PADDING), 0);
         contentStream.showText(quantity);
 
+        // 단위 (가운데 정렬)
+        float unitWidth = regularFont.getStringWidth(unit) / 1000 * fontSize;
+        float unitX = x + col1Width + col2Width + (col3Width / 2) - (unitWidth / 2);
+        contentStream.newLineAtOffset(unitX - qtyX, 0);
+        contentStream.showText(unit);
+
         // 단가 (오른쪽 정렬)
         float unitPriceWidth = regularFont.getStringWidth(unitPrice) / 1000 * fontSize;
-        float unitPriceX = x + col1Width + col2Width + col3Width - unitPriceWidth -
+        float unitPriceX = x + col1Width + col2Width + col3Width + col4Width - unitPriceWidth -
                 PurchaseOrderConstant.PDF_TABLE_CELL_PADDING;
-        contentStream.newLineAtOffset(unitPriceX - qtyX, 0);
+        contentStream.newLineAtOffset(unitPriceX - unitX, 0);
         contentStream.showText(unitPrice);
 
         // 금액 (오른쪽 정렬)
@@ -323,11 +349,12 @@ public class PurchaseOrderPdfService {
         drawLine(contentStream, x, newY, x + tableWidth, newY);
 
         // 세로 구분선 (왼쪽부터 오른쪽으로)
-        drawLine(contentStream, x, y, x, newY);  // ← 왼쪽 선 추가!
+        drawLine(contentStream, x, y, x, newY);
         drawLine(contentStream, x + col1Width, y, x + col1Width, newY);
         drawLine(contentStream, x + col1Width + col2Width, y, x + col1Width + col2Width, newY);
         drawLine(contentStream, x + col1Width + col2Width + col3Width, y, x + col1Width + col2Width + col3Width, newY);
-        drawLine(contentStream, x + tableWidth, y, x + tableWidth, newY);  // ← 오른쪽 선 추가!
+        drawLine(contentStream, x + col1Width + col2Width + col3Width + col4Width, y, x + col1Width + col2Width + col3Width + col4Width, newY);
+        drawLine(contentStream, x + tableWidth, y, x + tableWidth, newY);
 
         return newY;
     }

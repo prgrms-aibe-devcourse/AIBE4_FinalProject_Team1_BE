@@ -69,7 +69,7 @@ class PurchaseOrderControllerTest {
     @DisplayName("발주서 생성 성공")
     void givenValidRequest_whenCreate_thenReturnsOk() throws Exception {
         // given
-        PurchaseOrderItemRequest item = new PurchaseOrderItemRequest("양파", 10, new BigDecimal("1000"));
+        PurchaseOrderItemRequest item = new PurchaseOrderItemRequest("양파", 10, "EA",new BigDecimal("1000"));
         PurchaseOrderCreateRequest request = new PurchaseOrderCreateRequest(vendorPublicId, List.of(item));
 
         PurchaseOrderDetailResponse response = new PurchaseOrderDetailResponse(
@@ -139,7 +139,7 @@ class PurchaseOrderControllerTest {
                 new BigDecimal("10000"),
                 null,
                 null,
-                List.of(new PurchaseOrderItemResponse("양파", 10, new BigDecimal("1000"), new BigDecimal("10000")))
+                List.of(new PurchaseOrderItemResponse("양파", 10, "EA", new BigDecimal("1000"), new BigDecimal("10000")))
         );
 
         given(purchaseOrderService.getPurchaseOrder(eq(1L), eq(storePublicId), eq(purchaseOrderPublicId)))
@@ -157,7 +157,7 @@ class PurchaseOrderControllerTest {
     @DisplayName("발주서 수정 성공")
     void givenValidRequest_whenUpdate_thenReturnsOk() throws Exception {
         // given
-        PurchaseOrderItemRequest item = new PurchaseOrderItemRequest("당근", 15, new BigDecimal("1200"));
+        PurchaseOrderItemRequest item = new PurchaseOrderItemRequest("당근", 15, "G",new BigDecimal("1200"));
         PurchaseOrderUpdateRequest request = new PurchaseOrderUpdateRequest(vendorPublicId, List.of(item));
 
         PurchaseOrderDetailResponse response = new PurchaseOrderDetailResponse(

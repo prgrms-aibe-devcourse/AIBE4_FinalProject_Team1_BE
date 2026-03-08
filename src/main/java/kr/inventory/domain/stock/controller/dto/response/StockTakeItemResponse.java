@@ -8,6 +8,7 @@ import java.util.UUID;
 public record StockTakeItemResponse(
         UUID ingredientPublicId,
         String ingredientName,
+        String unit,
         BigDecimal stockTakeQty,
         BigDecimal theoreticalQty,
         BigDecimal varianceQty
@@ -15,7 +16,8 @@ public record StockTakeItemResponse(
     public static StockTakeItemResponse from(StockTake item) {
         return new StockTakeItemResponse(
                 item.getIngredient().getIngredientPublicId(),
-                item.getIngredient().getName(),
+                item.getIngredientName(),
+                item.getUnit().name(),
                 item.getStockTakeQty(),
                 item.getTheoreticalQty(),
                 item.getVarianceQty()
