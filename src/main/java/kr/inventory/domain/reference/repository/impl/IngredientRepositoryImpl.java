@@ -10,6 +10,9 @@ import kr.inventory.domain.reference.entity.QIngredient;
 import kr.inventory.domain.reference.entity.enums.IngredientStatus;
 import kr.inventory.domain.reference.repository.IngredientRepositoryCustom;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -103,4 +106,38 @@ public class IngredientRepositoryImpl implements IngredientRepositoryCustom {
 
 		return Optional.ofNullable(result);
 	}
+
+    @Override
+    public Page<Ingredient> searchByStoreIdAndName(Long storeId, String name, IngredientStatus excludedStatus, Pageable pageable) {
+        List<Ingredient> content = queryFactory
+                .selectFrom(ingredient)
+                .where(
+                        ingredient.store.storeId.eq(storeId),
+                        ingredient.status.ne(excludedStatus),
+                        nameContains(name)
+                )
+                .orderBy(ingredient.name.asc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+
+        Long total = queryFactory
+                .select(ingredient.count())
+                .from(ingredient)
+                .where(
+                        ingredient.store.storeId.eq(storeId),
+                        ingredient.status.ne(excludedStatus),
+                        nameContains(name)
+                )
+                .fetchOne();
+
+        return new PageImpl<>(content, pageable, total == null ? 0L : total);
+    }
+
+    private BooleanExpression nameContains(String name) {
+        if (name == null || name.isBlank()) {
+            return null;
+        }
+        return ingredient.name.containsIgnoreCase(name.trim());
+    }
 }
