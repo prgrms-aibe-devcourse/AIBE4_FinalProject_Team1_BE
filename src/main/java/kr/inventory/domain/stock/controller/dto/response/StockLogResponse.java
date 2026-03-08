@@ -21,7 +21,7 @@ public record StockLogResponse(
 	public static StockLogResponse from(StockLog log) {
 		return new StockLogResponse(
 			log.getCreatedAt(),
-			log.getStockBatch().getInboundItem().getIngredient().getName(),
+			log.getStockBatch().getInboundItem().getProductDisplayName(),
 			log.getStockBatch().getBatchPublicId(),
 			log.getTransactionType(),
 			log.getChangeQuantity(),

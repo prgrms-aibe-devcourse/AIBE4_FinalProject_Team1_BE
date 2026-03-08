@@ -2,12 +2,13 @@ package kr.inventory.domain.stock.controller.dto.response;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 
 import kr.inventory.domain.reference.entity.enums.IngredientUnit;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 
 public record StockSummaryResponse(
-	Long ingredientId,
+	UUID ingredientId,
 	String ingredientName,
 	BigDecimal totalRemainingQuantity, // 해당 재료의 모든 배치 합계
 	IngredientUnit unit,
@@ -16,7 +17,7 @@ public record StockSummaryResponse(
 ) {
 	// QueryDSL Projections.constructor에서 사용할 생성자 역할을 수행합니다.
 	public StockSummaryResponse(
-		Long ingredientId,
+		UUID ingredientId,
 		String ingredientName,
 		BigDecimal totalRemainingQuantity,
 		IngredientUnit unit,

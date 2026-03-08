@@ -4,7 +4,7 @@ import java.time.OffsetDateTime;
 
 import kr.inventory.domain.stock.entity.enums.WasteReason;
 
-public record WasteSearchCondition(
+public record WasteSearchRequest(
 	OffsetDateTime startAt,
 	OffsetDateTime endAt,
 	WasteReason reason,

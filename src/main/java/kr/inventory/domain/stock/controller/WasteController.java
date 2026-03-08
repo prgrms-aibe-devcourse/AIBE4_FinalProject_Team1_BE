@@ -7,7 +7,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,10 +19,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.stock.controller.dto.request.WasteRequest;
-import kr.inventory.domain.stock.controller.dto.request.WasteSearchCondition;
-import kr.inventory.domain.stock.controller.dto.response.WastePageResponse;
+import kr.inventory.domain.stock.controller.dto.request.WasteSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.WasteResponse;
 import kr.inventory.domain.stock.service.WasteService;
+import kr.inventory.global.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
 
 @Tag(name = "폐기(disposal)", description = "폐기 관련 기능을 담당하는 API입니다.")
@@ -53,14 +52,14 @@ public class WasteController {
 		description = "사용자가 등록한 해당 매장의 상품 폐기목록을 조회합니다."
 	)
 	@GetMapping
-	public ResponseEntity<WastePageResponse<WasteResponse>> getWasteRecords(
+	public ResponseEntity<PageResponse<WasteResponse>> getWasteRecords(
 		@AuthenticationPrincipal CustomUserDetails userDetails,
 		@PathVariable UUID storePublicId,
-		WasteSearchCondition condition,
+		WasteSearchRequest condition,
 		Pageable pageable
 	) {
 		Page<WasteResponse> responses = wasteService.getWasteRecords(userDetails.getUserId(), storePublicId, condition,
 			pageable);
-		return ResponseEntity.ok(WastePageResponse.from(responses));
+		return ResponseEntity.ok(PageResponse.from(responses));
 	}
 }

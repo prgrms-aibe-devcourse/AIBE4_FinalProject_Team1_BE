@@ -4,14 +4,11 @@ import static kr.inventory.domain.reference.entity.QIngredient.*;
 import static kr.inventory.domain.stock.entity.QStockLog.*;
 import static kr.inventory.domain.user.entity.QUser.*;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.util.StringUtils;
 
@@ -19,7 +16,7 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
-import kr.inventory.domain.stock.controller.dto.request.StockLogSearchCondition;
+import kr.inventory.domain.stock.controller.dto.request.StockLogSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockLogResponse;
 import kr.inventory.domain.stock.entity.StockLog;
 import kr.inventory.domain.stock.entity.enums.TransactionType;
@@ -33,7 +30,7 @@ public class StockLogRepositoryImpl implements StockLogRepositoryCustom {
 	@Override
 	public Page<StockLogResponse> searchStockLog(
 		Long storeId,
-		StockLogSearchCondition condition,
+		StockLogSearchRequest condition,
 		Pageable pageable
 	) {
 		BooleanExpression[] predicates = {
