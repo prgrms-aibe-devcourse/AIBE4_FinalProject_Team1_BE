@@ -29,7 +29,8 @@ public enum StockErrorCode implements ErrorModel {
     STOCK_TAKE_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "S018", "실사 시트에 해당 재료 항목이 존재하지 않습니다."),
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "S019", "잘못된 요청입니다."),
     DUPLICATED_STOCK_TAKE_ITEM(HttpStatus.CONFLICT, "S020", "중복된 실사 항목이 존재합니다."),
-    INVALID_STOCK_TAKE_CONFIRM_REQUEST(HttpStatus.BAD_REQUEST, "S021", "유효하지 않은 실사 요청입니다.");
+    INVALID_STOCK_TAKE_CONFIRM_REQUEST(HttpStatus.BAD_REQUEST, "S021", "유효하지 않은 실사 요청입니다."),
+    INVALID_SLIP_TITLE(HttpStatus.BAD_REQUEST, "S022", "전표 제목은 비어 있을 수 없습니다.");
 
 	private final HttpStatus status;
 	private final String code;
