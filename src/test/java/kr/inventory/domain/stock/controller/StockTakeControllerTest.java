@@ -2,8 +2,8 @@ package kr.inventory.domain.stock.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inventory.domain.auth.security.CustomUserDetails;
-import kr.inventory.domain.stock.controller.dto.request.StockTakeCreateRequest;
-import kr.inventory.domain.stock.controller.dto.request.StockTakeItemRequest;
+import kr.inventory.domain.stock.controller.dto.request.StockTakeItemQuantityRequest;
+import kr.inventory.domain.stock.controller.dto.request.StockTakeSheetCreateRequest;
 import kr.inventory.domain.stock.service.StockTakeService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,24 +45,32 @@ class StockTakeControllerTest {
 
     @Test
     @DisplayName("새로운 실사 시트를 성공적으로 생성한다.")
-    void createSheet_Success() throws Exception {
+    void createStockTakeSheet_Success() throws Exception {
         // given
         UUID ingredientPublicId = UUID.randomUUID();
-        StockTakeItemRequest item = new StockTakeItemRequest(ingredientPublicId, new BigDecimal("50.0"));
-        StockTakeCreateRequest request = new StockTakeCreateRequest("2026-02-14 정기 실사", List.of(item));
+        UUID createdSheetPublicId = UUID.randomUUID();
+
+        StockTakeItemQuantityRequest item =
+                new StockTakeItemQuantityRequest(ingredientPublicId, new BigDecimal("50.0"));
+        StockTakeSheetCreateRequest request =
+                new StockTakeSheetCreateRequest("2026-02-14 정기 실사", List.of(item));
 
         CustomUserDetails userDetails = createMockUser();
-        given(stockTakeService.createStockTakeSheet(eq(userId), eq(storePublicId), any(StockTakeCreateRequest.class)))
-                .willReturn(100L);
+
+        given(stockTakeService.createStockTakeSheet(
+                eq(userId),
+                eq(storePublicId),
+                any(StockTakeSheetCreateRequest.class)
+        )).willReturn(createdSheetPublicId);
 
         // when & then
         mockMvc.perform(post("/api/stocktakes/{storePublicId}", storePublicId)
                         .with(user(userDetails))
                         .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(content().string("100"));
+                .andExpect(content().json(objectMapper.writeValueAsString(createdSheetPublicId)));
     }
 
     private CustomUserDetails createMockUser() {
