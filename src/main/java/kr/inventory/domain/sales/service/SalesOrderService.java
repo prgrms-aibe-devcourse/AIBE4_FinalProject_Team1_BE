@@ -23,7 +23,10 @@ import kr.inventory.domain.sales.repository.SalesOrderRepository;
 import kr.inventory.domain.stock.service.StockManagerFacade;
 import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.service.StoreAccessValidator;
+import kr.inventory.global.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -140,10 +143,34 @@ public class SalesOrderService {
         return SalesOrderResponse.from(order, items);
     }
 
-    public List<SalesOrderResponse> getStoreOrders(Long userId, UUID storePublicId) {
+    public PageResponse<SalesOrderResponse> getStoreOrders(Long userId, UUID storePublicId, Pageable pageable) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
-        return salesOrderRepository.findStoreOrders(storeId);
+        Page<SalesOrder> page = salesOrderRepository.findStoreOrders(storeId, pageable);
+
+        // N+1 방지: 모든 주문 ID를 한번에 조회
+        List<Long> orderIds = page.getContent().stream()
+                .map(SalesOrder::getSalesOrderId)
+                .toList();
+
+        List<SalesOrderItem> allItems = orderIds.isEmpty()
+                ? Collections.emptyList()
+                : salesOrderItemRepository.findBySalesOrderSalesOrderIdIn(orderIds);
+
+        // 주문 ID별로 항목 그룹핑
+        Map<Long, List<SalesOrderItem>> itemsByOrderId = allItems.stream()
+                .collect(Collectors.groupingBy(item -> item.getSalesOrder().getSalesOrderId()));
+
+        // PageResponse로 변환
+        Page<SalesOrderResponse> responsePage = page.map(order -> {
+            List<SalesOrderItem> items = itemsByOrderId.getOrDefault(
+                    order.getSalesOrderId(),
+                    Collections.emptyList()
+            );
+            return SalesOrderResponse.from(order, items);
+        });
+
+        return PageResponse.from(responsePage);
     }
 
     /**

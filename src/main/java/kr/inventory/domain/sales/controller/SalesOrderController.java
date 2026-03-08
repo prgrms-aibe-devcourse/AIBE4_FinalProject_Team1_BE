@@ -7,13 +7,15 @@ import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.sales.controller.dto.request.SalesOrderCreateRequest;
 import kr.inventory.domain.sales.controller.dto.response.SalesOrderResponse;
 import kr.inventory.domain.sales.service.SalesOrderService;
+import kr.inventory.global.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 import kr.inventory.domain.sales.constant.SalesOrderConstants;
@@ -46,13 +48,15 @@ public class SalesOrderController {
 
     @Operation(summary = "매장 주문 목록 조회 (관리자)", description = "매장의 모든 주문을 조회합니다.")
     @GetMapping("/{storePublicId}")
-    public ResponseEntity<List<SalesOrderResponse>> getStoreOrders(
+    public ResponseEntity<PageResponse<SalesOrderResponse>> getStoreOrders(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable UUID storePublicId
+            @PathVariable UUID storePublicId,
+            @PageableDefault(size = 20) Pageable pageable
     ) {
-        List<SalesOrderResponse> response = salesOrderService.getStoreOrders(
+        PageResponse<SalesOrderResponse> response = salesOrderService.getStoreOrders(
                 principal.getUserId(),
-                storePublicId
+                storePublicId,
+                pageable
         );
 
         return ResponseEntity.ok(response);
