@@ -5,11 +5,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.vendor.controller.dto.request.VendorCreateRequest;
+import kr.inventory.domain.vendor.controller.dto.request.VendorSearchRequest;
 import kr.inventory.domain.vendor.controller.dto.response.VendorResponse;
 import kr.inventory.domain.vendor.controller.dto.request.VendorUpdateRequest;
 import kr.inventory.domain.vendor.entity.enums.VendorStatus;
 import kr.inventory.domain.vendor.service.VendorService;
+import kr.inventory.global.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,6 +21,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+
+import static org.springframework.data.domain.Sort.Direction.DESC;
 
 @Tag(name = "거래처(Vendor)", description = "거래처 관리 API")
 @RestController
@@ -39,12 +45,19 @@ public class VendorController {
 
     @Operation(summary = "거래처 목록 조회", description = "매장의 거래처 목록을 조회합니다")
     @GetMapping
-    public ResponseEntity<List<VendorResponse>> getVendorsByStore(
+    public ResponseEntity<PageResponse<VendorResponse>> getVendorsByStore(
             @PathVariable UUID storePublicId,
             @AuthenticationPrincipal CustomUserDetails principal,
-            @RequestParam(required = false, defaultValue = "ACTIVE") VendorStatus status
+            @ModelAttribute VendorSearchRequest searchRequest,
+            @PageableDefault(size = 20, sort = "createdAt", direction = DESC) Pageable pageable
     ) {
-        List<VendorResponse> response = vendorService.getVendorsByStore(principal.getUserId(), storePublicId, status);
+        PageResponse<VendorResponse> response = vendorService.getVendorsByStore(
+                principal.getUserId(),
+                storePublicId,
+                searchRequest,
+                pageable
+        );
+
         return ResponseEntity.ok(response);
     }
 

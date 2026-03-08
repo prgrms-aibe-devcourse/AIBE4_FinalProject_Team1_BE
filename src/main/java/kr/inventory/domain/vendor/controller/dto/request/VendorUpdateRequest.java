@@ -1,6 +1,8 @@
 package kr.inventory.domain.vendor.controller.dto.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
+import kr.inventory.domain.vendor.entity.enums.VendorStatus;
 
 public record VendorUpdateRequest(
         @Size(max = 100, message = "담당자명은 100자 이하여야 합니다")
@@ -15,6 +17,9 @@ public record VendorUpdateRequest(
 
         @Min(value = 1, message = "리드타임은 최소 1일입니다")
         @Max(value = 365, message = "리드타임은 최대 365일입니다")
-        Integer leadTimeDays
+        Integer leadTimeDays,
+
+        @Schema(description = "거래처 상태 (ACTIVE | INACTIVE)", example = "ACTIVE")
+        VendorStatus status
 ) {
 }

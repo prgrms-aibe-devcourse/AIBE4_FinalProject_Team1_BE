@@ -11,10 +11,13 @@ import kr.inventory.domain.sales.entity.enums.SalesOrderType;
 import kr.inventory.domain.sales.exception.SalesOrderErrorCode;
 import kr.inventory.domain.sales.exception.SalesOrderException;
 import kr.inventory.domain.sales.service.SalesOrderService;
+import kr.inventory.global.dto.PageResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -214,8 +217,12 @@ class SalesOrderControllerTest {
                 Collections.emptyList()
         );
 
-        given(salesOrderService.getStoreOrders(eq(userId), eq(storePublicId)))
-                .willReturn(List.of(response));
+        PageResponse<SalesOrderResponse> pageResponse = PageResponse.from(
+                new PageImpl<>(List.of(response), PageRequest.of(0, 20), 1)
+        );
+
+        given(salesOrderService.getStoreOrders(eq(userId), eq(storePublicId), any()))
+                .willReturn(pageResponse);
 
         // when & then
         mockMvc.perform(get("/api/orders/{storePublicId}", storePublicId)
@@ -223,8 +230,10 @@ class SalesOrderControllerTest {
                         .with(user(userDetails)))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].status").value("COMPLETED"))
-                .andExpect(jsonPath("$[0].totalAmount").value(23000));
+                .andExpect(jsonPath("$.content[0].status").value("COMPLETED"))
+                .andExpect(jsonPath("$.content[0].totalAmount").value(23000))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1));
     }
 
     @Test

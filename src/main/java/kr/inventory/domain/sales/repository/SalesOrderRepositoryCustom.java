@@ -17,7 +17,7 @@ public interface SalesOrderRepositoryCustom {
 
     Optional<SalesOrder> findByOrderPublicIdWithItems(UUID orderPublicId, Long storeId);
 
-    List<SalesOrderResponse> findStoreOrders(Long storeId);
+    Page<SalesOrder> findStoreOrders(Long storeId, Pageable pageable);
 
     Page<SalesOrder> findSalesLedgerOrders(
             Long storeId,
