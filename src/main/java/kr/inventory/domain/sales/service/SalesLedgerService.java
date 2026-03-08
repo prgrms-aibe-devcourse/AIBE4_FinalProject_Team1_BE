@@ -11,6 +11,7 @@ import kr.inventory.domain.sales.exception.SalesOrderException;
 import kr.inventory.domain.sales.repository.SalesOrderItemRepository;
 import kr.inventory.domain.sales.repository.SalesOrderRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
+import kr.inventory.global.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,7 +35,7 @@ public class SalesLedgerService {
     private final SalesOrderRepository salesOrderRepository;
     private final SalesOrderItemRepository salesOrderItemRepository;
 
-    public Page<SalesLedgerOrderSummaryResponse> getSalesLedgerOrders(
+    public PageResponse<SalesLedgerOrderSummaryResponse> getSalesLedgerOrders(
             Long userId,
             UUID storePublicId,
             SalesLedgerSearchRequest request,
@@ -56,12 +57,14 @@ public class SalesLedgerService {
 
         Map<Long, Long> itemCountByOrderId = getItemCountMap(orderPage.getContent());
 
-        return orderPage.map(order -> {
+        Page<SalesLedgerOrderSummaryResponse> responsePage = orderPage.map(order -> {
             Long itemCount = itemCountByOrderId.getOrDefault(order.getSalesOrderId(), 0L);
             BigDecimal refundAmount = calculateRefundAmount(order);
             BigDecimal netAmount = calculateNetAmount(order.getTotalAmount(), refundAmount);
             return SalesLedgerOrderSummaryResponse.from(order, Math.toIntExact(itemCount), refundAmount, netAmount);
         });
+
+        return PageResponse.from(responsePage);
     }
 
     public SalesLedgerOrderDetailResponse getSalesLedgerOrder(

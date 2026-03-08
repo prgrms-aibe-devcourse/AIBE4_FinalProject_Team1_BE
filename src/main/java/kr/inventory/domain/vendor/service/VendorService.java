@@ -6,6 +6,7 @@ import kr.inventory.domain.store.exception.StoreException;
 import kr.inventory.domain.store.repository.StoreRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import kr.inventory.domain.vendor.controller.dto.request.VendorCreateRequest;
+import kr.inventory.domain.vendor.controller.dto.request.VendorSearchRequest;
 import kr.inventory.domain.vendor.controller.dto.response.VendorResponse;
 import kr.inventory.domain.vendor.controller.dto.request.VendorUpdateRequest;
 import kr.inventory.domain.vendor.entity.Vendor;
@@ -13,11 +14,13 @@ import kr.inventory.domain.vendor.entity.enums.VendorStatus;
 import kr.inventory.domain.vendor.exception.VendorErrorCode;
 import kr.inventory.domain.vendor.exception.VendorException;
 import kr.inventory.domain.vendor.repository.VendorRepository;
+import kr.inventory.global.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -57,12 +60,22 @@ public class VendorService {
         return VendorResponse.from(savedVendor);
     }
 
-    public List<VendorResponse> getVendorsByStore(Long userId, UUID storePublicId, VendorStatus status) {
+    public PageResponse<VendorResponse> getVendorsByStore(
+            Long userId,
+            UUID storePublicId,
+            VendorSearchRequest searchRequest,
+            Pageable pageable
+    ) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        List<Vendor> vendors = vendorRepository.findByStoreIdWithFilters(storeId, status);
-        return vendors.stream()
-                .map(VendorResponse::from)
-                .toList();
+        Page<Vendor> vendorPage = vendorRepository.findByStoreIdWithFilters(
+                storeId,
+                searchRequest.status(),
+                searchRequest.search(),
+                pageable
+        );
+
+        Page<VendorResponse> responsePage = vendorPage.map(VendorResponse::from);
+        return PageResponse.from(responsePage);
     }
 
     public VendorResponse getVendor(UUID storePublicId, UUID vendorPublicId, Long userId) {
@@ -89,6 +102,15 @@ public class VendorService {
         // 리드타임 수정
         if (request.leadTimeDays() != null) {
             vendor.updateLeadTime(request.leadTimeDays());
+        }
+
+        // 상태 수정
+        if (request.status() != null) {
+            if (request.status() == VendorStatus.ACTIVE) {
+                vendor.activate();
+            } else if (request.status() == VendorStatus.INACTIVE) {
+                vendor.deactivate();
+            }
         }
 
         return VendorResponse.from(vendor);
