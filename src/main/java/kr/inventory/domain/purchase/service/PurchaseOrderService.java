@@ -151,10 +151,22 @@ public class PurchaseOrderService {
     }
 
     private PurchaseOrder validateAndGetPurchaseOrder(Long userId, UUID storePublicId, UUID purchaseOrderPublicId) {
+        // 매장 접근 권한 검증 (활성 멤버만 허용)
+        Long storeId = storeAccessValidator.validateAndGetStoreIdForActiveMembers(userId, storePublicId);
+
+        // 발주서 접근 권한 검증
         Long purchaseOrderId = purchaseOrderValidator.validateAccessAndGetPurchaseOrderId(userId,
                 purchaseOrderPublicId);
-        return purchaseOrderRepository.findById(purchaseOrderId)
+
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(purchaseOrderId)
                 .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_NOT_FOUND));
+
+        // 발주서가 해당 매장에 속하는지 검증
+        if (!purchaseOrder.getStore().getStoreId().equals(storeId)) {
+            throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_NOT_FOUND);
+        }
+
+        return purchaseOrder;
     }
 
     private Vendor resolveVendorOrThrow(Long storeId, UUID vendorPublicId) {

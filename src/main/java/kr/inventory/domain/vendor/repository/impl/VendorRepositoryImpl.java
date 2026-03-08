@@ -30,14 +30,17 @@ public class VendorRepositoryImpl implements VendorRepositoryCustom {
 
 	@Override
 	public Page<Vendor> findByStoreIdWithFilters(Long storeId, VendorStatus status, String search, Pageable pageable) {
+		// 공통 where 조건
+		BooleanExpression[] whereConditions = {
+			vendor.store.storeId.eq(storeId),
+			statusEq(status),
+			searchContains(search)
+		};
+
 		// 데이터 조회
 		JPAQuery<Vendor> query = queryFactory
 			.selectFrom(vendor)
-			.where(
-				vendor.store.storeId.eq(storeId),
-				statusEq(status),
-				searchContains(search)
-			);
+			.where(whereConditions);
 
 		// 정렬 적용
 		for (OrderSpecifier<?> order : getOrderSpecifiers(pageable.getSort())) {
@@ -54,11 +57,7 @@ public class VendorRepositoryImpl implements VendorRepositoryCustom {
 		Long total = queryFactory
 			.select(vendor.count())
 			.from(vendor)
-			.where(
-				vendor.store.storeId.eq(storeId),
-				statusEq(status),
-				searchContains(search)
-			)
+			.where(whereConditions)
 			.fetchOne();
 
 		return new PageImpl<>(content, pageable, total != null ? total : 0L);

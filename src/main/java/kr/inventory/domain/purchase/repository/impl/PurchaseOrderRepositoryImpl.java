@@ -28,13 +28,17 @@ public class PurchaseOrderRepositoryImpl implements PurchaseOrderRepositoryCusto
     @Override
     public Page<PurchaseOrder> findByStoreIdWithFilters(Long storeId, PurchaseOrderSearchRequest searchRequest,
             Pageable pageable) {
+        // 공통 where 조건
+        BooleanExpression[] whereConditions = {
+                purchaseOrder.store.storeId.eq(storeId),
+                statusEq(searchRequest.status()),
+                searchContains(searchRequest.search())
+        };
+
         JPAQuery<PurchaseOrder> query = queryFactory
                 .selectFrom(purchaseOrder)
                 .leftJoin(purchaseOrder.vendor, vendor).fetchJoin()
-                .where(
-                        purchaseOrder.store.storeId.eq(storeId),
-                        statusEq(searchRequest.status()),
-                        searchContains(searchRequest.search()));
+                .where(whereConditions);
 
         // 정렬 적용
         for (OrderSpecifier<?> order : getOrderSpecifiers(pageable.getSort())) {
@@ -49,10 +53,8 @@ public class PurchaseOrderRepositoryImpl implements PurchaseOrderRepositoryCusto
         Long total = queryFactory
                 .select(purchaseOrder.count())
                 .from(purchaseOrder)
-                .where(
-                        purchaseOrder.store.storeId.eq(storeId),
-                        statusEq(searchRequest.status()),
-                        searchContains(searchRequest.search()))
+                .leftJoin(purchaseOrder.vendor, vendor)
+                .where(whereConditions)
                 .fetchOne();
 
         return new PageImpl<>(content, pageable, total != null ? total : 0L);
