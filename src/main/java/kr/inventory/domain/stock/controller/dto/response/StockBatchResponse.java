@@ -19,7 +19,7 @@ public record StockBatchResponse(
 	public static StockBatchResponse from(IngredientStockBatch batch) {
 		return new StockBatchResponse(
 			batch.getBatchPublicId(),
-			batch.getInboundItem().getProductDisplayName(),
+			batch.getProductDisplayName(),
 			batch.getRemainingQuantity(),
 			batch.getExpirationDate(),
 			batch.getCreatedAt(),
