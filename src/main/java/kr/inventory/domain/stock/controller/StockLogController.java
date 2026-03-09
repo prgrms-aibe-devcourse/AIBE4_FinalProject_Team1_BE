@@ -15,7 +15,7 @@ import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.stock.controller.dto.request.StockLogSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockLogResponse;
 import kr.inventory.domain.stock.service.StockLogService;
-import kr.inventory.global.dto.PageResponse;
+import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
 
 @RestController

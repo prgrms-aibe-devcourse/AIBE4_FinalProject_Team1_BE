@@ -21,7 +21,7 @@ import kr.inventory.domain.user.repository.UserRepository;
 import kr.inventory.domain.reference.entity.Vendor;
 import kr.inventory.domain.reference.entity.enums.VendorStatus;
 import kr.inventory.domain.reference.repository.VendorRepository;
-import kr.inventory.global.dto.PageResponse;
+import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

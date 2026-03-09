@@ -12,7 +12,7 @@ import kr.inventory.domain.purchase.controller.dto.response.PurchaseOrderDetailR
 import kr.inventory.domain.purchase.controller.dto.response.PurchaseOrderSummaryResponse;
 import kr.inventory.domain.purchase.service.PurchaseOrderService;
 import kr.inventory.global.config.PurchaseApiDocs;
-import kr.inventory.global.dto.PageResponse;
+import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;

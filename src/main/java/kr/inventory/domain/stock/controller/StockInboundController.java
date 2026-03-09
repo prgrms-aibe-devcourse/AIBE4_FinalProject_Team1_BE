@@ -11,7 +11,7 @@ import kr.inventory.domain.stock.controller.dto.response.*;
 import kr.inventory.domain.stock.normalization.service.IngredientResolutionService;
 import kr.inventory.domain.stock.normalization.service.ProductNormalizationService;
 import kr.inventory.domain.stock.service.StockInboundService;
-import kr.inventory.global.dto.PageResponse;
+import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;

@@ -22,7 +22,7 @@ import kr.inventory.domain.stock.controller.dto.request.WasteRequest;
 import kr.inventory.domain.stock.controller.dto.request.WasteSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.WasteResponse;
 import kr.inventory.domain.stock.service.WasteService;
-import kr.inventory.global.dto.PageResponse;
+import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
 
 @Tag(name = "폐기(disposal)", description = "폐기 관련 기능을 담당하는 API입니다.")
