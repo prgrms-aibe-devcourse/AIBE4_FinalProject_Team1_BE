@@ -2,32 +2,28 @@ package kr.inventory.domain.stock.repository.impl;
 
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-
 import jakarta.persistence.LockModeType;
 import kr.inventory.domain.stock.controller.dto.request.StockSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockSummaryResponse;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
+import kr.inventory.domain.stock.entity.enums.StockBatchSourceType;
 import kr.inventory.domain.stock.entity.enums.StockBatchStatus;
 import kr.inventory.domain.stock.repository.IngredientStockBatchRepositoryCustom;
 import lombok.RequiredArgsConstructor;
-
-import java.math.BigDecimal;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import static kr.inventory.domain.stock.entity.QIngredientStockBatch.ingredientStockBatch;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.util.StringUtils;
+
+import java.math.BigDecimal;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static kr.inventory.domain.stock.entity.QIngredientStockBatch.ingredientStockBatch;
 
 @RequiredArgsConstructor
 public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchRepositoryCustom {
@@ -41,6 +37,20 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
 			return Collections.emptyList();
 		}
 
+        NumberExpression<Integer> sourcePriority = new CaseBuilder()
+                .when(
+                        ingredientStockBatch.sourceType.eq(StockBatchSourceType.INBOUND)
+                                .and(ingredientStockBatch.expirationDate.isNotNull())
+                ).then(0)
+                .when(
+                        ingredientStockBatch.sourceType.eq(StockBatchSourceType.INBOUND)
+                                .and(ingredientStockBatch.expirationDate.isNull())
+                ).then(1)
+                .when(
+                        ingredientStockBatch.sourceType.eq(StockBatchSourceType.STOCK_ADJUSTMENT)
+                ).then(2)
+                .otherwise(99);
+
 		return queryFactory
 			.selectFrom(ingredientStockBatch)
 			.join(ingredientStockBatch.ingredient).fetchJoin()
@@ -50,13 +60,14 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
 				ingredientStockBatch.status.eq(StockBatchStatus.OPEN),
 				ingredientStockBatch.remainingQuantity.gt(BigDecimal.ZERO)
 			)
-			.orderBy(
-				ingredientStockBatch.ingredient.ingredientId.asc(),
-				ingredientStockBatch.expirationDate.asc(),
-				ingredientStockBatch.createdAt.asc()
-			)
-			.setLockMode(LockModeType.PESSIMISTIC_WRITE)
-			.fetch();
+            .orderBy(
+                    ingredientStockBatch.ingredient.ingredientId.asc(),
+                    sourcePriority.asc(),
+                    ingredientStockBatch.expirationDate.asc(),
+                    ingredientStockBatch.createdAt.asc()
+            )
+            .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+            .fetch();
 	}
 
 	@Override
