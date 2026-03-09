@@ -423,7 +423,8 @@ public class StockTakeService {
         IngredientStockBatch adjustmentBatch = IngredientStockBatch.createAdjustment(
                 ingredient,
                 amount,
-                adjustmentUnitCost
+                adjustmentUnitCost,
+                ingredient.getName()
         );
 
         ingredientStockBatchRepository.save(adjustmentBatch);

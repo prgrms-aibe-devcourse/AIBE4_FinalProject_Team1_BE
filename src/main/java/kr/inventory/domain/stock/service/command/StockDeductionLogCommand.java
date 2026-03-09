@@ -14,6 +14,7 @@ public record StockDeductionLogCommand(
         BigDecimal quantity,
         BigDecimal balanceAfter,
         IngredientStockBatch batch,
+        String productDisplayName,
         ReferenceType referenceType,
         Long referenceId,
         User createdByUser
@@ -30,6 +31,7 @@ public record StockDeductionLogCommand(
                 deductionQty,
                 balanceAfter,
                 batch,
+                batch.getProductDisplayName(),
                 ReferenceType.SALE,
                 salesOrderId,
                 null
@@ -51,6 +53,7 @@ public record StockDeductionLogCommand(
                 deductionQty,
                 balanceAfter,
                 batch,
+                batch.getProductDisplayName(),
                 ReferenceType.STOCK_TAKING,
                 sheetId,
                 user
