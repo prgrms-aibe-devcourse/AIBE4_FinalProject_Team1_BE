@@ -70,7 +70,7 @@ public class StockLog extends CreatedAtEntity {
 
 		log.balanceAfter = command.balanceAfter();
 
-		log.referenceType = ReferenceType.INBOUND;
+		log.referenceType = command.referenceType();
 		log.referenceId = command.referenceId();
 		log.createdByUser = command.user();
 		return log;
@@ -84,7 +84,7 @@ public class StockLog extends CreatedAtEntity {
 		log.transactionType = TransactionType.DEDUCTION;
 		log.changeQuantity = command.quantity().negate();
 		log.balanceAfter = command.balanceAfter();
-		log.referenceType = ReferenceType.SALE;
+		log.referenceType = command.referenceType();
 		log.referenceId = command.referenceId();
 		log.createdByUser = null;
 		return log;
