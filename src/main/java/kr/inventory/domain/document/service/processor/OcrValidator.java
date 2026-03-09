@@ -1,6 +1,7 @@
 package kr.inventory.domain.document.service.processor;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 import kr.inventory.domain.reference.repository.IngredientRepository;
 import kr.inventory.domain.document.controller.dto.ocr.ReceiptResponse;
@@ -49,7 +50,7 @@ public class OcrValidator {
 		}
 	}
 
-	public static ReceiptResponse.Field<Long> validateVendor(
+	public static ReceiptResponse.Field<UUID> validateVendor(
 		String rawVendorName,
 		Long storeId,
 		VendorRepository vendorRepository
@@ -59,21 +60,8 @@ public class OcrValidator {
 		}
 
 		return vendorRepository.findMostSimilarVendor(storeId, rawVendorName)
-			.map(vendor -> ReceiptResponse.Field.success(vendor.getVendorId()))
+			.map(vendor -> ReceiptResponse.Field.success(vendor.getVendorPublicId()))
 			.orElseGet(() -> ReceiptResponse.Field.warning(null, "유사한 거래처 없음: " + rawVendorName));
 	}
 
-	public static ReceiptResponse.Field<Long> validateIngredient(
-		String rawName,
-		Long storeId,
-		IngredientRepository ingredientRepository
-	) {
-		if (rawName == null || rawName.isBlank()) {
-			return ReceiptResponse.Field.fail("상품명 정보 없음");
-		}
-
-		return ingredientRepository.findMostSimilarIngredient(storeId, rawName)
-			.map(ing -> ReceiptResponse.Field.success(ing.getIngredientId()))
-			.orElseGet(() -> ReceiptResponse.Field.warning(null, "미등록 상품"));
-	}
 }

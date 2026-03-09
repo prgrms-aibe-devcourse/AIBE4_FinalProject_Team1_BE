@@ -1,6 +1,7 @@
 package kr.inventory.domain.document.service.mapper;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
@@ -16,11 +17,10 @@ import lombok.RequiredArgsConstructor;
 public class OcrResultMapper {
 
 	private final VendorRepository vendorRepository;
-	private final IngredientRepository ingredientRepository;
 
 	public ReceiptResponse mapToReceiptResponse(RawReceiptData raw, Long storeId, String documentPath) {
 
-		ReceiptResponse.Field<Long> matchedVendorId = OcrValidator.validateVendor(
+		ReceiptResponse.Field<UUID> matchedVendorPublicId = OcrValidator.validateVendor(
 			raw.vendorName(),
 			storeId,
 			vendorRepository
@@ -33,7 +33,7 @@ public class OcrResultMapper {
 		return ReceiptResponse.of(
 			documentPath,
 			new ReceiptResponse.VendorField(
-				matchedVendorId,
+				matchedVendorPublicId,
 				OcrValidator.validate(raw.vendorName(), "공급처")
 			),
 			OcrValidator.validate(raw.date(), "날짜"),

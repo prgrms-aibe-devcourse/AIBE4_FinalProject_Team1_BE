@@ -19,7 +19,7 @@ public record WasteResponse(
 	public static WasteResponse from(WasteRecord record) {
 		return new WasteResponse(
 			record.getWastePublicId(),
-			record.getStockBatch().getInboundItem().getRawProductName(),
+			record.getStockBatch().getInboundItem().getProductDisplayName(),
 			record.getWasteQuantity(),
 			record.getWasteReason(),
 			record.getWasteAmount(),
