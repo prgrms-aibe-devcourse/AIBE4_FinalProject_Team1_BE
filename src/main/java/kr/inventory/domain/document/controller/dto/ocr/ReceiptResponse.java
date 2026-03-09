@@ -3,6 +3,7 @@ package kr.inventory.domain.document.controller.dto.ocr;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 public record ReceiptResponse(
 	String documentPath,
@@ -40,7 +41,7 @@ public record ReceiptResponse(
 	}
 
 	public record VendorField(
-		Field<Long> id,
+		Field<UUID> id,
 		Field<String> name
 	) {
 	}
