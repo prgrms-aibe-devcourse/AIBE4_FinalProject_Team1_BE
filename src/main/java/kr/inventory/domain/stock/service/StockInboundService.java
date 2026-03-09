@@ -6,6 +6,9 @@ import kr.inventory.domain.document.exception.DocumentException;
 import kr.inventory.domain.document.repository.DocumentRepository;
 import kr.inventory.domain.purchase.entity.PurchaseOrder;
 import kr.inventory.domain.purchase.repository.PurchaseOrderRepository;
+import kr.inventory.domain.reference.entity.Ingredient;
+import kr.inventory.domain.reference.entity.enums.IngredientUnit;
+import kr.inventory.domain.reference.repository.IngredientRepository;
 import kr.inventory.domain.stock.controller.dto.request.ManualInboundRequest;
 import kr.inventory.domain.stock.controller.dto.request.StockInboundRequest;
 import kr.inventory.domain.stock.controller.dto.request.StockInboundSearchRequest;
@@ -63,6 +66,7 @@ public class StockInboundService {
     private final UserRepository userRepository;
     private final DocumentRepository documentRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
+    private final IngredientRepository ingredientRepository;
     private final IngredientResolutionService ingredientResolutionService;
 
     public StockInboundResponse createManualInbound(Long userId, UUID storePublicId, ManualInboundRequest request) {
@@ -119,8 +123,28 @@ public class StockInboundService {
 
         inbound.confirm(user);
 
-        // CONFIRMED 상태 항목만 IngredientMapping에 학습
         Store store = inbound.getStore();
+
+        // AUTO_SUGGESTED 상태이면서 ingredient가 null인 아이템에 대해 자동으로 Ingredient 생성
+        for (StockInboundItem item : items) {
+            if (item.getResolutionStatus() == ResolutionStatus.AUTO_SUGGESTED && item.getIngredient() == null) {
+                if (item.getNormalizedRawKey() != null && !item.getNormalizedRawKey().isBlank()) {
+                    // normalizedRawKey를 이름으로 하는 새로운 Ingredient 생성
+                    Ingredient newIngredient = Ingredient.create(
+                            store,
+                            item.getNormalizedRawKey(),
+                            IngredientUnit.G,
+                            null
+                    );
+                    ingredientRepository.save(newIngredient);
+
+                    // 아이템에 ingredient 연결
+                    item.updateResolution(ResolutionStatus.AUTO_SUGGESTED, newIngredient, null);
+                }
+            }
+        }
+
+        // CONFIRMED 상태 항목만 IngredientMapping에 학습
         items.stream()
                 .filter(item -> item.getResolutionStatus() == ResolutionStatus.CONFIRMED)
                 .filter(item -> item.getNormalizedRawKey() != null && item.getIngredient() != null)
@@ -131,6 +155,7 @@ public class StockInboundService {
                         item.getIngredient()
                 ));
 
+        // ingredient가 있는 아이템만 재고 배치 생성
         for (StockInboundItem item : items) {
             if (item.getIngredient() == null) {
                 continue;
