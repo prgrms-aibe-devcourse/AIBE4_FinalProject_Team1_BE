@@ -34,6 +34,9 @@ public class StockLog extends CreatedAtEntity {
 	@JoinColumn(name = "ingredient_id", nullable = false)
 	private Ingredient ingredient;
 
+    @Column(length = 255)
+    private String productDisplayName;
+
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "stock_batch_id")
 	private IngredientStockBatch stockBatch;
@@ -64,6 +67,7 @@ public class StockLog extends CreatedAtEntity {
 		StockLog log = new StockLog();
 		log.store = command.store();
 		log.ingredient = command.ingredient();
+        log.productDisplayName = command.productDisplayName();
 		log.stockBatch = command.batch();
 		log.transactionType = TransactionType.INBOUND;
 		log.changeQuantity = command.quantity();
@@ -80,6 +84,7 @@ public class StockLog extends CreatedAtEntity {
 		StockLog log = new StockLog();
 		log.store = command.store();
 		log.ingredient = command.ingredient();
+        log.productDisplayName = command.productDisplayName();
 		log.stockBatch = command.batch();
 		log.transactionType = TransactionType.DEDUCTION;
 		log.changeQuantity = command.quantity().negate();

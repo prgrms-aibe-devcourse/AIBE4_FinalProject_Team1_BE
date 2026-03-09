@@ -120,7 +120,8 @@ public class IngredientStockBatch extends AuditableEntity {
 	public static IngredientStockBatch createAdjustment(
 		Ingredient ingredient,
 		BigDecimal quantity,
-		BigDecimal unitCost
+		BigDecimal unitCost,
+        String productDisplayName
 	) {
 		IngredientStockBatch batch = new IngredientStockBatch();
 		batch.store = ingredient.getStore();
@@ -133,6 +134,7 @@ public class IngredientStockBatch extends AuditableEntity {
 		batch.expirationDate = null;
         batch.sourceType = StockBatchSourceType.STOCK_ADJUSTMENT;
 		batch.status = StockBatchStatus.OPEN;
+        batch.productDisplayName = productDisplayName;
 		return batch;
 	}
 
