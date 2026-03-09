@@ -2,7 +2,7 @@ package kr.inventory.domain.stock.controller.dto.response;
 
 import kr.inventory.domain.stock.entity.StockInbound;
 import kr.inventory.domain.stock.entity.enums.InboundStatus;
-import kr.inventory.domain.vendor.entity.Vendor;
+import kr.inventory.domain.reference.entity.Vendor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

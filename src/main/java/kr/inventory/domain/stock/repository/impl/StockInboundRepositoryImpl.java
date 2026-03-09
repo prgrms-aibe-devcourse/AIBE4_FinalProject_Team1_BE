@@ -19,7 +19,7 @@ import kr.inventory.domain.stock.entity.QStockInboundItem;
 import kr.inventory.domain.stock.entity.StockInbound;
 import kr.inventory.domain.stock.entity.enums.InboundStatus;
 import kr.inventory.domain.stock.repository.StockInboundRepositoryCustom;
-import kr.inventory.domain.vendor.entity.QVendor;
+import kr.inventory.domain.reference.entity.QVendor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;

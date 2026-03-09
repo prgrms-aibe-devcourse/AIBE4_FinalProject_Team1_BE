@@ -1,6 +1,6 @@
-package kr.inventory.domain.vendor.repository;
+package kr.inventory.domain.reference.repository;
 
-import kr.inventory.domain.vendor.entity.Vendor;
+import kr.inventory.domain.reference.entity.Vendor;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

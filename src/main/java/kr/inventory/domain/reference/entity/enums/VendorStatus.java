@@ -1,4 +1,4 @@
-package kr.inventory.domain.vendor.entity.enums;
+package kr.inventory.domain.reference.entity.enums;
 
 public enum VendorStatus {
     ACTIVE,

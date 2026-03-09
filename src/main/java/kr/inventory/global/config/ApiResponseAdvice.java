@@ -28,11 +28,6 @@ public class ApiResponseAdvice implements ResponseBodyAdvice<Object> {
             return false;
         }
 
-        // ResponseEntity를 반환하는 경우 제외 (body가 이미 결정되어 있음)
-        if (ResponseEntity.class.isAssignableFrom(returnType.getParameterType())) {
-            return false;
-        }
-
         // String을 직접 반환하는 경우 제외 (StringHttpMessageConverter 충돌 방지)
         if (returnType.getParameterType().equals(String.class)) {
             return false;
@@ -88,6 +83,18 @@ public class ApiResponseAdvice implements ResponseBodyAdvice<Object> {
             path.startsWith("/v3/api-docs") ||
             path.startsWith("/swagger-resources") ||
             path.startsWith("/webjars/")) {
+            return body;
+        }
+
+        // 인증 관련 경로는 래핑하지 않음 (로그인, 토큰 재발급 등)
+        if (path.contains("/auth/login") ||
+            path.contains("/auth/kakao") ||
+            path.contains("/auth/reissue")) {
+            return body;
+        }
+
+        // 파일 다운로드 경로는 래핑하지 않음
+        if (path.contains("/download") || path.endsWith(".pdf")) {
             return body;
         }
 
