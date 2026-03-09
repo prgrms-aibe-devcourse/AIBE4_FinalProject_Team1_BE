@@ -27,6 +27,7 @@ import kr.inventory.domain.stock.repository.IngredientStockBatchRepository;
 import kr.inventory.domain.stock.repository.StockInboundItemRepository;
 import kr.inventory.domain.stock.repository.StockInboundRepository;
 import kr.inventory.domain.stock.repository.StockLogRepository;
+import kr.inventory.domain.stock.normalization.model.InboundSpecExtractor;
 import kr.inventory.domain.stock.normalization.service.IngredientResolutionService;
 import kr.inventory.domain.stock.service.command.StockInboundLogCommand;
 import kr.inventory.domain.store.entity.Store;
@@ -68,6 +69,7 @@ public class StockInboundService {
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final IngredientRepository ingredientRepository;
     private final IngredientResolutionService ingredientResolutionService;
+    private final InboundSpecExtractor inboundSpecExtractor;
 
     public StockInboundResponse createManualInbound(Long userId, UUID storePublicId, ManualInboundRequest request) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
@@ -125,20 +127,21 @@ public class StockInboundService {
 
         Store store = inbound.getStore();
 
-        // AUTO_SUGGESTED 상태이면서 ingredient가 null인 아이템에 대해 자동으로 Ingredient 생성
         for (StockInboundItem item : items) {
             if (item.getResolutionStatus() == ResolutionStatus.AUTO_SUGGESTED && item.getIngredient() == null) {
                 if (item.getNormalizedRawKey() != null && !item.getNormalizedRawKey().isBlank()) {
+                    // rawProductName에서 스펙 추출
+                    InboundSpecExtractor.Spec spec = inboundSpecExtractor.extract(item.getRawProductName()).orElse(null);
+                    IngredientUnit unit = (spec == null) ? IngredientUnit.G : spec.unit();
+                    BigDecimal unitSize = (spec == null) ? null : spec.unitSize();
+
                     // normalizedRawKey를 이름으로 하는 새로운 Ingredient 생성
-                    Ingredient newIngredient = Ingredient.create(
-                            store,
-                            item.getNormalizedRawKey(),
-                            IngredientUnit.G,
-                            null
-                    );
+                    Ingredient newIngredient = (unitSize == null)
+                            ? Ingredient.create(store, item.getNormalizedRawKey(), unit, null)
+                            : Ingredient.create(store, item.getNormalizedRawKey(), unit, null, unitSize);
+
                     ingredientRepository.save(newIngredient);
 
-                    // 아이템에 ingredient 연결
                     item.updateResolution(ResolutionStatus.AUTO_SUGGESTED, newIngredient, null);
                 }
             }
@@ -155,7 +158,6 @@ public class StockInboundService {
                         item.getIngredient()
                 ));
 
-        // ingredient가 있는 아이템만 재고 배치 생성
         for (StockInboundItem item : items) {
             if (item.getIngredient() == null) {
                 continue;
