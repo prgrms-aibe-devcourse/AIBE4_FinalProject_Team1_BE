@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static kr.inventory.domain.purchase.entity.QPurchaseOrder.purchaseOrder;
-import static kr.inventory.domain.vendor.entity.QVendor.vendor;
+import static kr.inventory.domain.reference.entity.QVendor.vendor;
 
 @RequiredArgsConstructor
 public class PurchaseOrderRepositoryImpl implements PurchaseOrderRepositoryCustom {
