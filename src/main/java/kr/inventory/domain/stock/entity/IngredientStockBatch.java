@@ -1,9 +1,10 @@
 package kr.inventory.domain.stock.entity;
 
 import jakarta.persistence.*;
-import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.common.AuditableEntity;
+import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.entity.enums.IngredientUnit;
+import kr.inventory.domain.stock.entity.enums.StockBatchSourceType;
 import kr.inventory.domain.stock.entity.enums.StockBatchStatus;
 import kr.inventory.domain.stock.exception.StockErrorCode;
 import kr.inventory.domain.stock.exception.StockException;
@@ -54,6 +55,9 @@ public class IngredientStockBatch extends AuditableEntity {
 	@Column(precision = 14, scale = 2)
 	private BigDecimal unitCost;
 
+    @Enumerated(EnumType.STRING)
+    private StockBatchSourceType sourceType;
+
 	private LocalDate expirationDate;
 
 	@Enumerated(EnumType.STRING)
@@ -71,6 +75,7 @@ public class IngredientStockBatch extends AuditableEntity {
 		batch.ingredient = ingredient;
 		batch.unit = ingredient.getUnit();
 		batch.inboundItem = inboundItem;
+        batch.sourceType = StockBatchSourceType.INBOUND;
 
 		BigDecimal effectiveQuantity = inboundItem.getQuantity();
 		if (ingredient.getUnitSize() != null) {
@@ -115,7 +120,8 @@ public class IngredientStockBatch extends AuditableEntity {
 	public static IngredientStockBatch createAdjustment(
 		Ingredient ingredient,
 		BigDecimal quantity,
-		BigDecimal unitCost
+		BigDecimal unitCost,
+        String productDisplayName
 	) {
 		IngredientStockBatch batch = new IngredientStockBatch();
 		batch.store = ingredient.getStore();
@@ -126,7 +132,9 @@ public class IngredientStockBatch extends AuditableEntity {
 		batch.remainingQuantity = quantity;
 		batch.unitCost = unitCost;
 		batch.expirationDate = null;
+        batch.sourceType = StockBatchSourceType.STOCK_ADJUSTMENT;
 		batch.status = StockBatchStatus.OPEN;
+        batch.productDisplayName = productDisplayName;
 		return batch;
 	}
 
