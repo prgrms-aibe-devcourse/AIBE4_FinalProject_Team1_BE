@@ -87,7 +87,7 @@ public class StockLog extends CreatedAtEntity {
         log.productDisplayName = command.productDisplayName();
 		log.stockBatch = command.batch();
 		log.transactionType = TransactionType.DEDUCTION;
-		log.changeQuantity = command.quantity().negate();
+		log.changeQuantity = command.quantity();
 		log.balanceAfter = command.balanceAfter();
 		log.referenceType = command.referenceType();
 		log.referenceId = command.referenceId();
@@ -101,7 +101,7 @@ public class StockLog extends CreatedAtEntity {
 		log.ingredient = command.ingredient();
 		log.stockBatch = command.batch();
 		log.transactionType = TransactionType.WASTE;
-		log.changeQuantity = command.quantity().negate();
+		log.changeQuantity = command.quantity();
 		log.balanceAfter = command.balanceAfter();
 		log.referenceType = ReferenceType.WASTE;
 		log.referenceId = command.referenceId();
