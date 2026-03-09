@@ -1,4 +1,4 @@
-package kr.inventory.global.config.swagger;
+package kr.inventory.global.config;
 
 public final class PurchaseApiDocs {
 

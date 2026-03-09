@@ -11,7 +11,7 @@ import kr.inventory.domain.purchase.controller.dto.request.PurchaseOrderUpdateRe
 import kr.inventory.domain.purchase.controller.dto.response.PurchaseOrderDetailResponse;
 import kr.inventory.domain.purchase.controller.dto.response.PurchaseOrderSummaryResponse;
 import kr.inventory.domain.purchase.service.PurchaseOrderService;
-import kr.inventory.global.config.swagger.PurchaseApiDocs;
+import kr.inventory.global.config.PurchaseApiDocs;
 import kr.inventory.global.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -23,7 +23,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 import static org.springframework.data.domain.Sort.Direction.DESC;
