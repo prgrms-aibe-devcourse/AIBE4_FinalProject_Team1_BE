@@ -2,9 +2,6 @@ package kr.inventory.domain.analytics.document.stock;
 
 import kr.inventory.domain.analytics.constant.ElasticsearchIndex;
 import kr.inventory.domain.stock.entity.StockInbound;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.DateFormat;
 import org.springframework.data.elasticsearch.annotations.Document;
@@ -15,38 +12,36 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
 @Document(indexName = ElasticsearchIndex.STOCK_INBOUNDS)
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class StockInboundDocument {
+public record StockInboundDocument(
 
-    @Id
-    private String id;
+        @Id
+        String id,
 
-    @Field(type = FieldType.Long)
-    private Long storeId;
+        @Field(type = FieldType.Long)
+        Long storeId,
 
-    @Field(type = FieldType.Keyword)
-    private String vendorName;
+        @Field(type = FieldType.Keyword)
+        String vendorName,
 
-    @Field(type = FieldType.Date, format = DateFormat.date)
-    private LocalDate inboundDate;
+        @Field(type = FieldType.Date, format = DateFormat.date)
+        LocalDate inboundDate,
 
-    @Field(type = FieldType.Keyword)
-    private String status;
+        /** DRAFT / CONFIRMED */
+        @Field(type = FieldType.Keyword)
+        String status,
 
-    @Field(type = FieldType.Date, format = DateFormat.date_time)
-    private OffsetDateTime confirmedAt;
+        @Field(type = FieldType.Date, format = DateFormat.date_time)
+        OffsetDateTime confirmedAt
 
+) {
     public static StockInboundDocument from(StockInbound inbound) {
-        StockInboundDocument doc = new StockInboundDocument();
-        doc.id = String.valueOf(inbound.getInboundId());
-        doc.storeId = inbound.getStore().getStoreId();
-        doc.vendorName = inbound.getVendor() != null
-                ? inbound.getVendor().getName()
-                : null;
-        doc.inboundDate = inbound.getInboundDate();
-        doc.status = inbound.getStatus().name();
-        doc.confirmedAt = inbound.getConfirmedAt();
-        return doc;
+        return new StockInboundDocument(
+                String.valueOf(inbound.getInboundId()),
+                inbound.getStore().getStoreId(),
+                inbound.getVendor() != null ? inbound.getVendor().getName() : null,
+                inbound.getInboundDate(),
+                inbound.getStatus().name(),
+                inbound.getConfirmedAt()
+        );
     }
 }

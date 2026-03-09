@@ -2,9 +2,6 @@ package kr.inventory.domain.analytics.document.stock;
 
 import kr.inventory.domain.analytics.constant.ElasticsearchIndex;
 import kr.inventory.domain.stock.entity.StockLog;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.DateFormat;
 import org.springframework.data.elasticsearch.annotations.Document;
@@ -15,50 +12,53 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 @Document(indexName = ElasticsearchIndex.STOCK_LOGS)
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class StockLogDocument {
+public record StockLogDocument(
 
-    @Id
-    private String id;
+        @Id
+        String id,
 
-    @Field(type = FieldType.Long)
-    private Long storeId;
+        @Field(type = FieldType.Long)
+        Long storeId,
 
-    @Field(type = FieldType.Long)
-    private Long ingredientId;
+        @Field(type = FieldType.Long)
+        Long ingredientId,
 
-    @Field(type = FieldType.Keyword)
-    private String ingredientName;
+        @Field(type = FieldType.Keyword)
+        String productDisplayName,
 
-    @Field(type = FieldType.Keyword)
-    private String transactionType;
+        @Field(type = FieldType.Keyword)
+        String ingredientName,
 
-    @Field(type = FieldType.Keyword)
-    private String referenceType;
+        /** INBOUND / DEDUCTION / WASTE / ADJUST */
+        @Field(type = FieldType.Keyword)
+        String transactionType,
 
-    @Field(type = FieldType.Double)
-    private BigDecimal changeQuantity;
+        /** INBOUND / SALE / WASTE / STOCK_TAKING / OTHER */
+        @Field(type = FieldType.Keyword)
+        String referenceType,
 
-    @Field(type = FieldType.Double)
-    private BigDecimal balanceAfter;
+        @Field(type = FieldType.Scaled_Float, scalingFactor = 1000)
+        BigDecimal changeQuantity,
 
-    @Field(type = FieldType.Date, format = DateFormat.date_time)
-    private OffsetDateTime createdAt;
+        @Field(type = FieldType.Scaled_Float, scalingFactor = 1000)
+        BigDecimal balanceAfter,
 
+        @Field(type = FieldType.Date, format = DateFormat.date_time)
+        OffsetDateTime createdAt
+
+) {
     public static StockLogDocument from(StockLog stockLog) {
-        StockLogDocument doc = new StockLogDocument();
-        doc.id = String.valueOf(stockLog.getLogId());
-        doc.storeId = stockLog.getStore().getStoreId();
-        doc.ingredientId = stockLog.getIngredient().getIngredientId();
-        doc.ingredientName = stockLog.getIngredient().getName();
-        doc.transactionType = stockLog.getTransactionType().name();
-        doc.referenceType = stockLog.getReferenceType() != null
-                ? stockLog.getReferenceType().name()
-                : null;
-        doc.changeQuantity = stockLog.getChangeQuantity();
-        doc.balanceAfter = stockLog.getBalanceAfter();
-        doc.createdAt = stockLog.getCreatedAt();
-        return doc;
+        return new StockLogDocument(
+                String.valueOf(stockLog.getLogId()),
+                stockLog.getStore().getStoreId(),
+                stockLog.getIngredient().getIngredientId(),
+                stockLog.getProductDisplayName(),
+                stockLog.getIngredient().getName(),
+                stockLog.getTransactionType().name(),
+                stockLog.getReferenceType() != null ? stockLog.getReferenceType().name() : null,
+                stockLog.getChangeQuantity(),
+                stockLog.getBalanceAfter(),
+                stockLog.getCreatedAt()
+        );
     }
 }
