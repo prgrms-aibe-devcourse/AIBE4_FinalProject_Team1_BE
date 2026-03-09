@@ -10,7 +10,7 @@ import kr.inventory.domain.stock.controller.dto.response.StockShortageItemRespon
 import kr.inventory.domain.stock.entity.StockShortage;
 import kr.inventory.domain.stock.repository.StockShortageRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
-import kr.inventory.global.dto.PageResponse;
+import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

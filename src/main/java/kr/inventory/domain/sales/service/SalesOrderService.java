@@ -23,7 +23,7 @@ import kr.inventory.domain.sales.repository.SalesOrderRepository;
 import kr.inventory.domain.stock.service.StockManagerFacade;
 import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.service.StoreAccessValidator;
-import kr.inventory.global.dto.PageResponse;
+import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

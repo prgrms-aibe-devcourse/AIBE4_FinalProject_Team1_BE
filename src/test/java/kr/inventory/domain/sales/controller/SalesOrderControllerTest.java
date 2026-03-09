@@ -11,7 +11,7 @@ import kr.inventory.domain.sales.entity.enums.SalesOrderType;
 import kr.inventory.domain.sales.exception.SalesOrderErrorCode;
 import kr.inventory.domain.sales.exception.SalesOrderException;
 import kr.inventory.domain.sales.service.SalesOrderService;
-import kr.inventory.global.dto.PageResponse;
+import kr.inventory.global.common.PageResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

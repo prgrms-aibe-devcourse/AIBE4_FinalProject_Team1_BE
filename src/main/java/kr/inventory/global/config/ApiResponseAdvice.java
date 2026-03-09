@@ -1,44 +1,42 @@
 package kr.inventory.global.config;
 
 import jakarta.servlet.http.HttpServletRequest;
-import kr.inventory.global.dto.ApiResponse;
+import kr.inventory.global.common.ApiResponse;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.ByteArrayHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.ResourceHttpMessageConverter;
+import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpRequest;
+import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
-
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 @RestControllerAdvice
 public class ApiResponseAdvice implements ResponseBodyAdvice<Object> {
 
     @Override
-    public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
-        if (ResponseEntity.class.isAssignableFrom(returnType.getParameterType())) {
+    public boolean supports(
+            MethodParameter returnType,
+            Class<? extends HttpMessageConverter<?>> converterType
+    ) {
+        // 이미 String 컨버터가 선택된 경우는 절대 감싸면 안 됨
+        if (StringHttpMessageConverter.class.isAssignableFrom(converterType)) {
             return false;
         }
 
-        if (returnType.getParameterType().equals(ApiResponse.class)) {
+        // 파일/바이너리 응답도 제외
+        if (ByteArrayHttpMessageConverter.class.isAssignableFrom(converterType)) {
             return false;
         }
 
-        if (returnType.getParameterType().equals(String.class)) {
-            return false;
-        }
-
-        if (returnType.getParameterType().equals(byte[].class)) {
-            return false;
-        }
-
-        if (converterType.getName().contains("ByteArrayHttpMessageConverter")) {
-            return false;
-        }
-
-        if (converterType.getName().contains("StringHttpMessageConverter")) {
+        if (ResourceHttpMessageConverter.class.isAssignableFrom(converterType)) {
             return false;
         }
 
@@ -54,43 +52,56 @@ public class ApiResponseAdvice implements ResponseBodyAdvice<Object> {
             ServerHttpRequest request,
             ServerHttpResponse response
     ) {
-        // 이미 ApiResponse인 경우 그대로 반환
-        if (body instanceof ApiResponse) {
+        // 이미 공통 응답이면 그대로 반환
+        if (body instanceof ApiResponse<?>) {
             return body;
         }
 
-        // byte[] 타입은 그대로 반환 (리소스 파일 등)
-        if (body instanceof byte[]) {
+        // 기술적으로 감싸면 안 되는 타입들
+        if (body instanceof String || body instanceof byte[]) {
             return body;
         }
 
-        // String 타입은 그대로 반환
-        if (body instanceof String) {
+        if (body instanceof Resource || body instanceof StreamingResponseBody) {
             return body;
         }
 
-        // 요청 경로 추출
+        // JSON 계열이 아니면 감싸지 않음
+        if (!isJsonLike(selectedContentType)) {
+            return body;
+        }
+
+        // redirect, 204는 건드리지 않음
+        if (isRedirectOrNoContent(response)) {
+            return body;
+        }
+
         String path = extractPath(request);
 
-        if (path.startsWith("/swagger-ui") ||
-            path.startsWith("/v3/api-docs") ||
-            path.startsWith("/swagger-resources") ||
-            path.startsWith("/webjars/")) {
-            return body;
+        // body가 없는 200 응답 처리
+        if (body == null) {
+            return ApiResponse.success(path);
         }
 
-        if (path.contains("/auth/login") ||
-            path.contains("/auth/kakao") ||
-            path.contains("/auth/reissue")) {
-            return body;
-        }
-
-        if (path.contains("/download") || path.endsWith(".pdf")) {
-            return body;
-        }
-
-        // 성공 응답으로 래핑
         return ApiResponse.success(body, path);
+    }
+
+    private boolean isJsonLike(MediaType contentType) {
+        if (contentType == null) {
+            return false;
+        }
+
+        return MediaType.APPLICATION_JSON.includes(contentType)
+                || MediaType.APPLICATION_PROBLEM_JSON.includes(contentType)
+                || contentType.getSubtype().endsWith("+json");
+    }
+
+    private boolean isRedirectOrNoContent(ServerHttpResponse response) {
+        if (response instanceof ServletServerHttpResponse servletResponse) {
+            int status = servletResponse.getServletResponse().getStatus();
+            return status == HttpStatus.NO_CONTENT.value() || (status >= 300 && status < 400);
+        }
+        return false;
     }
 
     private String extractPath(ServerHttpRequest request) {

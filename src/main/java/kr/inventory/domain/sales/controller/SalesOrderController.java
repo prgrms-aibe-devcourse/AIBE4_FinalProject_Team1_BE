@@ -7,7 +7,7 @@ import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.sales.controller.dto.request.SalesOrderCreateRequest;
 import kr.inventory.domain.sales.controller.dto.response.SalesOrderResponse;
 import kr.inventory.domain.sales.service.SalesOrderService;
-import kr.inventory.global.dto.PageResponse;
+import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;

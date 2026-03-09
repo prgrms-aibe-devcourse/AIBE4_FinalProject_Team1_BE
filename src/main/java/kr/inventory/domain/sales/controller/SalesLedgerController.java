@@ -8,7 +8,7 @@ import kr.inventory.domain.sales.controller.dto.request.SalesLedgerSearchRequest
 import kr.inventory.domain.sales.controller.dto.response.SalesLedgerOrderDetailResponse;
 import kr.inventory.domain.sales.controller.dto.response.SalesLedgerOrderSummaryResponse;
 import kr.inventory.domain.sales.service.SalesLedgerService;
-import kr.inventory.global.dto.PageResponse;
+import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;

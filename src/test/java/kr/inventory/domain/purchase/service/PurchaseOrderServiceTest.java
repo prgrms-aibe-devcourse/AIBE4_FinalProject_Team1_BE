@@ -17,7 +17,7 @@ import kr.inventory.domain.store.service.StoreAccessValidator;
 import kr.inventory.domain.reference.entity.Vendor;
 import kr.inventory.domain.purchase.controller.dto.request.PurchaseOrderSearchRequest;
 import kr.inventory.domain.reference.repository.VendorRepository;
-import kr.inventory.global.dto.PageResponse;
+import kr.inventory.global.common.PageResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

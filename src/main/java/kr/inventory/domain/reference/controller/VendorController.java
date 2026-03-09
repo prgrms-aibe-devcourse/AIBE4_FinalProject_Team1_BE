@@ -9,7 +9,7 @@ import kr.inventory.domain.reference.controller.dto.request.VendorSearchRequest;
 import kr.inventory.domain.reference.controller.dto.response.VendorResponse;
 import kr.inventory.domain.reference.controller.dto.request.VendorUpdateRequest;
 import kr.inventory.domain.reference.service.VendorService;
-import kr.inventory.global.dto.PageResponse;
+import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;

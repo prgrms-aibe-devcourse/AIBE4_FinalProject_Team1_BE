@@ -2,14 +2,13 @@ package kr.inventory.domain.reference.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inventory.domain.auth.security.CustomUserDetails;
-import kr.inventory.domain.reference.controller.VendorController;
 import kr.inventory.domain.reference.controller.dto.request.VendorCreateRequest;
 import kr.inventory.domain.reference.controller.dto.request.VendorSearchRequest;
 import kr.inventory.domain.reference.controller.dto.response.VendorResponse;
 import kr.inventory.domain.reference.controller.dto.request.VendorUpdateRequest;
 import kr.inventory.domain.reference.entity.enums.VendorStatus;
 import kr.inventory.domain.reference.service.VendorService;
-import kr.inventory.global.dto.PageResponse;
+import kr.inventory.global.common.PageResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

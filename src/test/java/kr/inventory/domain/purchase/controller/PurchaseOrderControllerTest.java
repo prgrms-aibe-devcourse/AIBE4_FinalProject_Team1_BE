@@ -11,7 +11,7 @@ import kr.inventory.domain.purchase.controller.dto.response.PurchaseOrderItemRes
 import kr.inventory.domain.purchase.controller.dto.response.PurchaseOrderSummaryResponse;
 import kr.inventory.domain.purchase.entity.enums.PurchaseOrderStatus;
 import kr.inventory.domain.purchase.service.PurchaseOrderService;
-import kr.inventory.global.dto.PageResponse;
+import kr.inventory.global.common.PageResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

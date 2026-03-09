@@ -9,7 +9,7 @@ import kr.inventory.domain.reference.controller.dto.request.IngredientSearchRequ
 import kr.inventory.domain.reference.controller.dto.request.IngredientUpdateRequest;
 import kr.inventory.domain.reference.controller.dto.response.IngredientResponse;
 import kr.inventory.domain.reference.service.IngredientService;
-import kr.inventory.global.dto.PageResponse;
+import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;

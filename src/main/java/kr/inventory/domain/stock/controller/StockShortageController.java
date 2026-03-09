@@ -6,7 +6,7 @@ import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.stock.controller.dto.request.StockShortageSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockShortageGroupResponse;
 import kr.inventory.domain.stock.service.StockShortageService;
-import kr.inventory.global.dto.PageResponse;
+import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;

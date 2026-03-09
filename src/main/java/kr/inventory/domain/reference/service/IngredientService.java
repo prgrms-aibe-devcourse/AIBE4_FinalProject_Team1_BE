@@ -15,7 +15,7 @@ import kr.inventory.domain.store.exception.StoreErrorCode;
 import kr.inventory.domain.store.exception.StoreException;
 import kr.inventory.domain.store.repository.StoreRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
-import kr.inventory.global.dto.PageResponse;
+import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

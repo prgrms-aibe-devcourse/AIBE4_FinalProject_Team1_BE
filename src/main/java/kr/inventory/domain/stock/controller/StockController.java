@@ -7,7 +7,7 @@ import kr.inventory.domain.stock.controller.dto.request.StockSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockBatchResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockSummaryResponse;
 import kr.inventory.domain.stock.service.StockQueryService;
-import kr.inventory.global.dto.PageResponse;
+import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
