@@ -20,6 +20,20 @@ services:
       retries: 10
       start_period: 30s
 
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.19.10
+    container_name: inventory-kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    networks:
+      - inventory-net
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
   backend:
     build:
       context: .
