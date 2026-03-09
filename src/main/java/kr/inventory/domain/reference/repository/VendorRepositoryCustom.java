@@ -1,7 +1,7 @@
-package kr.inventory.domain.vendor.repository;
+package kr.inventory.domain.reference.repository;
 
-import kr.inventory.domain.vendor.entity.Vendor;
-import kr.inventory.domain.vendor.entity.enums.VendorStatus;
+import kr.inventory.domain.reference.entity.Vendor;
+import kr.inventory.domain.reference.entity.enums.VendorStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

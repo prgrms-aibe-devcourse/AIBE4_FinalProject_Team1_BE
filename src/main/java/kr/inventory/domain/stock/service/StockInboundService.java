@@ -1,16 +1,11 @@
 package kr.inventory.domain.stock.service;
 
-import kr.inventory.domain.document.entity.Document;
-import kr.inventory.domain.document.exception.DocumentError;
-import kr.inventory.domain.document.exception.DocumentException;
 import kr.inventory.domain.document.repository.DocumentRepository;
-import kr.inventory.domain.purchase.entity.PurchaseOrder;
 import kr.inventory.domain.purchase.repository.PurchaseOrderRepository;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.entity.enums.IngredientUnit;
 import kr.inventory.domain.reference.repository.IngredientRepository;
 import kr.inventory.domain.stock.controller.dto.request.ManualInboundRequest;
-import kr.inventory.domain.stock.controller.dto.request.StockInboundRequest;
 import kr.inventory.domain.stock.controller.dto.request.StockInboundSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockInboundItemResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockInboundListResponse;
@@ -35,8 +30,8 @@ import kr.inventory.domain.store.repository.StoreRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import kr.inventory.domain.user.entity.User;
 import kr.inventory.domain.user.repository.UserRepository;
-import kr.inventory.domain.vendor.entity.Vendor;
-import kr.inventory.domain.vendor.repository.VendorRepository;
+import kr.inventory.domain.reference.entity.Vendor;
+import kr.inventory.domain.reference.repository.VendorRepository;
 import kr.inventory.global.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

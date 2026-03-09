@@ -2,7 +2,7 @@ package kr.inventory.domain.purchase.controller.dto.response;
 
 import kr.inventory.domain.purchase.entity.PurchaseOrder;
 import kr.inventory.domain.purchase.entity.enums.PurchaseOrderStatus;
-import kr.inventory.domain.vendor.entity.Vendor;
+import kr.inventory.domain.reference.entity.Vendor;
 
 import java.math.BigDecimal;
 import java.util.UUID;

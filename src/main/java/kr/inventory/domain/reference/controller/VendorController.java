@@ -1,15 +1,14 @@
-package kr.inventory.domain.vendor.controller;
+package kr.inventory.domain.reference.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import kr.inventory.domain.auth.security.CustomUserDetails;
-import kr.inventory.domain.vendor.controller.dto.request.VendorCreateRequest;
-import kr.inventory.domain.vendor.controller.dto.request.VendorSearchRequest;
-import kr.inventory.domain.vendor.controller.dto.response.VendorResponse;
-import kr.inventory.domain.vendor.controller.dto.request.VendorUpdateRequest;
-import kr.inventory.domain.vendor.entity.enums.VendorStatus;
-import kr.inventory.domain.vendor.service.VendorService;
+import kr.inventory.domain.reference.controller.dto.request.VendorCreateRequest;
+import kr.inventory.domain.reference.controller.dto.request.VendorSearchRequest;
+import kr.inventory.domain.reference.controller.dto.response.VendorResponse;
+import kr.inventory.domain.reference.controller.dto.request.VendorUpdateRequest;
+import kr.inventory.domain.reference.service.VendorService;
 import kr.inventory.global.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -19,7 +18,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 import static org.springframework.data.domain.Sort.Direction.DESC;

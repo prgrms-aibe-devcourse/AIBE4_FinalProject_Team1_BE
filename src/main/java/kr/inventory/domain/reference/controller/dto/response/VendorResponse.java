@@ -1,7 +1,7 @@
-package kr.inventory.domain.vendor.controller.dto.response;
+package kr.inventory.domain.reference.controller.dto.response;
 
-import kr.inventory.domain.vendor.entity.Vendor;
-import kr.inventory.domain.vendor.entity.enums.VendorStatus;
+import kr.inventory.domain.reference.entity.Vendor;
+import kr.inventory.domain.reference.entity.enums.VendorStatus;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;

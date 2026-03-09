@@ -1,4 +1,4 @@
-package kr.inventory.domain.vendor.exception;
+package kr.inventory.domain.reference.exception;
 
 import kr.inventory.global.exception.ErrorModel;
 import lombok.Getter;

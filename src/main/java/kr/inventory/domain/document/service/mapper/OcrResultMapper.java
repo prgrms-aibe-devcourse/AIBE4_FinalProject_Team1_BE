@@ -9,7 +9,7 @@ import kr.inventory.domain.reference.repository.IngredientRepository;
 import kr.inventory.domain.document.controller.dto.ocr.RawReceiptData;
 import kr.inventory.domain.document.controller.dto.ocr.ReceiptResponse;
 import kr.inventory.domain.document.service.processor.OcrValidator;
-import kr.inventory.domain.vendor.repository.VendorRepository;
+import kr.inventory.domain.reference.repository.VendorRepository;
 import lombok.RequiredArgsConstructor;
 
 @Component

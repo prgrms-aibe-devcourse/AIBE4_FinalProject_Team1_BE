@@ -5,7 +5,7 @@ import kr.inventory.domain.stock.entity.enums.InboundStatus;
 import kr.inventory.domain.document.entity.Document;
 import kr.inventory.domain.purchase.entity.PurchaseOrder;
 import kr.inventory.domain.user.entity.User;
-import kr.inventory.domain.vendor.entity.Vendor;
+import kr.inventory.domain.reference.entity.Vendor;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;

@@ -1,7 +1,7 @@
-package kr.inventory.domain.vendor.controller.dto.request;
+package kr.inventory.domain.reference.controller.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import kr.inventory.domain.vendor.entity.enums.VendorStatus;
+import kr.inventory.domain.reference.entity.enums.VendorStatus;
 
 public record VendorSearchRequest(
         @Schema(description = "상태 필터 (ACTIVE | INACTIVE)", example = "ACTIVE")

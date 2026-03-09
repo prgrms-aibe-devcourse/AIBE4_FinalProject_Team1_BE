@@ -1,8 +1,8 @@
-package kr.inventory.domain.vendor.controller.dto.request;
+package kr.inventory.domain.reference.controller.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
-import kr.inventory.domain.vendor.entity.enums.VendorStatus;
+import kr.inventory.domain.reference.entity.enums.VendorStatus;
 
 public record VendorUpdateRequest(
         @Size(max = 100, message = "담당자명은 100자 이하여야 합니다")

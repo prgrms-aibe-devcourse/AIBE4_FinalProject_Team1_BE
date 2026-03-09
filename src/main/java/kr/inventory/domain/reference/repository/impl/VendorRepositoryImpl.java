@@ -1,4 +1,4 @@
-package kr.inventory.domain.vendor.repository.impl;
+package kr.inventory.domain.reference.repository.impl;
 
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -7,10 +7,10 @@ import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
-import kr.inventory.domain.vendor.entity.QVendor;
-import kr.inventory.domain.vendor.entity.Vendor;
-import kr.inventory.domain.vendor.entity.enums.VendorStatus;
-import kr.inventory.domain.vendor.repository.VendorRepositoryCustom;
+import kr.inventory.domain.reference.entity.QVendor;
+import kr.inventory.domain.reference.entity.Vendor;
+import kr.inventory.domain.reference.entity.enums.VendorStatus;
+import kr.inventory.domain.reference.repository.VendorRepositoryCustom;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static kr.inventory.domain.vendor.entity.QVendor.vendor;
+import static kr.inventory.domain.reference.entity.QVendor.vendor;
 
 @RequiredArgsConstructor
 public class VendorRepositoryImpl implements VendorRepositoryCustom {
