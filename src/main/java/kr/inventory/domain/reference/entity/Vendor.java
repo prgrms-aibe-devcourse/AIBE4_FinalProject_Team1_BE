@@ -1,8 +1,8 @@
-package kr.inventory.domain.vendor.entity;
+package kr.inventory.domain.reference.entity;
 
 import jakarta.persistence.*;
 import kr.inventory.domain.common.AuditableEntity;
-import kr.inventory.domain.vendor.entity.enums.VendorStatus;
+import kr.inventory.domain.reference.entity.enums.VendorStatus;
 import kr.inventory.domain.store.entity.Store;
 import lombok.AccessLevel;
 import lombok.Getter;

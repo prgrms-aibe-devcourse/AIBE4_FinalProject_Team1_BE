@@ -1,6 +1,7 @@
 package kr.inventory.domain.stock.normalization.service;
 
 import kr.inventory.domain.stock.controller.dto.response.BulkProductNormalizeResponse;
+import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.StockInbound;
 import kr.inventory.domain.stock.normalization.model.BulkProductNormalizeResult;
 import kr.inventory.domain.stock.normalization.normalizer.ProductNameNormalized;
@@ -8,6 +9,7 @@ import kr.inventory.domain.stock.normalization.normalizer.ProductNameNormalizer;
 import kr.inventory.domain.stock.entity.StockInboundItem;
 import kr.inventory.domain.stock.exception.StockErrorCode;
 import kr.inventory.domain.stock.exception.StockException;
+import kr.inventory.domain.stock.repository.IngredientStockBatchRepository;
 import kr.inventory.domain.stock.repository.StockInboundItemRepository;
 import kr.inventory.domain.stock.repository.StockInboundRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
@@ -25,6 +27,7 @@ public class ProductNormalizationService {
 
     private final StockInboundItemRepository stockInboundItemRepository;
     private final StockInboundRepository stockInboundRepository;
+    private final IngredientStockBatchRepository ingredientStockBatchRepository;
     private final StoreAccessValidator storeAccessValidator;
     private final ProductNameNormalizer productNameNormalizer;
 
@@ -58,6 +61,11 @@ public class ProductNormalizationService {
 
                 ProductNameNormalized normalizedName = productNameNormalizer.normalize(item.getRawProductName());
                 item.updateProductName(normalizedName.displayName(), normalizedName.productKey());
+
+                List<IngredientStockBatch> batches = ingredientStockBatchRepository.findByInboundItem(item);
+                for (IngredientStockBatch batch : batches) {
+                    batch.updateProductDisplayName(normalizedName.displayName());
+                }
 
                 normalized++;
             } catch (Exception e) {

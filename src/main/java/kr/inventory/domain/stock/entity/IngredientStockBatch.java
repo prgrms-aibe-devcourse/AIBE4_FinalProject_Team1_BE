@@ -60,6 +60,8 @@ public class IngredientStockBatch extends AuditableEntity {
 	@Column(nullable = false, length = 20)
 	private StockBatchStatus status;
 
+	private String productDisplayName;
+
 	public static IngredientStockBatch createFromInbound(
 		Ingredient ingredient,
 		StockInboundItem inboundItem
@@ -80,6 +82,7 @@ public class IngredientStockBatch extends AuditableEntity {
 		batch.unitCost = inboundItem.getUnitCost();
 		batch.expirationDate = inboundItem.getExpirationDate();
 		batch.status = StockBatchStatus.OPEN;
+		batch.productDisplayName = inboundItem.getProductDisplayName();
 		return batch;
 	}
 
@@ -142,5 +145,9 @@ public class IngredientStockBatch extends AuditableEntity {
             this.remainingQuantity = BigDecimal.ZERO;
             this.status = StockBatchStatus.CLOSED;
         }
+    }
+
+    public void updateProductDisplayName(String productDisplayName) {
+        this.productDisplayName = productDisplayName;
     }
 }

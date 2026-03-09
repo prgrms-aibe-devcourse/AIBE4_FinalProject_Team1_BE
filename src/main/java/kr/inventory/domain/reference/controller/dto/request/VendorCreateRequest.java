@@ -1,4 +1,4 @@
-package kr.inventory.domain.vendor.controller.dto.request;
+package kr.inventory.domain.reference.controller.dto.request;
 
 import jakarta.validation.constraints.*;
 
