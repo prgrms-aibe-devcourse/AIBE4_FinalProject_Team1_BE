@@ -21,7 +21,8 @@ public class StockBatchIndexingService {
 	private final StockBatchSearchRepository stockBatchSearchRepository;
 
 	public void index(IngredientStockBatch batch) {
-		IngredientStockBatchDocument doc = IngredientStockBatchDocument.from(batch);
+		IngredientStockBatchDocument doc = IngredientStockBatchDocument.from(batch,
+			batch.getIngredient().getLowStockThreshold());
 		stockBatchSearchRepository.save(doc);
 		log.debug("[ES] 재고 배치 인덱싱 완료 batchId={}", batch.getBatchId());
 	}
