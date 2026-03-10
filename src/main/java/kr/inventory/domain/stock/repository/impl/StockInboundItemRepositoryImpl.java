@@ -2,6 +2,7 @@ package kr.inventory.domain.stock.repository.impl;
 
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import kr.inventory.domain.stock.entity.StockInboundItem;
@@ -52,8 +53,11 @@ public class StockInboundItemRepositoryImpl implements StockInboundItemRepositor
                 .otherwise(0L);
 
         // unitCost가 null일 수 있으므로 coalesce
-        NumberExpression<BigDecimal> lineCost = stockInboundItem.unitCost.coalesce(BigDecimal.ZERO)
+        // 한국 원화는 소수점이 없으므로 ROUND 함수로 정수로 반올림
+        NumberExpression<BigDecimal> lineCostRaw = stockInboundItem.unitCost.coalesce(BigDecimal.ZERO)
                 .multiply(stockInboundItem.quantity.coalesce(BigDecimal.ZERO));
+        NumberExpression<BigDecimal> lineCost = Expressions.numberTemplate(BigDecimal.class,
+                "ROUND({0}, 0)", lineCostRaw);
 
         return queryFactory
                 .select(Projections.constructor(
