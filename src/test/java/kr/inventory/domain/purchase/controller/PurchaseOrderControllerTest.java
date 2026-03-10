@@ -98,8 +98,8 @@ class PurchaseOrderControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.purchaseOrderPublicId").value(purchaseOrderPublicId.toString()))
-                                .andExpect(jsonPath("$.status").value("ORDERED"));
+                                .andExpect(jsonPath("$.data.purchaseOrderPublicId").value(purchaseOrderPublicId.toString()))
+                                .andExpect(jsonPath("$.data.status").value("ORDERED"));
         }
 
         @Test
@@ -126,7 +126,7 @@ class PurchaseOrderControllerTest {
                 mockMvc.perform(get("/api/purchase-orders/{storePublicId}", storePublicId)
                                 .with(user(userDetails)))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.content[0].purchaseOrderPublicId")
+                                .andExpect(jsonPath("$.data.content[0].purchaseOrderPublicId")
                                                 .value(purchaseOrderPublicId.toString()));
         }
 
@@ -155,7 +155,7 @@ class PurchaseOrderControllerTest {
                                 purchaseOrderPublicId)
                                 .with(user(userDetails)))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.purchaseOrderPublicId").value(purchaseOrderPublicId.toString()));
+                                .andExpect(jsonPath("$.data.purchaseOrderPublicId").value(purchaseOrderPublicId.toString()));
         }
 
         @Test
@@ -189,7 +189,7 @@ class PurchaseOrderControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.status").value("ORDERED"));
+                                .andExpect(jsonPath("$.data.status").value("ORDERED"));
         }
 
         @Test
@@ -218,7 +218,7 @@ class PurchaseOrderControllerTest {
                                 .with(user(userDetails))
                                 .with(csrf()))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.status").value("CANCELED"));
+                                .andExpect(jsonPath("$.data.status").value("CANCELED"));
         }
 
         @Test
