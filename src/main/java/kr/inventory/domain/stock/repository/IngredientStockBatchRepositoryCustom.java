@@ -26,4 +26,6 @@ public interface IngredientStockBatchRepositoryCustom {
 	Page<StockSummaryResponse> findStockSummaryList(Long storeId, StockSearchRequest condition, Pageable pageable);
 
 	List<IngredientStockBatch> findAvailableBatchesByStore(Long storeId, UUID ingredientPublicIds);
+
+	Page<IngredientStockBatch> findAll(Pageable pageable);
 }

@@ -6,6 +6,7 @@ import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+
 import jakarta.persistence.LockModeType;
 import kr.inventory.domain.stock.controller.dto.request.StockSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockSummaryResponse;
@@ -14,6 +15,7 @@ import kr.inventory.domain.stock.entity.enums.StockBatchSourceType;
 import kr.inventory.domain.stock.entity.enums.StockBatchStatus;
 import kr.inventory.domain.stock.repository.IngredientStockBatchRepositoryCustom;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.support.PageableExecutionUtils;
@@ -37,19 +39,19 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
 			return Collections.emptyList();
 		}
 
-        NumberExpression<Integer> sourcePriority = new CaseBuilder()
-                .when(
-                        ingredientStockBatch.sourceType.eq(StockBatchSourceType.INBOUND)
-                                .and(ingredientStockBatch.expirationDate.isNotNull())
-                ).then(0)
-                .when(
-                        ingredientStockBatch.sourceType.eq(StockBatchSourceType.INBOUND)
-                                .and(ingredientStockBatch.expirationDate.isNull())
-                ).then(1)
-                .when(
-                        ingredientStockBatch.sourceType.eq(StockBatchSourceType.STOCK_ADJUSTMENT)
-                ).then(2)
-                .otherwise(99);
+		NumberExpression<Integer> sourcePriority = new CaseBuilder()
+			.when(
+				ingredientStockBatch.sourceType.eq(StockBatchSourceType.INBOUND)
+					.and(ingredientStockBatch.expirationDate.isNotNull())
+			).then(0)
+			.when(
+				ingredientStockBatch.sourceType.eq(StockBatchSourceType.INBOUND)
+					.and(ingredientStockBatch.expirationDate.isNull())
+			).then(1)
+			.when(
+				ingredientStockBatch.sourceType.eq(StockBatchSourceType.STOCK_ADJUSTMENT)
+			).then(2)
+			.otherwise(99);
 
 		return queryFactory
 			.selectFrom(ingredientStockBatch)
@@ -60,14 +62,14 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
 				ingredientStockBatch.status.eq(StockBatchStatus.OPEN),
 				ingredientStockBatch.remainingQuantity.gt(BigDecimal.ZERO)
 			)
-            .orderBy(
-                    ingredientStockBatch.ingredient.ingredientId.asc(),
-                    sourcePriority.asc(),
-                    ingredientStockBatch.expirationDate.asc(),
-                    ingredientStockBatch.createdAt.asc()
-            )
-            .setLockMode(LockModeType.PESSIMISTIC_WRITE)
-            .fetch();
+			.orderBy(
+				ingredientStockBatch.ingredient.ingredientId.asc(),
+				sourcePriority.asc(),
+				ingredientStockBatch.expirationDate.asc(),
+				ingredientStockBatch.createdAt.asc()
+			)
+			.setLockMode(LockModeType.PESSIMISTIC_WRITE)
+			.fetch();
 	}
 
 	@Override
@@ -198,5 +200,24 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
 				ingredientStockBatch.createdAt.asc()
 			)
 			.fetch();
+	}
+
+	@Override
+	public Page<IngredientStockBatch> findAll(Pageable pageable) {
+		// 1. 데이터 조회 (Fetch Join으로 N+1 방지)
+		List<IngredientStockBatch> content = queryFactory
+			.selectFrom(ingredientStockBatch)
+			.join(ingredientStockBatch.ingredient).fetchJoin()
+			.join(ingredientStockBatch.store).fetchJoin()
+			.offset(pageable.getOffset())
+			.limit(pageable.getPageSize())
+			.fetch();
+
+		JPAQuery<Long> countQuery = queryFactory
+			.select(ingredientStockBatch.count())
+			.from(ingredientStockBatch);
+
+		// 3. 페이지 객체 생성 (더 이상 필요 없을 때 count 쿼리 생략 최적화)
+		return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
 	}
 }
