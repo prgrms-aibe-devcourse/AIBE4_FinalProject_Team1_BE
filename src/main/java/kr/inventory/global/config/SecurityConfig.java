@@ -63,6 +63,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/dining/**").permitAll()
                         .requestMatchers("/api/orders/**").permitAll()
 
+                        .requestMatchers("/api/mcp-test/**").permitAll()
+
                         // Backoffice APIs
                         .requestMatchers("/api/users/**").authenticated()
                         .requestMatchers("/api/stores/**").authenticated()
