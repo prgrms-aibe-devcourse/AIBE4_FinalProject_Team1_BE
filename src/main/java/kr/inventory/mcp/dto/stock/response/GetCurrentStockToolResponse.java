@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 public record GetCurrentStockToolResponse(
-        int totalCount,
+        long totalCount,
         List<Item> items
 ) {
     public record Item(

@@ -24,7 +24,7 @@ public class StockMcpQueryService {
         long totalCount = stockMcpRepository.countCurrentStockItems(storeId, request.keyword());
 
         return new GetCurrentStockToolResponse(
-                Math.toIntExact(totalCount),
+                totalCount,
                 stockMcpRepository.findCurrentStockItems(storeId, request.keyword(), STOCK_LIST_LIMIT)
         );
     }
