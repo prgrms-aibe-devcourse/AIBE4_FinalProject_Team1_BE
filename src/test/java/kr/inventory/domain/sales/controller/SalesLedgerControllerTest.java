@@ -79,7 +79,7 @@ class SalesLedgerControllerTest {
                         .queryParam("status", "COMPLETED")
                         .queryParam("type", "DINE_IN"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].itemCount").value(2));
+                .andExpect(jsonPath("$.data.content[0].itemCount").value(2));
     }
 
     @Test
@@ -113,7 +113,7 @@ class SalesLedgerControllerTest {
                         .with(csrf())
                         .with(user(userDetails)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.orderPublicId").value(orderPublicId.toString()))
-                .andExpect(jsonPath("$.netAmount").value(23000));
+                .andExpect(jsonPath("$.data.orderPublicId").value(orderPublicId.toString()))
+                .andExpect(jsonPath("$.data.netAmount").value(23000));
     }
 }

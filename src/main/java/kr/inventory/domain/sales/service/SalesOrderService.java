@@ -1,6 +1,7 @@
 package kr.inventory.domain.sales.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import kr.inventory.domain.analytics.service.SalesIndexingService;
 import kr.inventory.domain.dining.entity.DiningTable;
 import kr.inventory.domain.dining.entity.TableSession;
 import kr.inventory.domain.dining.entity.enums.TableSessionStatus;
@@ -25,6 +26,7 @@ import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -37,6 +39,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -48,6 +51,7 @@ public class SalesOrderService {
     private final MenuRepository menuRepository;
     private final StockManagerFacade stockManagerFacade;
     private final StoreAccessValidator storeAccessValidator;
+    private final SalesIndexingService salesIndexingService;
 
     @Transactional
     public SalesOrderResponse createOrder(
@@ -127,6 +131,13 @@ public class SalesOrderService {
 
         // 11. COMPLETED 상태 설정
         savedOrder.updateCompletedAt(OffsetDateTime.now(ZoneOffset.UTC));
+
+        try {
+            // ES 인덱싱
+            salesIndexingService.index(savedOrder, items);
+        } catch (Exception e) {
+            log.error("[ES] 매출 주문 인덱싱 실패 salesOrderId={}", savedOrder.getSalesOrderId(), e);
+        }
 
         return SalesOrderResponse.from(savedOrder, items);
     }
