@@ -62,7 +62,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/table-sessions/**").permitAll()
                         .requestMatchers("/api/dining/**").permitAll()
                         .requestMatchers("/api/orders/**").permitAll()
-
+                        .requestMatchers("/api/chat/**").permitAll()
                         .requestMatchers("/api/mcp-test/**").permitAll()
 
                         // Backoffice APIs

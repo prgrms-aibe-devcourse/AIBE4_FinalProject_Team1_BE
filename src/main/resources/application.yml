@@ -98,6 +98,13 @@ nts:
     connect-timeout: 3000
     read-timeout: 5000
 
+llm:
+  provider: gemini
+  model: gemini-2.5-flash
+  gemini:
+    api-key: ${GEMINI_API_KEY}
+    base-url: https://generativelanguage.googleapis.com/v1beta
+
 gemini:
   api:
     key: ${GEMINI_API_KEY}
