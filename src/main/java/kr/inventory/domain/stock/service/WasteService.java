@@ -2,6 +2,8 @@ package kr.inventory.domain.stock.service;
 
 import java.util.UUID;
 
+import kr.inventory.domain.analytics.service.WasteIndexingService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,7 @@ import kr.inventory.domain.user.exception.UserException;
 import kr.inventory.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class WasteService {
@@ -37,6 +40,7 @@ public class WasteService {
 	private final IngredientStockBatchRepository batchRepository;
 	private final UserRepository userRepository;
 	private final StockLogService stockLogService;
+	private final WasteIndexingService wasteIndexingService;
 
 	@Transactional
 	public void recordWaste(Long userId, UUID storePublicId, WasteRequest request) {
@@ -72,6 +76,13 @@ public class WasteService {
 
 		);
 		wasteRecordRepository.save(wasteRecord);
+
+		try {
+			// ES 인덱싱
+			wasteIndexingService.index(wasteRecord);
+		} catch (Exception e) {
+			log.error("[ES] 폐기 인덱싱 실패 wasteId={}", wasteRecord.getWasteId(), e);
+		}
 
 		stockLogService.logWaste(new StockWasteCommand(
 			store,

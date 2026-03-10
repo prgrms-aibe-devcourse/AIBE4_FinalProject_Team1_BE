@@ -2,6 +2,7 @@ package kr.inventory.domain.sales.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
+import kr.inventory.domain.analytics.service.SalesIndexingService;
 import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.sales.controller.dto.request.SalesOrderCreateRequest;
 import kr.inventory.domain.sales.controller.dto.request.SalesOrderItemRequest;
@@ -56,6 +57,9 @@ class SalesOrderControllerTest {
     @MockitoBean
     private SalesOrderService salesOrderService;
 
+    @MockitoBean
+    private SalesIndexingService salesIndexingService;
+
     @Test
     @WithMockUser
     @DisplayName("주문 생성 API - 성공")
@@ -92,9 +96,9 @@ class SalesOrderControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value("COMPLETED"))
-                .andExpect(jsonPath("$.totalAmount").value(23000))
-                .andExpect(jsonPath("$.tableCode").value("T1"));
+                .andExpect(jsonPath("$.data.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.data.totalAmount").value(23000))
+                .andExpect(jsonPath("$.data.tableCode").value("T1"));
     }
 
     @Test
@@ -230,10 +234,10 @@ class SalesOrderControllerTest {
                         .with(user(userDetails)))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].status").value("COMPLETED"))
-                .andExpect(jsonPath("$.content[0].totalAmount").value(23000))
-                .andExpect(jsonPath("$.totalElements").value(1))
-                .andExpect(jsonPath("$.totalPages").value(1));
+                .andExpect(jsonPath("$.data.content[0].status").value("COMPLETED"))
+                .andExpect(jsonPath("$.data.content[0].totalAmount").value(23000))
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.totalPages").value(1));
     }
 
     @Test
@@ -268,8 +272,8 @@ class SalesOrderControllerTest {
                         .with(user(userDetails)))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.orderPublicId").value(orderPublicId.toString()))
-                .andExpect(jsonPath("$.status").value("COMPLETED"));
+                .andExpect(jsonPath("$.data.orderPublicId").value(orderPublicId.toString()))
+                .andExpect(jsonPath("$.data.status").value("COMPLETED"));
     }
 
     @Test
@@ -304,7 +308,7 @@ class SalesOrderControllerTest {
                         .with(user(userDetails)))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("REFUNDED"))
-                .andExpect(jsonPath("$.refundedAt").exists());
+                .andExpect(jsonPath("$.data.status").value("REFUNDED"))
+                .andExpect(jsonPath("$.data.refundedAt").exists());
     }
 }

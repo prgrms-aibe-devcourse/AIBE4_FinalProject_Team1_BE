@@ -41,8 +41,6 @@ public class SalesOrderController {
                 request
         );
 
-        // TODO: ES 매출 적재
-
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
