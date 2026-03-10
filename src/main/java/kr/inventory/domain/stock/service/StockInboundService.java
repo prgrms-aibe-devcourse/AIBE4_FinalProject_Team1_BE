@@ -1,7 +1,6 @@
 package kr.inventory.domain.stock.service;
 
-import kr.inventory.domain.document.repository.DocumentRepository;
-import kr.inventory.domain.purchase.repository.PurchaseOrderRepository;
+import kr.inventory.domain.analytics.service.StockInboundIndexingService;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.entity.enums.IngredientUnit;
 import kr.inventory.domain.reference.repository.IngredientRepository;
@@ -34,6 +33,7 @@ import kr.inventory.domain.reference.entity.Vendor;
 import kr.inventory.domain.reference.repository.VendorRepository;
 import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -47,6 +47,7 @@ import java.util.stream.Collectors;
 
 import kr.inventory.domain.stock.repository.dto.InboundItemAggregate;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -60,11 +61,12 @@ public class StockInboundService {
     private final StoreRepository storeRepository;
     private final VendorRepository vendorRepository;
     private final UserRepository userRepository;
-    private final DocumentRepository documentRepository;
-    private final PurchaseOrderRepository purchaseOrderRepository;
     private final IngredientRepository ingredientRepository;
     private final IngredientResolutionService ingredientResolutionService;
     private final InboundSpecExtractor inboundSpecExtractor;
+    private final StockLogService stockLogService;
+    private final StockInboundIndexingService stockInboundIndexingService;
+
 
     public StockInboundResponse createManualInbound(Long userId, UUID storePublicId, ManualInboundRequest request) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
@@ -177,8 +179,14 @@ public class StockInboundService {
                     user
             );
 
-            StockLog log = StockLog.createInboundLog(command);
-            stockLogRepository.save(log);
+            stockLogService.logInbound(command);
+        }
+
+        try {
+            // ES 인덱싱
+            stockInboundIndexingService.index(inbound);
+        } catch (Exception e) {
+            log.error("[ES] 입고 인덱싱 실패 inboundId={}", inbound.getInboundId(), e);
         }
     }
 
