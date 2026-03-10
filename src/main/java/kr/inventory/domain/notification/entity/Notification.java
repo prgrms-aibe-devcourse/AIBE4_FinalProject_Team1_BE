@@ -15,7 +15,13 @@ import org.hibernate.type.SqlTypes;
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(name = "notifications")
+@Table(
+        name = "notifications",
+        indexes = {
+                @Index(name = "idx_notifications_user_deleted_created", columnList = "user_id, is_deleted, created_at"),
+                @Index(name = "idx_notifications_user_read_deleted", columnList = "user_id, is_read, is_deleted")
+        }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Notification extends AuditableEntity {
@@ -41,24 +47,19 @@ public class Notification extends AuditableEntity {
     @Column(nullable = false, columnDefinition = "text")
     private String deepLink;
 
-    @Column(nullable = false)
-    private Boolean isRead;
+    @Column(name = "is_read", nullable = false)
+    private boolean read;
 
     private OffsetDateTime readAt;
+
+    @Column(name = "is_deleted", nullable = false)
+    private boolean deleted;
+
+    private OffsetDateTime deletedAt;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
     private JsonNode metadata;
-
-    public static Notification create(
-            User user,
-            NotificationType type,
-            String title,
-            String message,
-            String deepLink
-    ) {
-        return create(user, type, title, message, deepLink, JsonNodeFactory.instance.objectNode());
-    }
 
     public static Notification create(
             User user,
@@ -74,8 +75,27 @@ public class Notification extends AuditableEntity {
         notification.title = title;
         notification.message = message;
         notification.deepLink = deepLink;
-        notification.isRead = false;
-        notification.metadata = (metadata != null) ? metadata : JsonNodeFactory.instance.objectNode();
+        notification.read = false;
+        notification.readAt = null;
+        notification.deleted = false;
+        notification.deletedAt = null;
+        notification.metadata = metadata != null ? metadata : JsonNodeFactory.instance.objectNode();
         return notification;
+    }
+
+    public void markRead(OffsetDateTime readAt) {
+        if (this.deleted || this.read) {
+            return;
+        }
+        this.read = true;
+        this.readAt = readAt;
+    }
+
+    public void softDelete(OffsetDateTime deletedAt) {
+        if (this.deleted) {
+            return;
+        }
+        this.deleted = true;
+        this.deletedAt = deletedAt;
     }
 }

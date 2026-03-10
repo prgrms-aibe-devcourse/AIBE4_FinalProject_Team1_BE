@@ -1,5 +1,7 @@
 package kr.inventory.domain.store.service;
 
+import kr.inventory.domain.notification.service.publish.NotificationPublishCommand;
+import kr.inventory.domain.notification.service.publish.NotificationPublishService;
 import kr.inventory.domain.store.constant.InvitationConstants;
 import kr.inventory.domain.store.controller.dto.request.InvitationAcceptRequest;
 import kr.inventory.domain.store.controller.dto.response.InvitationAcceptResponse;
@@ -43,6 +45,7 @@ public class InvitationService {
     private final StoreRepository storeRepository;
     private final UserRepository userRepository;
     private final InvitationProperties invitationProperties;
+    private final NotificationPublishService notificationPublishService;
 
     @Transactional
     public InvitationCreateResponse createInvitation(Long userId, UUID storePublicId) {
@@ -124,26 +127,67 @@ public class InvitationService {
         Optional<StoreMember> existingMember = storeMemberRepository
                 .findByStoreStoreIdAndUserUserId(store.getStoreId(), userId);
 
+        StoreMember joinedMember;
+        StoreMemberRole role;
+
         if (existingMember.isPresent()) {
             StoreMember member = existingMember.get();
             if (member.getStatus() == StoreMemberStatus.ACTIVE) {
                 throw new StoreException(StoreErrorCode.ALREADY_MEMBER); // 이미 존재하는 멤버일 때, ACTIVE 이면 에러 메시지
             }
             member.updateStatus(StoreMemberStatus.ACTIVE); // INACTIVE 이면, ACTIVE 전환
-            return InvitationAcceptResponse.from(member);
+            joinedMember = member;
+            role = member.getRole();
+        } else {
+            // displayOrder 계산
+            Integer maxDisplayOrder = storeMemberRepository.findMaxDisplayOrderByUserUserId(userId);
+            Integer displayOrder = maxDisplayOrder + 1;
+
+            // 첫 매장 여부 확인
+            boolean isFirstStore = (maxDisplayOrder == -1);
+
+            StoreMember newMember = StoreMember.create(store, user, StoreMemberRole.MEMBER, displayOrder, isFirstStore);
+            joinedMember = storeMemberRepository.save(newMember);
+            role = StoreMemberRole.MEMBER;
         }
 
-        // displayOrder 계산
-        Integer maxDisplayOrder = storeMemberRepository.findMaxDisplayOrderByUserUserId(userId);
-        Integer displayOrder = maxDisplayOrder + 1;
+        // 알림 발송
+        sendInvitationNotifications(user, store, role);
 
-        // 첫 매장 여부 확인
-        boolean isFirstStore = (maxDisplayOrder == -1);
+        return InvitationAcceptResponse.from(joinedMember);
+    }
 
-        StoreMember newMember = StoreMember.create(store, user, StoreMemberRole.MEMBER, displayOrder, isFirstStore);
-        StoreMember saved = storeMemberRepository.save(newMember);
+    private void sendInvitationNotifications(User joinedUser, Store store, StoreMemberRole role) {
+        // 가입 당사자에게 알림
+        notificationPublishService.publish(
+                NotificationPublishCommand.storeMemberRegistered(
+                        joinedUser.getUserId(),
+                        store.getStorePublicId(),
+                        store.getName(),
+                        role.name()
+                )
+        );
 
-        return InvitationAcceptResponse.from(saved);
+        // 대표(OWNER)에게 알림
+        Long ownerUserId = storeMemberRepository.findAllByStoreStoreIdWithUser(store.getStoreId())
+                .stream()
+                .filter(member -> member.getRole() == StoreMemberRole.OWNER && member.getStatus() == StoreMemberStatus.ACTIVE)
+                .map(member -> member.getUser().getUserId())
+                .findFirst()
+                .orElse(null);
+
+        if (ownerUserId != null) {
+            notificationPublishService.publish(
+                    NotificationPublishCommand.storeMemberJoined(
+                            ownerUserId,
+                            store.getStorePublicId(),
+                            store.getName(),
+                            joinedUser.getUserId(),
+                            joinedUser.getName(),
+                            role.name()
+                    )
+            );
+        }
     }
 
     public InvitationItemResponse getActiveInvitation(Long userId, UUID storePublicId) {
