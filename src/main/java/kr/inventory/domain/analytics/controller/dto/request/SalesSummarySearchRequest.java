@@ -6,5 +6,6 @@ import java.time.OffsetDateTime;
 
 public record SalesSummarySearchRequest(
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
-        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to,
+        String interval
 ) {}

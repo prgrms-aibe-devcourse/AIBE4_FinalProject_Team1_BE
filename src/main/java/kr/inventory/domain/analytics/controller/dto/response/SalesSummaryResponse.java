@@ -5,7 +5,11 @@ import java.math.BigDecimal;
 public record SalesSummaryResponse(
         long totalOrderCount,
         BigDecimal totalAmount,
-        BigDecimal averageOrderAmount,  // 객단가
+        BigDecimal averageOrderAmount,
         BigDecimal maxOrderAmount,
-        BigDecimal minOrderAmount
+        BigDecimal minOrderAmount,
+        Double orderCountGrowthRate,
+        Double totalAmountGrowthRate,
+        Double avgAmountGrowthRate,
+        Double maxAmountGrowthRate
 ) {}

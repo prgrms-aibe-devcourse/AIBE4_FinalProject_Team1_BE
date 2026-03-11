@@ -14,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -119,25 +121,73 @@ public class SalesAnalyticsService {
      */
     @Cacheable(
             value = "sales:summary",
-            key = "#storePublicId + ':' + #from.toInstant().toEpochMilli() + ':' + #to.toInstant().toEpochMilli()"
+            key = "#storePublicId + ':' + #from.toInstant().toEpochMilli() + ':' + #to.toInstant().toEpochMilli() + ':' + #interval"
     )
     public SalesSummaryResponse getSalesSummary(
             Long userId,
             UUID storePublicId,
             OffsetDateTime from,
-            OffsetDateTime to
+            OffsetDateTime to,
+            String interval
     ) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
         // 기본값 설정
         OffsetDateTime validFrom = (from != null) ? from : OffsetDateTime.now().minusDays(SalesAnalyticsConstants.DEFAULT_DAYS_BACK);
         OffsetDateTime validTo = (to != null) ? to : OffsetDateTime.now();
+        String validInterval = normalizeInterval(interval);
 
         // Validation
         validateDateRange(validFrom, validTo);
 
         log.debug("[Analytics] 매출 요약 집계 storeId={}", storeId);
-        return salesOrderSearchRepository.aggregateSalesSummary(storeId, validFrom, validTo);
+        
+        // 1. 현재 기간 데이터
+        SalesSummaryResponse current = salesOrderSearchRepository.aggregateSalesSummary(storeId, validFrom, validTo);
+
+        // 2. 이전 기간 계산
+        OffsetDateTime[] previousPeriod = calculatePreviousPeriod(validFrom, validTo, validInterval);
+        
+        // 3. 이전 기간 데이터
+        SalesSummaryResponse previous = salesOrderSearchRepository.aggregateSalesSummary(storeId, previousPeriod[0], previousPeriod[1]);
+
+        // 4. 성장률 계산 및 반환
+        return new SalesSummaryResponse(
+                current.totalOrderCount(),
+                current.totalAmount(),
+                current.averageOrderAmount(),
+                current.maxOrderAmount(),
+                current.minOrderAmount(),
+                calculateGrowthRate(current.totalOrderCount(), previous.totalOrderCount()),
+                calculateGrowthRate(current.totalAmount(), previous.totalAmount()),
+                calculateGrowthRate(current.averageOrderAmount(), previous.averageOrderAmount()),
+                calculateGrowthRate(current.maxOrderAmount(), previous.maxOrderAmount())
+        );
+    }
+
+    private OffsetDateTime[] calculatePreviousPeriod(OffsetDateTime from, OffsetDateTime to, String interval) {
+        long daysDiff = Duration.between(from, to).toDays() + 1;
+
+        return switch (interval) {
+            case "Month" -> new OffsetDateTime[]{from.minusMonths(1), to.minusMonths(1)};
+            case "Week" -> new OffsetDateTime[]{from.minusWeeks(1), to.minusWeeks(1)};
+            default -> new OffsetDateTime[]{from.minusDays(daysDiff), to.minusDays(daysDiff)};
+        };
+    }
+
+    private Double calculateGrowthRate(long current, long previous) {
+        if (previous == 0) return current > 0 ? 100.0 : 0.0;
+        return ((double) (current - previous) / previous) * 100.0;
+    }
+
+    private Double calculateGrowthRate(BigDecimal current, BigDecimal previous) {
+        if (previous == null || previous.compareTo(BigDecimal.ZERO) == 0) {
+            return (current != null && current.compareTo(BigDecimal.ZERO) > 0) ? 100.0 : 0.0;
+        }
+        return current.subtract(previous)
+                .divide(previous, 4, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100))
+                .doubleValue();
     }
 
     // ────────────────────────────────────────────────────────

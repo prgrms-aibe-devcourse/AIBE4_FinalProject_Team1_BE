@@ -271,7 +271,7 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
         if (!hits.hasAggregations() || hits.getTotalHits() == 0) {
             log.debug("No sales data found for the given period");
             return new SalesSummaryResponse(0L, BigDecimal.ZERO, BigDecimal.ZERO,
-                    BigDecimal.ZERO, BigDecimal.ZERO);
+                    BigDecimal.ZERO, BigDecimal.ZERO, null, null, null, null);
         }
 
         ElasticsearchAggregations aggs = (ElasticsearchAggregations) hits.getAggregations();
@@ -302,7 +302,8 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
                 BigDecimal.valueOf(total).setScale(2, RoundingMode.HALF_UP),
                 BigDecimal.valueOf(avg).setScale(2, RoundingMode.HALF_UP),
                 BigDecimal.valueOf(max).setScale(2, RoundingMode.HALF_UP),
-                BigDecimal.valueOf(min).setScale(2, RoundingMode.HALF_UP)
+                BigDecimal.valueOf(min).setScale(2, RoundingMode.HALF_UP),
+                null, null, null, null
         );
 
         log.debug("Sales summary aggregation completed: {}", response);

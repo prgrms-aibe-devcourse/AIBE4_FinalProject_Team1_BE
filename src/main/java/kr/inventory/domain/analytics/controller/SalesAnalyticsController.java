@@ -13,12 +13,10 @@ import kr.inventory.domain.analytics.controller.dto.response.SalesTrendResponse;
 import kr.inventory.domain.analytics.service.SalesAnalyticsService;
 import kr.inventory.domain.auth.security.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -81,7 +79,7 @@ public class SalesAnalyticsController {
     ) {
         SalesSummaryResponse response = salesAnalyticsService.getSalesSummary(
                 principal.getUserId(), storePublicId,
-                request.from(), request.to());
+                request.from(), request.to(), request.interval());
 
         return ResponseEntity.ok(response);
     }
