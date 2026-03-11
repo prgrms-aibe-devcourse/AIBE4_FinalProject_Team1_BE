@@ -27,4 +27,12 @@ public interface SalesOrderRepositoryCustom {
             SalesOrderType type,
             Pageable pageable
     );
+
+    kr.inventory.domain.sales.controller.dto.response.SalesLedgerTotalSummaryResponse calculateSalesLedgerSummary(
+            Long storeId,
+            OffsetDateTime from,
+            OffsetDateTime to,
+            SalesOrderStatus status,
+            SalesOrderType type
+    );
 }

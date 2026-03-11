@@ -7,6 +7,7 @@ import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.sales.controller.dto.request.SalesLedgerSearchRequest;
 import kr.inventory.domain.sales.controller.dto.response.SalesLedgerOrderDetailResponse;
 import kr.inventory.domain.sales.controller.dto.response.SalesLedgerOrderSummaryResponse;
+import kr.inventory.domain.sales.controller.dto.response.SalesLedgerTotalSummaryResponse;
 import kr.inventory.domain.sales.service.SalesLedgerService;
 import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,22 @@ public class SalesLedgerController {
                 storePublicId,
                 request,
                 pageable
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/summary")
+    @Operation(summary = "매출 내역 요약 조회", description = "기간/상태/주문유형 기준으로 매출 합계 데이터를 조회합니다.")
+    public ResponseEntity<SalesLedgerTotalSummaryResponse> getSalesLedgerTotalSummary(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @PathVariable UUID storePublicId,
+            @Valid @ModelAttribute SalesLedgerSearchRequest request
+    ) {
+        SalesLedgerTotalSummaryResponse response = salesLedgerService.getSalesLedgerTotalSummary(
+                principal.getUserId(),
+                storePublicId,
+                request
         );
 
         return ResponseEntity.ok(response);

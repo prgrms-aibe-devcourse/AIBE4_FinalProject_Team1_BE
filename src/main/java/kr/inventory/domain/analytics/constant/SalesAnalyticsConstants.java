@@ -7,7 +7,7 @@ public final class SalesAnalyticsConstants {
     // ==================== Elasticsearch 필드명 ====================
     public static final String FIELD_STORE_ID = "storeId";
     public static final String FIELD_STATUS = "status";
-    public static final String FIELD_COMPLETED_AT = "completedAt";
+    public static final String FIELD_ORDERED_AT = "orderedAt";
     public static final String FIELD_TOTAL_AMOUNT = "totalAmount";
     public static final String FIELD_ITEMS = "items";
     public static final String FIELD_ITEMS_MENU_NAME = "items.menuName";
@@ -31,12 +31,12 @@ public final class SalesAnalyticsConstants {
 
     // ==================== Painless Script ====================
     // KST(Asia/Seoul) 기준으로 요일 추출 (1=Monday, 7=Sunday)
-    // completedAt은 UTC로 저장되므로 withZoneSameInstant으로 KST 변환 후 추출
+    // orderedAt은 UTC로 저장되므로 withZoneSameInstant으로 KST 변환 후 추출
     public static final String SCRIPT_DAY_OF_WEEK =
-            "doc['completedAt'].value.withZoneSameInstant(ZoneId.of('Asia/Seoul')).dayOfWeek.value";
+            "doc['orderedAt'].value.withZoneSameInstant(ZoneId.of('Asia/Seoul')).dayOfWeek.value";
     // KST(Asia/Seoul) 기준으로 시간 추출 (0-23)
     public static final String SCRIPT_HOUR_OF_DAY =
-            "doc['completedAt'].value.withZoneSameInstant(ZoneId.of('Asia/Seoul')).hour";
+            "doc['orderedAt'].value.withZoneSameInstant(ZoneId.of('Asia/Seoul')).hour";
 
     // ==================== 기본값 ====================
     public static final String DEFAULT_CALENDAR_INTERVAL = "day";

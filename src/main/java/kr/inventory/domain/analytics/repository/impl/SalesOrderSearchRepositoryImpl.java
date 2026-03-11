@@ -58,7 +58,7 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
         NativeQuery query = buildBaseQuery(storeId, from, to)
                 .withAggregation(SalesAnalyticsConstants.AGG_BY_DATE, Aggregation.of(a -> a
                         .dateHistogram(dh -> dh
-                                .field(SalesAnalyticsConstants.FIELD_COMPLETED_AT)
+                                .field(SalesAnalyticsConstants.FIELD_ORDERED_AT)
                                 .calendarInterval(interval)
                                 .format(SalesAnalyticsConstants.DATE_FORMAT_YYYY_MM_DD)
                                 .timeZone(SalesAnalyticsConstants.TIMEZONE_KST)
@@ -333,7 +333,7 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
                                     .field(SalesAnalyticsConstants.FIELD_STATUS)
                                     .value(SalesOrderStatus.COMPLETED.name())))
                             .filter(f -> f.range(r -> r.date(d -> d
-                                    .field(SalesAnalyticsConstants.FIELD_COMPLETED_AT)
+                                    .field(SalesAnalyticsConstants.FIELD_ORDERED_AT)
                                     .gte(from.format(SalesAnalyticsConstants.ES_DATE_FORMATTER))
                                     .lte(to.format(SalesAnalyticsConstants.ES_DATE_FORMATTER)))))
                     )
