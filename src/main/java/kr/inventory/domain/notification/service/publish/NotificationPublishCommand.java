@@ -41,8 +41,8 @@ public record NotificationPublishCommand(
             String role
     ) {
         String title = "매장 멤버 가입이 완료되었습니다.";
-        String message = storeName + " 매장에 " + role + " 권한으로 가입되었습니다.";
-        String deepLink = "/stores/" + storePublicId;
+        String message = storeName + " 매장에 가입되었습니다.";
+        String deepLink = null;
 
         ObjectNode metadata = JsonNodeFactory.instance.objectNode();
         metadata.put("storePublicId", storePublicId.toString());
@@ -69,8 +69,8 @@ public record NotificationPublishCommand(
             String role
     ) {
         String title = "새 매장 멤버가 가입했습니다.";
-        String message = joinedUserName + "님이 " + storeName + " 매장에 " + role + " 권한으로 가입했습니다.";
-        String deepLink = "/stores/" + storePublicId + "/members";
+        String message = joinedUserName + "님이 " + storeName + " 매장에 가입했습니다.";
+        String deepLink = "/stores/members";
 
         ObjectNode metadata = JsonNodeFactory.instance.objectNode();
         metadata.put("storePublicId", storePublicId.toString());
