@@ -1,5 +1,7 @@
 package kr.inventory.domain.analytics.constant;
 
+import java.time.format.DateTimeFormatter;
+
 public final class SalesAnalyticsConstants {
 
     // ==================== Elasticsearch 필드명 ====================
@@ -39,6 +41,7 @@ public final class SalesAnalyticsConstants {
     // ==================== 기본값 ====================
     public static final String DEFAULT_CALENDAR_INTERVAL = "day";
     public static final String DATE_FORMAT_YYYY_MM_DD = "yyyy-MM-dd";
+    public static final DateTimeFormatter ES_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
 
     // ==================== 집계 크기 제한 ====================
     public static final int AGGREGATION_SIZE_DAY_OF_WEEK = 7;   // 요일은 7개

@@ -333,8 +333,8 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
                                     .value(SalesOrderStatus.COMPLETED.name())))
                             .filter(f -> f.range(r -> r.date(d -> d
                                     .field(SalesAnalyticsConstants.FIELD_COMPLETED_AT)
-                                    .gte(from.toString())
-                                    .lte(to.toString()))))
+                                    .gte(from.format(SalesAnalyticsConstants.ES_DATE_FORMATTER))
+                                    .lte(to.format(SalesAnalyticsConstants.ES_DATE_FORMATTER)))))
                     )
             );
     }
