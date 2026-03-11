@@ -16,6 +16,7 @@ public record MyStoreResponse(
     String businessRegistrationNumber,
     StoreMemberRole myRole,
     StoreMemberStatus memberStatus,
+    Boolean isDefault,
     OffsetDateTime storeCreatedAt
 ) {
     public static MyStoreResponse from(StoreMember member) {
@@ -27,6 +28,7 @@ public record MyStoreResponse(
             BusinessRegistrationNumberUtil.format(store.getBusinessRegistrationNumber()),
             member.getRole(),
             member.getStatus(),
+            member.getIsDefault(),
             store.getCreatedAt()
         );
     }

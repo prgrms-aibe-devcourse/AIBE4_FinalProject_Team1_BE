@@ -65,4 +65,8 @@ public class StoreMember extends AuditableEntity {
     public void setAsDefault() {
         this.isDefault = true;
     }
+
+    public void unsetAsDefault() {
+        this.isDefault = false;
+    }
 }
