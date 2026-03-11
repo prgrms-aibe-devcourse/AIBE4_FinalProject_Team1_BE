@@ -87,7 +87,7 @@ public class InvitationService {
      * - token 또는 code 중 하나만 허용
      * - REVOKED(취소)면 거절
      * - expiresAt 지났으면 만료 처리 거절
-    * */
+     * */
     @Transactional
     public InvitationAcceptResponse acceptInvitation(Long userId, InvitationAcceptRequest request) {
         boolean hasToken = request != null
@@ -168,26 +168,24 @@ public class InvitationService {
                 )
         );
 
-        // 대표(OWNER)에게 알림
-        Long ownerUserId = storeMemberRepository.findAllByStoreStoreIdWithUser(store.getStoreId())
+        // 대표(OWNER) 전원에게 알림
+        storeMemberRepository.findAllByStoreStoreIdWithUser(store.getStoreId())
                 .stream()
-                .filter(member -> member.getRole() == StoreMemberRole.OWNER && member.getStatus() == StoreMemberStatus.ACTIVE)
+                .filter(member -> member.getRole() == StoreMemberRole.OWNER)
+                .filter(member -> member.getStatus() == StoreMemberStatus.ACTIVE)
                 .map(member -> member.getUser().getUserId())
-                .findFirst()
-                .orElse(null);
-
-        if (ownerUserId != null) {
-            notificationPublishService.publish(
-                    NotificationPublishCommand.storeMemberJoined(
-                            ownerUserId,
-                            store.getStorePublicId(),
-                            store.getName(),
-                            joinedUser.getUserId(),
-                            joinedUser.getName(),
-                            role.name()
-                    )
-            );
-        }
+                .filter(ownerUserId -> !ownerUserId.equals(joinedUser.getUserId()))
+                .distinct()
+                .forEach(ownerUserId -> notificationPublishService.publish(
+                        NotificationPublishCommand.storeMemberJoined(
+                                ownerUserId,
+                                store.getStorePublicId(),
+                                store.getName(),
+                                joinedUser.getUserId(),
+                                joinedUser.getName(),
+                                role.name()
+                        )
+                ));
     }
 
     public InvitationItemResponse getActiveInvitation(Long userId, UUID storePublicId) {
