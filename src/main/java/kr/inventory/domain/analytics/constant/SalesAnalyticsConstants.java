@@ -31,12 +31,11 @@ public final class SalesAnalyticsConstants {
 
     // ==================== Painless Script ====================
     // KST(Asia/Seoul) 기준으로 요일 추출 (1=Monday, 7=Sunday)
-    // orderedAt은 UTC로 저장되므로 withZoneSameInstant으로 KST 변환 후 추출
     public static final String SCRIPT_DAY_OF_WEEK =
-            "doc['orderedAt'].value.withZoneSameInstant(ZoneId.of('Asia/Seoul')).dayOfWeek.value";
+            "doc['orderedAt'].value.withZoneSameInstant(ZoneId.of('" + TIMEZONE_KST + "')).dayOfWeek.value";
     // KST(Asia/Seoul) 기준으로 시간 추출 (0-23)
     public static final String SCRIPT_HOUR_OF_DAY =
-            "doc['orderedAt'].value.withZoneSameInstant(ZoneId.of('Asia/Seoul')).hour";
+            "doc['orderedAt'].value.withZoneSameInstant(ZoneId.of('" + TIMEZONE_KST + "')).hour";
 
     // ==================== 기본값 ====================
     public static final String DEFAULT_CALENDAR_INTERVAL = "day";
