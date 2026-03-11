@@ -56,4 +56,4 @@ nul
 .ssm-logs/
 
 /insert_data.sql
-sessionmanager-bundle/
+/sessionmanager-bundle/
