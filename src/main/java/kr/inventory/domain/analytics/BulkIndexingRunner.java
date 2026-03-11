@@ -71,10 +71,15 @@ public class BulkIndexingRunner implements ApplicationRunner {
 
     // 주문
     private void bulkIndexSalesOrders() {
+        long dbCount = salesOrderRepository.countByStatus(SalesOrderStatus.COMPLETED);
         long esCount = salesOrderSearchRepository.count();
-        if (esCount > 0) {
-            log.info("[ES] sales_orders 인덱스에 데이터 존재({}건), 스킵", esCount);
+        if (esCount > 0 && esCount == dbCount) {
+            log.info("[ES] sales_orders DB({})건 = ES({})건 일치, 스킵", dbCount, esCount);
             return;
+        }
+        if (esCount > 0) {
+            log.info("[ES] sales_orders DB({})건 ≠ ES({})건 불일치, 재인덱싱 시작", dbCount, esCount);
+            salesOrderSearchRepository.deleteAll();
         }
 
         log.info("[ES] sales_orders bulk 인덱싱 시작");
@@ -126,10 +131,15 @@ public class BulkIndexingRunner implements ApplicationRunner {
 
     // 입고
     private void bulkIndexStockInbounds() {
+        long dbCount = stockInboundRepository.countByStatus(InboundStatus.CONFIRMED);
         long esCount = stockInboundSearchRepository.count();
-        if (esCount > 0) {
-            log.info("[ES] stock_inbounds 인덱스에 데이터 존재({}건), 스킵", esCount);
+        if (esCount > 0 && esCount == dbCount) {
+            log.info("[ES] stock_inbounds DB({})건 = ES({})건 일치, 스킵", dbCount, esCount);
             return;
+        }
+        if (esCount > 0) {
+            log.info("[ES] stock_inbounds DB({})건 ≠ ES({})건 불일치, 재인덱싱 시작", dbCount, esCount);
+            stockInboundSearchRepository.deleteAll();
         }
 
         log.info("[ES] stock_inbounds bulk 인덱싱 시작");
@@ -166,10 +176,15 @@ public class BulkIndexingRunner implements ApplicationRunner {
 
     // 입고 로그
     private void bulkIndexStockLogs() {
+        long dbCount = stockLogRepository.count();
         long esCount = stockLogSearchRepository.count();
-        if (esCount > 0) {
-            log.info("[ES] stock_logs 인덱스에 데이터 존재({}건), 스킵", esCount);
+        if (esCount > 0 && esCount == dbCount) {
+            log.info("[ES] stock_logs DB({})건 = ES({})건 일치, 스킵", dbCount, esCount);
             return;
+        }
+        if (esCount > 0) {
+            log.info("[ES] stock_logs DB({})건 ≠ ES({})건 불일치, 재인덱싱 시작", dbCount, esCount);
+            stockLogSearchRepository.deleteAll();
         }
 
         log.info("[ES] stock_logs bulk 인덱싱 시작");
@@ -205,10 +220,15 @@ public class BulkIndexingRunner implements ApplicationRunner {
 
     // 폐기
     private void bulkIndexWasteRecords() {
+        long dbCount = wasteRecordRepository.count();
         long esCount = wasteRecordSearchRepository.count();
-        if (esCount > 0) {
-            log.info("[ES] waste_records 인덱스에 데이터 존재({}건), 스킵", esCount);
+        if (esCount > 0 && esCount == dbCount) {
+            log.info("[ES] waste_records DB({})건 = ES({})건 일치, 스킵", dbCount, esCount);
             return;
+        }
+        if (esCount > 0) {
+            log.info("[ES] waste_records DB({})건 ≠ ES({})건 불일치, 재인덱싱 시작", dbCount, esCount);
+            wasteRecordSearchRepository.deleteAll();
         }
 
         log.info("[ES] waste_records bulk 인덱싱 시작");

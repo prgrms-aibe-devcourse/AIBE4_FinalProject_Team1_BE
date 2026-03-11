@@ -1,0 +1,20 @@
+package kr.inventory.domain.analytics.exception;
+
+import kr.inventory.global.exception.ErrorModel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import org.springframework.http.HttpStatus;
+
+@Getter
+@AllArgsConstructor
+public enum AnalyticsErrorCode implements ErrorModel {
+    INVALID_DATE_RANGE(HttpStatus.BAD_REQUEST, "A001", "조회 시작일은 종료일보다 이전이어야 합니다."),
+    INVALID_INTERVAL(HttpStatus.BAD_REQUEST, "A002", "interval은 day, week, month 중 하나여야 합니다."),
+    DATE_RANGE_TOO_LONG(HttpStatus.BAD_REQUEST, "A003", "조회 기간은 최대 1년까지 가능합니다."),
+    FUTURE_DATE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "A004", "미래 날짜는 조회할 수 없습니다."),
+    INVALID_TOP_N(HttpStatus.BAD_REQUEST, "A005", "topN은 1 이상 100 이하여야 합니다.");
+
+    private final HttpStatus status;
+    private final String code;
+    private final String message;
+}
