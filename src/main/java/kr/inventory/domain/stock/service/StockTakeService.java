@@ -54,6 +54,7 @@ public class StockTakeService {
 	private final StoreRepository storeRepository;
 	private final UserRepository userRepository;
 	private final StockBatchIndexingService stockBatchIndexingService;
+    private final ShortageResolutionService shortageResolutionService;
 
 	@Transactional(readOnly = true)
 	public PageResponse<StockTakeSheetResponse> getStockTakeSheets(
@@ -160,6 +161,13 @@ public class StockTakeService {
 		Map<Long, List<IngredientStockBatch>> batchMap = loadBatchesGroupedByIngredient(storeId, items);
 
 		applyConfirmToItems(ctx, items, batchMap);
+
+        Set<Long> increasedIngredientIds = items.stream()
+                .filter(item -> item.getVarianceQty().signum() > 0)
+                .map(item -> item.getIngredient().getIngredientId())
+                .collect(Collectors.toSet());
+
+        shortageResolutionService.resolveIfFilled(storeId, increasedIngredientIds);
 
 		sheet.confirm();
 	}

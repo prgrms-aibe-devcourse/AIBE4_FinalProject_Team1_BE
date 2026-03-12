@@ -51,4 +51,12 @@ public class StockShortage extends AuditableEntity {
     public static StockShortage createPending(Long storeId, Long salesOrderId, Long ingredientId, BigDecimal requiredAmount, BigDecimal shortageAmount) {
         return new StockShortage(storeId, salesOrderId, ingredientId, requiredAmount, shortageAmount);
     }
+
+    public void resolve() {
+        if (this.status != ShortageStatus.PENDING) {
+            return;
+        }
+
+        this.status = ShortageStatus.RESOLVED;
+    }
 }

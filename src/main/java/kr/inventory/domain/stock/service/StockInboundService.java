@@ -3,8 +3,10 @@ package kr.inventory.domain.stock.service;
 import kr.inventory.domain.analytics.service.StockBatchIndexingService;
 import kr.inventory.domain.analytics.service.StockInboundIndexingService;
 import kr.inventory.domain.reference.entity.Ingredient;
+import kr.inventory.domain.reference.entity.Vendor;
 import kr.inventory.domain.reference.entity.enums.IngredientUnit;
 import kr.inventory.domain.reference.repository.IngredientRepository;
+import kr.inventory.domain.reference.repository.VendorRepository;
 import kr.inventory.domain.stock.controller.dto.request.ManualInboundRequest;
 import kr.inventory.domain.stock.controller.dto.request.StockInboundSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockInboundItemResponse;
@@ -13,29 +15,25 @@ import kr.inventory.domain.stock.controller.dto.response.StockInboundResponse;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.StockInbound;
 import kr.inventory.domain.stock.entity.StockInboundItem;
-import kr.inventory.domain.stock.entity.StockLog;
 import kr.inventory.domain.stock.entity.enums.InboundStatus;
 import kr.inventory.domain.stock.entity.enums.ResolutionStatus;
 import kr.inventory.domain.stock.exception.StockErrorCode;
 import kr.inventory.domain.stock.exception.StockException;
+import kr.inventory.domain.stock.normalization.model.InboundSpecExtractor;
+import kr.inventory.domain.stock.normalization.service.IngredientResolutionService;
 import kr.inventory.domain.stock.repository.IngredientStockBatchRepository;
 import kr.inventory.domain.stock.repository.StockInboundItemRepository;
 import kr.inventory.domain.stock.repository.StockInboundRepository;
-import kr.inventory.domain.stock.repository.StockLogRepository;
-import kr.inventory.domain.stock.normalization.model.InboundSpecExtractor;
-import kr.inventory.domain.stock.normalization.service.IngredientResolutionService;
+import kr.inventory.domain.stock.repository.dto.InboundItemAggregate;
 import kr.inventory.domain.stock.service.command.StockInboundLogCommand;
 import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.repository.StoreRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import kr.inventory.domain.user.entity.User;
 import kr.inventory.domain.user.repository.UserRepository;
-import kr.inventory.domain.reference.entity.Vendor;
-import kr.inventory.domain.reference.repository.VendorRepository;
 import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -46,8 +44,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
-import kr.inventory.domain.stock.repository.dto.InboundItemAggregate;
 
 @Slf4j
 @Service
@@ -68,6 +64,7 @@ public class StockInboundService {
 	private final StockLogService stockLogService;
 	private final StockInboundIndexingService stockInboundIndexingService;
 	private final StockBatchIndexingService stockBatchIndexingService;
+    private final ShortageResolutionService shortageResolutionService;
 
 	public StockInboundResponse createManualInbound(Long userId, UUID storePublicId, ManualInboundRequest request) {
 		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
@@ -168,6 +165,8 @@ public class StockInboundService {
 				item
 			);
 			ingredientStockBatchRepository.save(batch);
+
+            shortageResolutionService.resolveIfFilled(storeId, item.getIngredient().getIngredientId());
 
 			try {
 				stockBatchIndexingService.index(batch);
