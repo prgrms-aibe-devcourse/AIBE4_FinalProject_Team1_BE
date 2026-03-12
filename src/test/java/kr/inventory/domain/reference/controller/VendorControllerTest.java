@@ -90,12 +90,12 @@ class VendorControllerTest {
                                 .content(objectMapper.writeValueAsString(request)))
                                 .andDo(print())
                                 .andExpect(status().isCreated())
-                                .andExpect(jsonPath("$.name").value("신선마트"))
-                                .andExpect(jsonPath("$.contactPerson").value("김철수"))
-                                .andExpect(jsonPath("$.phone").value("010-1234-5678"))
-                                .andExpect(jsonPath("$.email").value("fresh@market.com"))
-                                .andExpect(jsonPath("$.leadTimeDays").value(2))
-                                .andExpect(jsonPath("$.status").value("ACTIVE"));
+                                .andExpect(jsonPath("$.data.name").value("신선마트"))
+                                .andExpect(jsonPath("$.data.contactPerson").value("김철수"))
+                                .andExpect(jsonPath("$.data.phone").value("010-1234-5678"))
+                                .andExpect(jsonPath("$.data.email").value("fresh@market.com"))
+                                .andExpect(jsonPath("$.data.leadTimeDays").value(2))
+                                .andExpect(jsonPath("$.data.status").value("ACTIVE"));
         }
 
         @Test
@@ -148,9 +148,9 @@ class VendorControllerTest {
                                 .param("status", "ACTIVE"))
                                 .andDo(print())
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.content[0].name").value("농협마트"))
-                                .andExpect(jsonPath("$.content[1].name").value("신선마트"))
-                                .andExpect(jsonPath("$.totalElements").value(2));
+                                .andExpect(jsonPath("$.data.content[0].name").value("농협마트"))
+                                .andExpect(jsonPath("$.data.content[1].name").value("신선마트"))
+                                .andExpect(jsonPath("$.data.totalElements").value(2));
         }
 
         @Test
@@ -177,8 +177,8 @@ class VendorControllerTest {
                                 .param("status", "ACTIVE"))
                                 .andDo(print())
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.content[0].name").value("신선마트"))
-                                .andExpect(jsonPath("$.content[0].status").value("ACTIVE"));
+                                .andExpect(jsonPath("$.data.content[0].name").value("신선마트"))
+                                .andExpect(jsonPath("$.data.content[0].status").value("ACTIVE"));
         }
 
         @Test
@@ -208,8 +208,8 @@ class VendorControllerTest {
                                 .with(user(userDetails)))
                                 .andDo(print())
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.name").value("신선마트"))
-                                .andExpect(jsonPath("$.contactPerson").value("김철수"));
+                                .andExpect(jsonPath("$.data.name").value("신선마트"))
+                                .andExpect(jsonPath("$.data.contactPerson").value("김철수"));
         }
 
         @Test
@@ -249,10 +249,10 @@ class VendorControllerTest {
                                 .content(objectMapper.writeValueAsString(request)))
                                 .andDo(print())
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.contactPerson").value("박영수"))
-                                .andExpect(jsonPath("$.phone").value("010-9999-9999"))
-                                .andExpect(jsonPath("$.email").value("updated@market.com"))
-                                .andExpect(jsonPath("$.leadTimeDays").value(3));
+                                .andExpect(jsonPath("$.data.contactPerson").value("박영수"))
+                                .andExpect(jsonPath("$.data.phone").value("010-9999-9999"))
+                                .andExpect(jsonPath("$.data.email").value("updated@market.com"))
+                                .andExpect(jsonPath("$.data.leadTimeDays").value(3));
         }
 
         @Test

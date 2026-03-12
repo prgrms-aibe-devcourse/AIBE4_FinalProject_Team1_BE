@@ -1,5 +1,6 @@
 package kr.inventory.domain.sales.repository;
 
+import kr.inventory.domain.sales.controller.dto.response.SalesLedgerTotalSummaryResponse;
 import kr.inventory.domain.sales.controller.dto.response.SalesOrderResponse;
 import kr.inventory.domain.sales.entity.SalesOrder;
 import kr.inventory.domain.sales.entity.enums.SalesOrderStatus;
@@ -26,5 +27,13 @@ public interface SalesOrderRepositoryCustom {
             SalesOrderStatus status,
             SalesOrderType type,
             Pageable pageable
+    );
+
+    SalesLedgerTotalSummaryResponse calculateSalesLedgerSummary(
+            Long storeId,
+            OffsetDateTime from,
+            OffsetDateTime to,
+            SalesOrderStatus status,
+            SalesOrderType type
     );
 }
