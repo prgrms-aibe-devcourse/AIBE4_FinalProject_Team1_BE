@@ -208,6 +208,13 @@ public class SalesOrderService {
         List<SalesOrderItem> items = salesOrderItemRepository
                 .findBySalesOrderSalesOrderId(order.getSalesOrderId());
 
+        try {
+            // ES 인덱싱
+            salesIndexingService.index(order, items);
+        } catch (Exception e) {
+            log.error("[ES] 환불 주문 인덱싱 실패 salesOrderId={}", order.getSalesOrderId(), e);
+        }
+
         return SalesOrderResponse.from(order, items);
     }
 

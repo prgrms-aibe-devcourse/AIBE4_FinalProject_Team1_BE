@@ -39,13 +39,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (ObjectUtils.isEmpty(isLogout)) {
                 Authentication auth = jwtProvider.getAuthentication(accessToken);
                 SecurityContextHolder.getContext().setAuthentication(auth);
-            }else{
+            } else {
                 setErrorResponse(response, AuthErrorCode.LOGOUT_TOKEN);
                 return;
             }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return false;
+    }
+
+    @Override
+    protected boolean shouldNotFilterErrorDispatch() {
+        return false;
     }
 
     private String resolveToken(HttpServletRequest request) {

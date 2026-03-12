@@ -3,6 +3,7 @@ package kr.inventory.domain.sales.service;
 import kr.inventory.domain.sales.controller.dto.request.SalesLedgerSearchRequest;
 import kr.inventory.domain.sales.controller.dto.response.SalesLedgerOrderDetailResponse;
 import kr.inventory.domain.sales.controller.dto.response.SalesLedgerOrderSummaryResponse;
+import kr.inventory.domain.sales.controller.dto.response.SalesLedgerTotalSummaryResponse;
 import kr.inventory.domain.sales.entity.SalesOrder;
 import kr.inventory.domain.sales.entity.SalesOrderItem;
 import kr.inventory.domain.sales.entity.enums.SalesOrderStatus;
@@ -45,6 +46,7 @@ public class SalesLedgerService {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
         SalesOrderStatus statusFilter = request.status();
 
+        // 1. 페이지 데이터 조회
         Page<SalesOrder> orderPage = salesOrderRepository.findSalesLedgerOrders(
                 storeId,
                 request.from(),
@@ -60,10 +62,30 @@ public class SalesLedgerService {
             Long itemCount = itemCountByOrderId.getOrDefault(order.getSalesOrderId(), 0L);
             BigDecimal refundAmount = calculateRefundAmount(order);
             BigDecimal netAmount = calculateNetAmount(order.getTotalAmount(), refundAmount);
-            return SalesLedgerOrderSummaryResponse.from(order, Math.toIntExact(itemCount), refundAmount, netAmount);
+
+            return SalesLedgerOrderSummaryResponse.from(
+                    order, Math.toIntExact(itemCount), refundAmount, netAmount);
         });
 
         return PageResponse.from(responsePage);
+    }
+
+    public SalesLedgerTotalSummaryResponse getSalesLedgerTotalSummary(
+            Long userId,
+            UUID storePublicId,
+            SalesLedgerSearchRequest request
+    ) {
+        validateSearchPeriod(request.from(), request.to());
+
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
+        return salesOrderRepository.calculateSalesLedgerSummary(
+                storeId,
+                request.from(),
+                request.to(),
+                request.status(),
+                request.type()
+        );
     }
 
     public SalesLedgerOrderDetailResponse getSalesLedgerOrder(

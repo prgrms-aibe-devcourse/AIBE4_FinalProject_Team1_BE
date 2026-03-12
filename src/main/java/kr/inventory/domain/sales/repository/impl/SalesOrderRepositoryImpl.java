@@ -1,8 +1,10 @@
 package kr.inventory.domain.sales.repository.impl;
 
+import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.LockModeType;
+import kr.inventory.domain.sales.controller.dto.response.SalesLedgerTotalSummaryResponse;
 import kr.inventory.domain.sales.entity.SalesOrder;
 import kr.inventory.domain.sales.entity.enums.SalesOrderStatus;
 import kr.inventory.domain.sales.entity.enums.SalesOrderType;
@@ -12,7 +14,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -88,8 +92,8 @@ public class SalesOrderRepositoryImpl implements SalesOrderRepositoryCustom {
     ) {
         BooleanExpression[] conditions = {
                 salesOrder.store.storeId.eq(storeId),
-                salesOrder.orderedAt.goe(from),
-                salesOrder.orderedAt.loe(to),
+                salesOrder.orderedAt.goe(from.withOffsetSameInstant(ZoneOffset.UTC)),
+                salesOrder.orderedAt.loe(to.withOffsetSameInstant(ZoneOffset.UTC)),
                 salesOrderTypeEq(type),
                 salesOrderStatusEq(status)
         };
@@ -111,6 +115,48 @@ public class SalesOrderRepositoryImpl implements SalesOrderRepositoryCustom {
 
         long safeTotalCount = totalCount == null ? 0L : totalCount;
         return new PageImpl<>(orders, pageable, safeTotalCount);
+    }
+
+    @Override
+    public SalesLedgerTotalSummaryResponse calculateSalesLedgerSummary(
+            Long storeId,
+            OffsetDateTime from,
+            OffsetDateTime to,
+            SalesOrderStatus status,
+            SalesOrderType type
+    ) {
+        BooleanExpression[] conditions = {
+                salesOrder.store.storeId.eq(storeId),
+                salesOrder.orderedAt.goe(from.withOffsetSameInstant(ZoneOffset.UTC)),
+                salesOrder.orderedAt.loe(to.withOffsetSameInstant(ZoneOffset.UTC)),
+                salesOrderTypeEq(type),
+                salesOrderStatusEq(status)
+        };
+
+        Tuple results = queryFactory
+                .select(
+                        salesOrder.count(),
+                        salesOrder.totalAmount.sum(),
+                        salesOrder.status.when(SalesOrderStatus.REFUNDED).then(salesOrder.totalAmount).otherwise(BigDecimal.ZERO).sum()
+                )
+                .from(salesOrder)
+                .where(conditions)
+                .fetchOne();
+
+        if (results == null) {
+            return new SalesLedgerTotalSummaryResponse(
+                    0L, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO
+            );
+        }
+
+        long count = results.get(0, Long.class) != null ? results.get(0, Long.class) : 0L;
+        BigDecimal totalAmount = results.get(1, BigDecimal.class) != null ? results.get(1, BigDecimal.class) : BigDecimal.ZERO;
+        BigDecimal totalRefundAmount = results.get(2, BigDecimal.class) != null ? results.get(2, BigDecimal.class) : BigDecimal.ZERO;
+        BigDecimal totalNetAmount = totalAmount.subtract(totalRefundAmount);
+
+        return new SalesLedgerTotalSummaryResponse(
+                count, totalAmount, totalRefundAmount, totalNetAmount
+        );
     }
 
     private BooleanExpression salesOrderTypeEq(SalesOrderType type) {

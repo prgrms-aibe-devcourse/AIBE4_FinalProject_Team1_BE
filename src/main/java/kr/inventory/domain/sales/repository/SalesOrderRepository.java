@@ -16,4 +16,6 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long>, S
     Optional<SalesOrder> findByOrderPublicIdAndStoreStoreId(UUID orderPublicId, Long storeId);
 
     Page<SalesOrder> findByStatus(SalesOrderStatus status, Pageable pageable);
+
+    long countByStatus(SalesOrderStatus status);
 }

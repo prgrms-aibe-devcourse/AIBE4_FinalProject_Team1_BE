@@ -81,6 +81,11 @@ public class StoreMemberService {
 
         targetMember.updateStatus(request.status());
 
+        // INACTIVE 상태로 변경 시 대표 매장 해제
+        if (request.status() == StoreMemberStatus.INACTIVE) {
+            targetMember.unsetAsDefault();
+        }
+
         return StoreMemberResponse.from(targetMember);
     }
 }
