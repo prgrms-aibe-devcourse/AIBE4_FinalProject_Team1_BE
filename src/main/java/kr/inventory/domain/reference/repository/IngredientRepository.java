@@ -35,5 +35,7 @@ public interface IngredientRepository extends JpaRepository<Ingredient, Long>, I
     );
 
     List<Ingredient> findAllByStoreStoreIdAndIngredientPublicIdInAndStatusNot(Long storeId, List<UUID> publicIds, IngredientStatus status);
+
+    List<Ingredient> findByIngredientIdIn(List<Long> ingredientIds);
 }
 
