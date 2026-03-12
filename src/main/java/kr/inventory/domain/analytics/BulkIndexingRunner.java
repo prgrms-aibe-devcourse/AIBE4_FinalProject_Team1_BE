@@ -73,6 +73,7 @@ public class BulkIndexingRunner implements ApplicationRunner {
 		bulkIndexStockInbounds();
 		bulkIndexStockLogs();
 		bulkIndexWasteRecords();
+		bulkIndexStockBatches();
 		log.info("[ES] BulkIndexingRunner 완료");
 	}
 

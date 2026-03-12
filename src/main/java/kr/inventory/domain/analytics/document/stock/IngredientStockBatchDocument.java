@@ -2,6 +2,7 @@ package kr.inventory.domain.analytics.document.stock;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 
 import org.springframework.data.elasticsearch.annotations.DateFormat;
@@ -9,11 +10,14 @@ import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import jakarta.persistence.Id;
+import kr.inventory.domain.analytics.constant.ElasticsearchIndex;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 
-@Document(indexName = "ingredient_stock_batches")
+@Document(indexName = ElasticsearchIndex.STOCK_BATCH)
 public record IngredientStockBatchDocument(
 	@Id
 	String id,
@@ -33,7 +37,8 @@ public record IngredientStockBatchDocument(
 	@Field(type = FieldType.Double)
 	BigDecimal lowStockThreshold,
 
-	@Field(type = FieldType.Date, format = DateFormat.date)
+	@Field(type = FieldType.Date, format = {DateFormat.date, DateFormat.date_time, DateFormat.date_optional_time})
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd['T'HH:mm:ss.SSSX]")
 	LocalDate expirationDate,
 
 	@Field(type = FieldType.Keyword)
