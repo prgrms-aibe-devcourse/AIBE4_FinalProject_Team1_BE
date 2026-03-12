@@ -172,7 +172,7 @@ public class StockInboundService {
 			try {
 				stockBatchIndexingService.index(batch);
 			} catch (Exception e) {
-				log.error("[ES] 입고 인덱싱 실패 inboundId={}", batch.getBatchId(), e);
+log.error("[ES] 입고 인덱싱 실패 batchId={}", batch.getBatchId(), e);
 			}
 
 			BigDecimal balanceAfter = ingredientStockBatchRepository.calculateTotalQuantity(
