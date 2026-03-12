@@ -1,17 +1,17 @@
 package kr.inventory.global.llm.client.gemini;
 
+import java.util.List;
 import kr.inventory.global.llm.client.LlmClient;
 import kr.inventory.global.llm.config.LlmProperties;
 import kr.inventory.global.llm.dto.LlmChatRequest;
 import kr.inventory.global.llm.dto.LlmChatResponse;
+import kr.inventory.global.llm.dto.LlmMessage;
 import kr.inventory.global.llm.dto.gemini.GeminiGenerateContentRequest;
 import kr.inventory.global.llm.dto.gemini.GeminiGenerateContentResponse;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
-
-import java.util.List;
 
 @Component
 public class GeminiLlmClient implements LlmClient {
@@ -69,10 +69,25 @@ public class GeminiLlmClient implements LlmClient {
                     .append("\n\n");
         }
 
-        if (StringUtils.hasText(request.userPrompt())) {
-            sb.append("[USER]\n")
-                    .append(request.userPrompt());
+        if (request.messages() != null) {
+            for (LlmMessage message : request.messages()) {
+                if (message == null || !StringUtils.hasText(message.content())) {
+                    continue;
+                }
+
+                String role = StringUtils.hasText(message.role())
+                        ? message.role().trim().toUpperCase()
+                        : "USER";
+
+                sb.append("[")
+                        .append(role)
+                        .append("]\n")
+                        .append(message.content().trim())
+                        .append("\n\n");
+            }
         }
+
+        sb.append("[ASSISTANT]\n");
 
         return sb.toString();
     }

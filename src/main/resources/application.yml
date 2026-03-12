@@ -109,3 +109,12 @@ gemini:
   api:
     key: ${GEMINI_API_KEY}
     url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent
+
+chat:
+  stream:
+    key: chat:user-message
+    consumer-group: chat-llm-group
+    consumer-name: ${spring.application.name:inventory}-${HOSTNAME:${random.uuid}}
+    poll-count: 10
+    poll-block-seconds: 2
+    poll-fixed-delay-ms: 1000
