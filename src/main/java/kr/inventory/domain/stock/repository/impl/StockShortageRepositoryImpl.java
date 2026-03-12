@@ -4,7 +4,6 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import kr.inventory.domain.stock.controller.dto.request.StockShortageSearchRequest;
-import kr.inventory.domain.stock.entity.QStockShortage;
 import kr.inventory.domain.stock.entity.StockShortage;
 import kr.inventory.domain.stock.entity.enums.ShortageStatus;
 import kr.inventory.domain.stock.repository.StockShortageRepositoryCustom;
@@ -83,16 +82,14 @@ public class StockShortageRepositoryImpl implements StockShortageRepositoryCusto
     @Override
     public Set<Long> findPendingIngredientIds(Long storeId, List<Long> ingredientIds) {
 
-        QStockShortage shortage = QStockShortage.stockShortage;
-
         List<Long> result = queryFactory
-                .select(shortage.ingredientId)
+                .select(stockShortage.ingredientId)
                 .distinct()
-                .from(shortage)
+                .from(stockShortage)
                 .where(
-                        shortage.storeId.eq(storeId),
-                        shortage.ingredientId.in(ingredientIds),
-                        shortage.status.eq(ShortageStatus.PENDING)
+                        stockShortage.storeId.eq(storeId),
+                        stockShortage.ingredientId.in(ingredientIds),
+                        stockShortage.status.eq(ShortageStatus.PENDING)
                 )
                 .fetch();
 
