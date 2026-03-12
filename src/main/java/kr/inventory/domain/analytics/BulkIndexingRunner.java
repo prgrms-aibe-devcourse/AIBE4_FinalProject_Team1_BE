@@ -279,7 +279,7 @@ public class BulkIndexingRunner implements ApplicationRunner {
 		}
 		if (esCount > 0) {
 			log.info("[ES] stock_batch DB({})건 ≠ ES({})건 불일치, 재인덱싱 시작", dbCount, esCount);
-			wasteRecordSearchRepository.deleteAll();
+stockBatchSearchRepository.deleteAll();
 		}
 
 		log.info("[ES] stock_batches bulk 인덱싱 시작");
