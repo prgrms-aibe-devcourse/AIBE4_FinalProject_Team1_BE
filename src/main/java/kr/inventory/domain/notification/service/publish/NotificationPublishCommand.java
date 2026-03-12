@@ -109,7 +109,7 @@ public record NotificationPublishCommand(
         metadata.put("ingredientName", ingredientName);
         metadata.put("currentQuantity", currentQuantity.toPlainString());
         metadata.put("thresholdQuantity", thresholdQuantity.toPlainString());
-        metadata.put("displayPolicy", NotificationDisplayPolicy.INBOX_ONLY.name());
+        metadata.put("displayPolicy", NotificationDisplayPolicy.TOAST_AND_INBOX.name());
 
         return new NotificationPublishCommand(
                 userId,
