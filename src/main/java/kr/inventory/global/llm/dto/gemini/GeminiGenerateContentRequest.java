@@ -7,9 +7,10 @@ public record GeminiGenerateContentRequest(
 ) {
     public record Content(
             List<Part> parts
-    ) {}
-
+    ) {
+    }
     public record Part(
             String text
-    ) {}
+    ) {
+    }
 }

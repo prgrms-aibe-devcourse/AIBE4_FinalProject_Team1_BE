@@ -7,13 +7,16 @@ public record GeminiGenerateContentResponse(
 ) {
     public record Candidate(
             Content content
-    ) {}
+    ) {
+    }
 
     public record Content(
             List<Part> parts
-    ) {}
+    ) {
+    }
 
     public record Part(
             String text
-    ) {}
+    ) {
+    }
 }

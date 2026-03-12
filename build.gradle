@@ -34,6 +34,9 @@ dependencies {
     // Web
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
+    // Web Socket
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+
     // AOP
     implementation 'org.springframework.boot:spring-boot-starter-aop'
 
