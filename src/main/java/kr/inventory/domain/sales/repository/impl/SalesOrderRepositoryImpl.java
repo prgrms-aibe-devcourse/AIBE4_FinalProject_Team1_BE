@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -91,8 +92,8 @@ public class SalesOrderRepositoryImpl implements SalesOrderRepositoryCustom {
     ) {
         BooleanExpression[] conditions = {
                 salesOrder.store.storeId.eq(storeId),
-                salesOrder.orderedAt.goe(from),
-                salesOrder.orderedAt.loe(to),
+                salesOrder.orderedAt.goe(from.withOffsetSameInstant(ZoneOffset.UTC)),
+                salesOrder.orderedAt.loe(to.withOffsetSameInstant(ZoneOffset.UTC)),
                 salesOrderTypeEq(type),
                 salesOrderStatusEq(status)
         };
@@ -126,8 +127,8 @@ public class SalesOrderRepositoryImpl implements SalesOrderRepositoryCustom {
     ) {
         BooleanExpression[] conditions = {
                 salesOrder.store.storeId.eq(storeId),
-                salesOrder.orderedAt.goe(from),
-                salesOrder.orderedAt.loe(to),
+                salesOrder.orderedAt.goe(from.withOffsetSameInstant(ZoneOffset.UTC)),
+                salesOrder.orderedAt.loe(to.withOffsetSameInstant(ZoneOffset.UTC)),
                 salesOrderTypeEq(type),
                 salesOrderStatusEq(status)
         };
