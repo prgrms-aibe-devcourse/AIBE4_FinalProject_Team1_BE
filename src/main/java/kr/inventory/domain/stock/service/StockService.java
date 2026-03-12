@@ -125,17 +125,13 @@ public class StockService {
             Map<Long, List<IngredientStockBatch>> batchGroup,
             List<Long> ingredientIds
     ) {
-        Map<Long, BigDecimal> result = new HashMap<>();
-
-        for (Long ingredientId : ingredientIds) {
-            BigDecimal total = batchGroup.getOrDefault(ingredientId, List.of()).stream()
-                    .map(IngredientStockBatch::getRemainingQuantity)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            result.put(ingredientId, total);
-        }
-
-        return result;
+        return ingredientIds.stream()
+                .collect(Collectors.toMap(
+                        ingredientId -> ingredientId,
+                        ingredientId -> batchGroup.getOrDefault(ingredientId, List.of()).stream()
+                                .map(IngredientStockBatch::getRemainingQuantity)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                ));
     }
 
     private Map<Long, Ingredient> getIngredientMap(List<Long> ingredientIds) {
