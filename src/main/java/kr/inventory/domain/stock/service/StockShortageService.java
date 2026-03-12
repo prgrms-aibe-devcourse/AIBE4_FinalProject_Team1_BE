@@ -1,5 +1,6 @@
 package kr.inventory.domain.stock.service;
 
+import kr.inventory.domain.notification.service.trigger.StockShortageNotificationTriggerService;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.repository.IngredientRepository;
 import kr.inventory.domain.sales.entity.SalesOrder;
@@ -18,10 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -33,11 +31,26 @@ public class StockShortageService {
     private final IngredientRepository ingredientRepository;
     private final SalesOrderRepository salesOrderRepository;
     private final StoreAccessValidator storeAccessValidator;
+    private final StockShortageNotificationTriggerService stockShortageNotificationTriggerService;
 
     @Transactional
-    public void recordShortages(Long storeId, Long salesOrderId,
-                                Map<Long, BigDecimal> usageMap,
-                                Map<Long, BigDecimal> shortageMap) {
+    public void recordShortages(
+            Long storeId,
+            Long salesOrderId,
+            Map<Long, BigDecimal> usageMap,
+            Map<Long, BigDecimal> shortageMap
+    ) {
+        if (shortageMap == null || shortageMap.isEmpty()) {
+            return;
+        }
+
+        List<Long> ingredientIds = shortageMap.keySet().stream().toList();
+
+        Set<Long> alreadyPendingIngredientIds =
+                stockShortageRepository.findPendingIngredientIds(storeId, ingredientIds);
+
+        Map<Long, Ingredient> ingredientMap = ingredientRepository.findAllById(ingredientIds).stream()
+                .collect(Collectors.toMap(Ingredient::getIngredientId, Function.identity()));
 
         List<StockShortage> shortages = shortageMap.entrySet().stream()
                 .map(entry -> {
@@ -56,6 +69,16 @@ public class StockShortageService {
                 .toList();
 
         stockShortageRepository.saveAll(shortages);
+
+        List<Long> newlyShortageIngredientIds = shortageMap.keySet().stream()
+                .filter(ingredientId -> !alreadyPendingIngredientIds.contains(ingredientId))
+                .toList();
+
+        stockShortageNotificationTriggerService.notifyStoreMembersStockShortage(
+                storeId,
+                ingredientMap,
+                newlyShortageIngredientIds
+        );
     }
 
     @Transactional(readOnly = true)
