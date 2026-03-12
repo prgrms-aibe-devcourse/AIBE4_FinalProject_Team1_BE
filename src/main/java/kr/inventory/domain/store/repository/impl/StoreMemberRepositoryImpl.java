@@ -6,7 +6,6 @@ import kr.inventory.domain.store.entity.enums.StoreMemberRole;
 import kr.inventory.domain.store.entity.enums.StoreMemberStatus;
 import kr.inventory.domain.store.repository.StoreMemberRepositoryCustom;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
@@ -51,6 +50,18 @@ public class StoreMemberRepositoryImpl  implements StoreMemberRepositoryCustom  
                 .selectFrom(storeMember)
                 .join(storeMember.user, user).fetchJoin()
                 .where(storeMember.store.storeId.eq(storeId))
+                .fetch();
+    }
+
+    @Override
+    public List<Long> findActiveUserIdsByStoreId(Long storeId) {
+        return queryFactory
+                .select(storeMember.user.userId)
+                .from(storeMember)
+                .where(
+                        storeMember.store.storeId.eq(storeId),
+                        storeMember.status.eq(StoreMemberStatus.ACTIVE)
+                )
                 .fetch();
     }
 

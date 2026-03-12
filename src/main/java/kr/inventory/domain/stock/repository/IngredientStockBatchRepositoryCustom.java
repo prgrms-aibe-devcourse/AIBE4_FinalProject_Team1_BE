@@ -3,16 +3,12 @@ package kr.inventory.domain.stock.repository;
 import kr.inventory.domain.stock.controller.dto.request.StockSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockSummaryResponse;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
-
-import java.math.BigDecimal;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-
+import kr.inventory.domain.stock.service.command.IngredientStockTotal;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+
+import java.math.BigDecimal;
+import java.util.*;
 
 public interface IngredientStockBatchRepositoryCustom {
 	List<IngredientStockBatch> findAvailableBatchesByStoreWithLock(Long storeId, Collection<Long> ingredientIds);
@@ -28,4 +24,5 @@ public interface IngredientStockBatchRepositoryCustom {
 	List<IngredientStockBatch> findAvailableBatchesByStore(Long storeId, UUID ingredientPublicIds);
 
 	Page<IngredientStockBatch> findAll(Pageable pageable);
+    List<IngredientStockTotal> findTotalRemainingByStoreIdAndIngredientIds(Long storeId, List<Long> ingredientIds);
 }

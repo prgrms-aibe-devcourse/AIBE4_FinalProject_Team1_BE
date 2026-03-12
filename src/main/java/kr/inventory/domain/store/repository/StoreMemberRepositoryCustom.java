@@ -16,6 +16,8 @@ public interface StoreMemberRepositoryCustom {
 
     List<StoreMember> findAllByStorePublicIdWithUser(UUID storePublicId);
 
+    List<Long> findActiveUserIdsByStoreId(Long storeId);
+
     boolean isStoreMember(Long storeId, Long userId);
 
     boolean isStoreMemberByPublicId(UUID storePublicId, Long userId);

@@ -11,9 +11,11 @@ import jakarta.persistence.LockModeType;
 import kr.inventory.domain.stock.controller.dto.request.StockSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockSummaryResponse;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
+import kr.inventory.domain.stock.entity.QIngredientStockBatch;
 import kr.inventory.domain.stock.entity.enums.StockBatchSourceType;
 import kr.inventory.domain.stock.entity.enums.StockBatchStatus;
 import kr.inventory.domain.stock.repository.IngredientStockBatchRepositoryCustom;
+import kr.inventory.domain.stock.service.command.IngredientStockTotal;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
@@ -220,4 +222,22 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
 		// 3. 페이지 객체 생성 (더 이상 필요 없을 때 count 쿼리 생략 최적화)
 		return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
 	}
+    @Override
+    public List<IngredientStockTotal> findTotalRemainingByStoreIdAndIngredientIds(Long storeId, List<Long> ingredientIds) {
+        QIngredientStockBatch batch = QIngredientStockBatch.ingredientStockBatch;
+
+        return queryFactory
+                .select(Projections.constructor(
+                        IngredientStockTotal.class,
+                        batch.ingredient.ingredientId,
+                        batch.remainingQuantity.sum()
+                ))
+                .from(batch)
+                .where(
+                        batch.store.storeId.eq(storeId),
+                        batch.ingredient.ingredientId.in(ingredientIds)
+                )
+                .groupBy(batch.ingredient.ingredientId)
+                .fetch();
+    }
 }
