@@ -23,5 +23,6 @@ public interface IngredientStockBatchRepositoryCustom {
 
 	List<IngredientStockBatch> findAvailableBatchesByStore(Long storeId, UUID ingredientPublicIds);
 
+	Page<IngredientStockBatch> findAll(Pageable pageable);
     List<IngredientStockTotal> findTotalRemainingByStoreIdAndIngredientIds(Long storeId, List<Long> ingredientIds);
 }

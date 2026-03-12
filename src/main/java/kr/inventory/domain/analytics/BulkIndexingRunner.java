@@ -1,10 +1,12 @@
 package kr.inventory.domain.analytics;
 
 import kr.inventory.domain.analytics.document.sales.SalesOrderDocument;
+import kr.inventory.domain.analytics.document.stock.IngredientStockBatchDocument;
 import kr.inventory.domain.analytics.document.stock.StockInboundDocument;
 import kr.inventory.domain.analytics.document.stock.StockLogDocument;
 import kr.inventory.domain.analytics.document.stock.WasteRecordDocument;
 import kr.inventory.domain.analytics.repository.SalesOrderSearchRepository;
+import kr.inventory.domain.analytics.repository.StockBatchSearchRepository;
 import kr.inventory.domain.analytics.repository.StockInboundSearchRepository;
 import kr.inventory.domain.analytics.repository.StockLogSearchRepository;
 import kr.inventory.domain.analytics.repository.WasteRecordSearchRepository;
@@ -13,15 +15,18 @@ import kr.inventory.domain.sales.entity.SalesOrderItem;
 import kr.inventory.domain.sales.entity.enums.SalesOrderStatus;
 import kr.inventory.domain.sales.repository.SalesOrderItemRepository;
 import kr.inventory.domain.sales.repository.SalesOrderRepository;
+import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.StockInbound;
 import kr.inventory.domain.stock.entity.StockLog;
 import kr.inventory.domain.stock.entity.WasteRecord;
 import kr.inventory.domain.stock.entity.enums.InboundStatus;
+import kr.inventory.domain.stock.repository.IngredientStockBatchRepository;
 import kr.inventory.domain.stock.repository.StockInboundRepository;
 import kr.inventory.domain.stock.repository.StockLogRepository;
 import kr.inventory.domain.stock.repository.WasteRecordRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
@@ -45,220 +50,267 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class BulkIndexingRunner implements ApplicationRunner {
 
-    private static final int BATCH_SIZE = 500;
+	private static final int BATCH_SIZE = 500;
 
-    private final SalesOrderRepository salesOrderRepository;
-    private final SalesOrderItemRepository salesOrderItemRepository;
-    private final StockInboundRepository stockInboundRepository;
-    private final StockLogRepository stockLogRepository;
-    private final WasteRecordRepository wasteRecordRepository;
+	private final SalesOrderRepository salesOrderRepository;
+	private final SalesOrderItemRepository salesOrderItemRepository;
+	private final StockInboundRepository stockInboundRepository;
+	private final StockLogRepository stockLogRepository;
+	private final WasteRecordRepository wasteRecordRepository;
+	private final IngredientStockBatchRepository ingredientStockBatchRepository;
 
-    private final SalesOrderSearchRepository salesOrderSearchRepository;
-    private final StockInboundSearchRepository stockInboundSearchRepository;
-    private final StockLogSearchRepository stockLogSearchRepository;
-    private final WasteRecordSearchRepository wasteRecordSearchRepository;
+	private final SalesOrderSearchRepository salesOrderSearchRepository;
+	private final StockInboundSearchRepository stockInboundSearchRepository;
+	private final StockLogSearchRepository stockLogSearchRepository;
+	private final WasteRecordSearchRepository wasteRecordSearchRepository;
+	private final StockBatchSearchRepository stockBatchSearchRepository;
 
-    @Override
-    @Transactional(readOnly = true)
-    public void run(ApplicationArguments args) {
-        log.info("[ES] BulkIndexingRunner 시작");
-        bulkIndexSalesOrders();
-        bulkIndexStockInbounds();
-        bulkIndexStockLogs();
-        bulkIndexWasteRecords();
-        log.info("[ES] BulkIndexingRunner 완료");
-    }
+	@Override
+	@Transactional(readOnly = true)
+	public void run(ApplicationArguments args) {
+		log.info("[ES] BulkIndexingRunner 시작");
+		bulkIndexSalesOrders();
+		bulkIndexStockInbounds();
+		bulkIndexStockLogs();
+		bulkIndexWasteRecords();
+		bulkIndexStockBatches();
+		log.info("[ES] BulkIndexingRunner 완료");
+	}
 
-    // 주문
-    private void bulkIndexSalesOrders() {
-        long dbCount = salesOrderRepository.countByStatus(SalesOrderStatus.COMPLETED);
-        long esCount = salesOrderSearchRepository.count();
-        if (esCount > 0 && esCount == dbCount) {
-            log.info("[ES] sales_orders DB({})건 = ES({})건 일치, 스킵", dbCount, esCount);
-            return;
-        }
-        if (esCount > 0) {
-            log.info("[ES] sales_orders DB({})건 ≠ ES({})건 불일치, 재인덱싱 시작", dbCount, esCount);
-            salesOrderSearchRepository.deleteAll();
-        }
+	// 주문
+	private void bulkIndexSalesOrders() {
+		long dbCount = salesOrderRepository.countByStatus(SalesOrderStatus.COMPLETED);
+		long esCount = salesOrderSearchRepository.count();
+		if (esCount > 0 && esCount == dbCount) {
+			log.info("[ES] sales_orders DB({})건 = ES({})건 일치, 스킵", dbCount, esCount);
+			return;
+		}
+		if (esCount > 0) {
+			log.info("[ES] sales_orders DB({})건 ≠ ES({})건 불일치, 재인덱싱 시작", dbCount, esCount);
+			salesOrderSearchRepository.deleteAll();
+		}
 
-        log.info("[ES] sales_orders bulk 인덱싱 시작");
-        int page = 0;
-        int total = 0;
+		log.info("[ES] sales_orders bulk 인덱싱 시작");
+		int page = 0;
+		int total = 0;
 
-        while (true) {
-            Page<SalesOrder> pageResult = salesOrderRepository.findByStatus(
-                    SalesOrderStatus.COMPLETED,
-                    PageRequest.of(page, BATCH_SIZE)
-            );
+		while (true) {
+			Page<SalesOrder> pageResult = salesOrderRepository.findByStatus(
+				SalesOrderStatus.COMPLETED,
+				PageRequest.of(page, BATCH_SIZE)
+			);
 
-            List<SalesOrder> orders = pageResult.getContent();
-            if (orders.isEmpty()) {
-                break;
-            }
+			List<SalesOrder> orders = pageResult.getContent();
+			if (orders.isEmpty()) {
+				break;
+			}
 
-            List<Long> orderIds = orders.stream()
-                    .map(SalesOrder::getSalesOrderId)
-                    .toList();
+			List<Long> orderIds = orders.stream()
+				.map(SalesOrder::getSalesOrderId)
+				.toList();
 
-            List<SalesOrderItem> allItems = salesOrderItemRepository
-                    .findBySalesOrderSalesOrderIdIn(orderIds);
+			List<SalesOrderItem> allItems = salesOrderItemRepository
+				.findBySalesOrderSalesOrderIdIn(orderIds);
 
-            Map<Long, List<SalesOrderItem>> itemsByOrderId = allItems.stream()
-                    .collect(Collectors.groupingBy(
-                            item -> item.getSalesOrder().getSalesOrderId()
-                    ));
+			Map<Long, List<SalesOrderItem>> itemsByOrderId = allItems.stream()
+				.collect(Collectors.groupingBy(
+					item -> item.getSalesOrder().getSalesOrderId()
+				));
 
-            List<SalesOrderDocument> docs = orders.stream()
-                    .map(order -> SalesOrderDocument.from(
-                            order,
-                            itemsByOrderId.getOrDefault(order.getSalesOrderId(), List.of())
-                    ))
-                    .toList();
+			List<SalesOrderDocument> docs = orders.stream()
+				.map(order -> SalesOrderDocument.from(
+					order,
+					itemsByOrderId.getOrDefault(order.getSalesOrderId(), List.of())
+				))
+				.toList();
 
-            salesOrderSearchRepository.saveAll(docs);
-            total += docs.size();
-            log.info("[ES] sales_orders {}건 인덱싱 완료 (누적 {}건)", docs.size(), total);
+			salesOrderSearchRepository.saveAll(docs);
+			total += docs.size();
+			log.info("[ES] sales_orders {}건 인덱싱 완료 (누적 {}건)", docs.size(), total);
 
-            if (!pageResult.hasNext()) {
-                break;
-            }
-            page++;
-        }
+			if (!pageResult.hasNext()) {
+				break;
+			}
+			page++;
+		}
 
-        log.info("[ES] sales_orders 총 {}건 인덱싱 완료", total);
-    }
+		log.info("[ES] sales_orders 총 {}건 인덱싱 완료", total);
+	}
 
-    // 입고
-    private void bulkIndexStockInbounds() {
-        long dbCount = stockInboundRepository.countByStatus(InboundStatus.CONFIRMED);
-        long esCount = stockInboundSearchRepository.count();
-        if (esCount > 0 && esCount == dbCount) {
-            log.info("[ES] stock_inbounds DB({})건 = ES({})건 일치, 스킵", dbCount, esCount);
-            return;
-        }
-        if (esCount > 0) {
-            log.info("[ES] stock_inbounds DB({})건 ≠ ES({})건 불일치, 재인덱싱 시작", dbCount, esCount);
-            stockInboundSearchRepository.deleteAll();
-        }
+	// 입고
+	private void bulkIndexStockInbounds() {
+		long dbCount = stockInboundRepository.countByStatus(InboundStatus.CONFIRMED);
+		long esCount = stockInboundSearchRepository.count();
+		if (esCount > 0 && esCount == dbCount) {
+			log.info("[ES] stock_inbounds DB({})건 = ES({})건 일치, 스킵", dbCount, esCount);
+			return;
+		}
+		if (esCount > 0) {
+			log.info("[ES] stock_inbounds DB({})건 ≠ ES({})건 불일치, 재인덱싱 시작", dbCount, esCount);
+			stockInboundSearchRepository.deleteAll();
+		}
 
-        log.info("[ES] stock_inbounds bulk 인덱싱 시작");
-        int page = 0;
-        int total = 0;
+		log.info("[ES] stock_inbounds bulk 인덱싱 시작");
+		int page = 0;
+		int total = 0;
 
-        while (true) {
-            Page<StockInbound> pageResult = stockInboundRepository.findByStatus(
-                    InboundStatus.CONFIRMED,
-                    PageRequest.of(page, BATCH_SIZE)
-            );
+		while (true) {
+			Page<StockInbound> pageResult = stockInboundRepository.findByStatus(
+				InboundStatus.CONFIRMED,
+				PageRequest.of(page, BATCH_SIZE)
+			);
 
-            List<StockInbound> inbounds = pageResult.getContent();
-            if (inbounds.isEmpty()) {
-                break;
-            }
+			List<StockInbound> inbounds = pageResult.getContent();
+			if (inbounds.isEmpty()) {
+				break;
+			}
 
-            List<StockInboundDocument> docs = inbounds.stream()
-                    .map(StockInboundDocument::from)
-                    .toList();
+			List<StockInboundDocument> docs = inbounds.stream()
+				.map(StockInboundDocument::from)
+				.toList();
 
-            stockInboundSearchRepository.saveAll(docs);
-            total += docs.size();
-            log.info("[ES] stock_inbounds {}건 인덱싱 완료 (누적 {}건)", docs.size(), total);
+			stockInboundSearchRepository.saveAll(docs);
+			total += docs.size();
+			log.info("[ES] stock_inbounds {}건 인덱싱 완료 (누적 {}건)", docs.size(), total);
 
-            if (!pageResult.hasNext()) {
-                break;
-            }
-            page++;
-        }
+			if (!pageResult.hasNext()) {
+				break;
+			}
+			page++;
+		}
 
-        log.info("[ES] stock_inbounds 총 {}건 인덱싱 완료", total);
-    }
+		log.info("[ES] stock_inbounds 총 {}건 인덱싱 완료", total);
+	}
 
-    // 입고 로그
-    private void bulkIndexStockLogs() {
-        long dbCount = stockLogRepository.count();
-        long esCount = stockLogSearchRepository.count();
-        if (esCount > 0 && esCount == dbCount) {
-            log.info("[ES] stock_logs DB({})건 = ES({})건 일치, 스킵", dbCount, esCount);
-            return;
-        }
-        if (esCount > 0) {
-            log.info("[ES] stock_logs DB({})건 ≠ ES({})건 불일치, 재인덱싱 시작", dbCount, esCount);
-            stockLogSearchRepository.deleteAll();
-        }
+	// 입고 로그
+	private void bulkIndexStockLogs() {
+		long dbCount = stockLogRepository.count();
+		long esCount = stockLogSearchRepository.count();
+		if (esCount > 0 && esCount == dbCount) {
+			log.info("[ES] stock_logs DB({})건 = ES({})건 일치, 스킵", dbCount, esCount);
+			return;
+		}
+		if (esCount > 0) {
+			log.info("[ES] stock_logs DB({})건 ≠ ES({})건 불일치, 재인덱싱 시작", dbCount, esCount);
+			stockLogSearchRepository.deleteAll();
+		}
 
-        log.info("[ES] stock_logs bulk 인덱싱 시작");
-        int page = 0;
-        int total = 0;
+		log.info("[ES] stock_logs bulk 인덱싱 시작");
+		int page = 0;
+		int total = 0;
 
-        while (true) {
-            Page<StockLog> pageResult = stockLogRepository.findAll(
-                    PageRequest.of(page, BATCH_SIZE)
-            );
+		while (true) {
+			Page<StockLog> pageResult = stockLogRepository.findAll(
+				PageRequest.of(page, BATCH_SIZE)
+			);
 
-            List<StockLog> logs = pageResult.getContent();
-            if (logs.isEmpty()) {
-                break;
-            }
+			List<StockLog> logs = pageResult.getContent();
+			if (logs.isEmpty()) {
+				break;
+			}
 
-            List<StockLogDocument> docs = logs.stream()
-                    .map(StockLogDocument::from)
-                    .toList();
+			List<StockLogDocument> docs = logs.stream()
+				.map(StockLogDocument::from)
+				.toList();
 
-            stockLogSearchRepository.saveAll(docs);
-            total += docs.size();
-            log.info("[ES] stock_logs {}건 인덱싱 완료 (누적 {}건)", docs.size(), total);
+			stockLogSearchRepository.saveAll(docs);
+			total += docs.size();
+			log.info("[ES] stock_logs {}건 인덱싱 완료 (누적 {}건)", docs.size(), total);
 
-            if (!pageResult.hasNext()) {
-                break;
-            }
-            page++;
-        }
+			if (!pageResult.hasNext()) {
+				break;
+			}
+			page++;
+		}
 
-        log.info("[ES] stock_logs 총 {}건 인덱싱 완료", total);
-    }
+		log.info("[ES] stock_logs 총 {}건 인덱싱 완료", total);
+	}
 
-    // 폐기
-    private void bulkIndexWasteRecords() {
-        long dbCount = wasteRecordRepository.count();
-        long esCount = wasteRecordSearchRepository.count();
-        if (esCount > 0 && esCount == dbCount) {
-            log.info("[ES] waste_records DB({})건 = ES({})건 일치, 스킵", dbCount, esCount);
-            return;
-        }
-        if (esCount > 0) {
-            log.info("[ES] waste_records DB({})건 ≠ ES({})건 불일치, 재인덱싱 시작", dbCount, esCount);
-            wasteRecordSearchRepository.deleteAll();
-        }
+	// 폐기
+	private void bulkIndexWasteRecords() {
+		long dbCount = wasteRecordRepository.count();
+		long esCount = wasteRecordSearchRepository.count();
+		if (esCount > 0 && esCount == dbCount) {
+			log.info("[ES] waste_records DB({})건 = ES({})건 일치, 스킵", dbCount, esCount);
+			return;
+		}
+		if (esCount > 0) {
+			log.info("[ES] waste_records DB({})건 ≠ ES({})건 불일치, 재인덱싱 시작", dbCount, esCount);
+			wasteRecordSearchRepository.deleteAll();
+		}
 
-        log.info("[ES] waste_records bulk 인덱싱 시작");
-        int page = 0;
-        int total = 0;
+		log.info("[ES] waste_records bulk 인덱싱 시작");
+		int page = 0;
+		int total = 0;
 
-        while (true) {
-            Page<WasteRecord> pageResult = wasteRecordRepository.findAll(
-                    PageRequest.of(page, BATCH_SIZE)
-            );
+		while (true) {
+			Page<WasteRecord> pageResult = wasteRecordRepository.findAll(
+				PageRequest.of(page, BATCH_SIZE)
+			);
 
-            List<WasteRecord> records = pageResult.getContent();
-            if (records.isEmpty()) {
-                break;
-            }
+			List<WasteRecord> records = pageResult.getContent();
+			if (records.isEmpty()) {
+				break;
+			}
 
-            List<WasteRecordDocument> docs = records.stream()
-                    .map(WasteRecordDocument::from)
-                    .toList();
+			List<WasteRecordDocument> docs = records.stream()
+				.map(WasteRecordDocument::from)
+				.toList();
 
-            wasteRecordSearchRepository.saveAll(docs);
-            total += docs.size();
-            log.info("[ES] waste_records {}건 인덱싱 완료 (누적 {}건)", docs.size(), total);
+			wasteRecordSearchRepository.saveAll(docs);
+			total += docs.size();
+			log.info("[ES] waste_records {}건 인덱싱 완료 (누적 {}건)", docs.size(), total);
 
-            if (!pageResult.hasNext()) {
-                break;
-            }
-            page++;
-        }
+			if (!pageResult.hasNext()) {
+				break;
+			}
+			page++;
+		}
 
-        log.info("[ES] waste_records 총 {}건 인덱싱 완료", total);
-    }
+		log.info("[ES] waste_records 총 {}건 인덱싱 완료", total);
+	}
+
+	private void bulkIndexStockBatches() {
+		long dbCount = ingredientStockBatchRepository.count();
+		long esCount = stockBatchSearchRepository.count();
+		if (esCount > 0 && esCount == dbCount) {
+			log.info("[ES] stock_batch DB({})건 = ES({})건 일치, 스킵", dbCount, esCount);
+			return;
+		}
+		if (esCount > 0) {
+			log.info("[ES] stock_batch DB({})건 ≠ ES({})건 불일치, 재인덱싱 시작", dbCount, esCount);
+stockBatchSearchRepository.deleteAll();
+		}
+
+		log.info("[ES] stock_batches bulk 인덱싱 시작");
+		int page = 0;
+		int total = 0;
+
+		while (true) {
+			// QueryDSL로 구현한 Fetch Join 메서드 호출
+			Page<IngredientStockBatch> pageResult = ingredientStockBatchRepository.findAll(
+				PageRequest.of(page, BATCH_SIZE)
+			);
+
+			List<IngredientStockBatch> batches = pageResult.getContent();
+			if (batches.isEmpty())
+				break;
+
+			List<IngredientStockBatchDocument> docs = batches.stream()
+				.map(batch -> IngredientStockBatchDocument.from(
+					batch,
+					batch.getIngredient().getLowStockThreshold()
+				))
+				.toList();
+
+			stockBatchSearchRepository.saveAll(docs);
+
+			log.info("[ES] StockBatch {}건 인덱싱 완료", docs.size());
+			if (!pageResult.hasNext())
+				break;
+			page++;
+		}
+		log.info("[ES] stock_batches 총 {}건 인덱싱 완료", total);
+	}
+
 }
