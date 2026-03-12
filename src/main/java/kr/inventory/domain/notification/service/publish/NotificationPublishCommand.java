@@ -120,4 +120,46 @@ public record NotificationPublishCommand(
                 metadata
         );
     }
+
+    public static NotificationPublishCommand stockShortageDetected(
+            Long userId,
+            UUID storePublicId,
+            UUID ingredientPublicId,
+            String ingredientName,
+            BigDecimal requiredQuantity,
+            BigDecimal availableQuantity,
+            BigDecimal shortageQuantity
+    ){
+        String title = "재고 부족 발생";
+        String message = String.format(ingredientName + "[%s] 재고가 부족합니다. 요청 수량: %s, 현재 재고: %s, 부족 수량: %s", ingredientName,
+                toPlain(requiredQuantity),
+                toPlain(availableQuantity),
+                toPlain(shortageQuantity)
+        );
+        String deepLink = "/stock/shortages";
+
+        ObjectNode metadata = JsonNodeFactory.instance.objectNode();
+        metadata.put("storePublicId", storePublicId.toString());
+        metadata.put("ingredientPublicId", ingredientPublicId.toString());
+        metadata.put("ingredientName", ingredientName);
+        metadata.put("requiredQuantity", requiredQuantity.toPlainString());
+        metadata.put("availableQuantity", availableQuantity.toPlainString());
+        metadata.put("shortageQuantity", shortageQuantity.toPlainString());
+        metadata.put("displayPolicy", NotificationDisplayPolicy.TOAST_AND_INBOX.name());
+
+        return new NotificationPublishCommand(
+                userId,
+                NotificationType.STOCK_SHORTAGE_DETECTED,
+                title,
+                message,
+                deepLink,
+                metadata
+        );
+    }
+
+    private static String toPlain(BigDecimal value) {
+        return value == null
+                ? "0"
+                : value.stripTrailingZeros().toPlainString();
+    }
 }

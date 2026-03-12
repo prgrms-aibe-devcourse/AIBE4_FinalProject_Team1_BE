@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Set;
 
 public interface StockShortageRepositoryCustom {
     Page<Long> findDistinctSalesOrderIdsByStoreId(Long storeId, StockShortageSearchRequest searchRequest, Pageable pageable);
@@ -14,4 +15,6 @@ public interface StockShortageRepositoryCustom {
             List<Long> salesOrderIds,
             StockShortageSearchRequest searchRequest
     );
+
+    Set<Long> findPendingIngredientIds(Long storeId, List<Long> ingredientIds);
 }

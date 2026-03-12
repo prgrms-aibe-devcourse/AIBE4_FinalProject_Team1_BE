@@ -4,7 +4,9 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import kr.inventory.domain.stock.controller.dto.request.StockShortageSearchRequest;
+import kr.inventory.domain.stock.entity.QStockShortage;
 import kr.inventory.domain.stock.entity.StockShortage;
+import kr.inventory.domain.stock.entity.enums.ShortageStatus;
 import kr.inventory.domain.stock.repository.StockShortageRepositoryCustom;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -12,7 +14,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.support.PageableExecutionUtils;
 
 import java.time.OffsetDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static kr.inventory.domain.stock.entity.QStockShortage.stockShortage;
 
@@ -74,5 +78,24 @@ public class StockShortageRepositoryImpl implements StockShortageRepositoryCusto
 
     private BooleanExpression createdAtLoe(OffsetDateTime to) {
         return to != null ? stockShortage.createdAt.loe(to) : null;
+    }
+
+    @Override
+    public Set<Long> findPendingIngredientIds(Long storeId, List<Long> ingredientIds) {
+
+        QStockShortage shortage = QStockShortage.stockShortage;
+
+        List<Long> result = queryFactory
+                .select(shortage.ingredientId)
+                .distinct()
+                .from(shortage)
+                .where(
+                        shortage.storeId.eq(storeId),
+                        shortage.ingredientId.in(ingredientIds),
+                        shortage.status.eq(ShortageStatus.PENDING)
+                )
+                .fetch();
+
+        return new HashSet<>(result);
     }
 }
