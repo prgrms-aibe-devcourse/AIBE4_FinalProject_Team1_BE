@@ -1,12 +1,14 @@
 package kr.inventory.domain.stock.service;
 
+import kr.inventory.domain.notification.service.trigger.StockThresholdNotificationTriggerService;
+import kr.inventory.domain.reference.entity.Ingredient;
+import kr.inventory.domain.reference.repository.IngredientRepository;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
-import kr.inventory.domain.stock.entity.StockInboundItem;
 import kr.inventory.domain.stock.repository.IngredientStockBatchRepository;
+import kr.inventory.domain.stock.service.command.IngredientStockTotal;
 import kr.inventory.domain.stock.service.command.StockDeductionLogCommand;
 import kr.inventory.domain.stock.service.command.StockDeductionRequest;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,10 +23,15 @@ import java.util.stream.Collectors;
 @Transactional
 public class StockService {
 	private final IngredientStockBatchRepository ingredientStockBatchRepository;
+    private final IngredientRepository ingredientRepository;
+    private final StockThresholdNotificationTriggerService stockThresholdNotificationTriggerService;
 	private final StockLogService stockLogService;
 
 	public Map<Long, BigDecimal> deductStockWithFEFO(StockDeductionRequest request) {
 		List<Long> sortedIds = getSortedIngredientIds(request.usageMap());
+
+        Map<Long, BigDecimal> beforeStockMap = getCurrentStockMap(request.storeId(), sortedIds);
+        Map<Long, Ingredient> ingredientMap = getIngredientMap(sortedIds);
 
 		Map<Long, List<IngredientStockBatch>> batchGroup = fetchBatchesGroupedById(request.storeId(), sortedIds);
 
@@ -40,6 +47,17 @@ public class StockService {
 				shortageMap.put(ingredientId, remainingShortage);
 			}
 		}
+
+        Map<Long, BigDecimal> afterStockMap = getCurrentStockMapFromBatches(batchGroup, sortedIds);
+
+        triggerBelowThresholdNotifications(
+                request.storeId(),
+                sortedIds,
+                beforeStockMap,
+                afterStockMap,
+                ingredientMap
+        );
+
 		return shortageMap;
 	}
 
@@ -82,4 +100,76 @@ public class StockService {
 
 		return remaining;
 	}
+
+    private Map<Long, BigDecimal> getCurrentStockMap(Long storeId, List<Long> ingredientIds) {
+        Map<Long, BigDecimal> result = new HashMap<>();
+
+        List<IngredientStockTotal> totals =
+                ingredientStockBatchRepository.findTotalRemainingByStoreIdAndIngredientIds(storeId, ingredientIds);
+
+        for (IngredientStockTotal total : totals) {
+            result.put(
+                    total.ingredientId(),
+                    total.totalQuantity() == null ? BigDecimal.ZERO : total.totalQuantity()
+            );
+        }
+
+        for (Long ingredientId : ingredientIds) {
+            result.putIfAbsent(ingredientId, BigDecimal.ZERO);
+        }
+
+        return result;
+    }
+
+    private Map<Long, BigDecimal> getCurrentStockMapFromBatches(
+            Map<Long, List<IngredientStockBatch>> batchGroup,
+            List<Long> ingredientIds
+    ) {
+        return ingredientIds.stream()
+                .collect(Collectors.toMap(
+                        ingredientId -> ingredientId,
+                        ingredientId -> batchGroup.getOrDefault(ingredientId, List.of()).stream()
+                                .map(IngredientStockBatch::getRemainingQuantity)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                ));
+    }
+
+    private Map<Long, Ingredient> getIngredientMap(List<Long> ingredientIds) {
+        return ingredientRepository.findByIngredientIdIn(ingredientIds).stream()
+                .collect(Collectors.toMap(Ingredient::getIngredientId, ingredient -> ingredient));
+    }
+
+    private void triggerBelowThresholdNotifications(
+            Long storeId,
+            List<Long> ingredientIds,
+            Map<Long, BigDecimal> beforeStockMap,
+            Map<Long, BigDecimal> afterStockMap,
+            Map<Long, Ingredient> ingredientMap
+    ) {
+        for (Long ingredientId : ingredientIds) {
+            Ingredient ingredient = ingredientMap.get(ingredientId);
+            if (ingredient == null) {
+                continue;
+            }
+
+            BigDecimal threshold = ingredient.getLowStockThreshold();
+            if (threshold == null) {
+                continue;
+            }
+
+            BigDecimal before = beforeStockMap.getOrDefault(ingredientId, BigDecimal.ZERO);
+            BigDecimal after = afterStockMap.getOrDefault(ingredientId, BigDecimal.ZERO);
+
+            boolean crossedBelowThreshold =
+                    before.compareTo(threshold) >= 0 && after.compareTo(threshold) < 0;
+
+            if (crossedBelowThreshold) {
+                stockThresholdNotificationTriggerService.notifyStoreMembersBelowThreshold(
+                        storeId,
+                        ingredient,
+                        after
+                );
+            }
+        }
+    }
 }
