@@ -438,7 +438,7 @@ public class StockTakeService {
 		try {
 			stockBatchIndexingService.index(adjustmentBatch);
 		} catch (Exception e) {
-			log.error("[ES] 입고 인덱싱 실패 inboundId={}", adjustmentBatch.getBatchId(), e);
+log.error("[ES] 입고 인덱싱 실패 batchId={}", adjustmentBatch.getBatchId(), e);
 		}
 
 		stockLogService.logInbound(
