@@ -131,7 +131,7 @@ public record NotificationPublishCommand(
             BigDecimal shortageQuantity
     ){
         String title = "재고 부족 발생";
-        String message = String.format(ingredientName + "[%s] 재고가 부족합니다. 요청 수량: %s, 현재 재고: %s, 부족 수량: %s", ingredientName,
+        String message = String.format("[%s] 재고가 부족합니다. 요청 수량: %s, 현재 재고: %s, 부족 수량: %s", ingredientName,
                 toPlain(requiredQuantity),
                 toPlain(availableQuantity),
                 toPlain(shortageQuantity)
