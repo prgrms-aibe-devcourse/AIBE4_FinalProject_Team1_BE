@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -22,42 +22,39 @@ public class StockShortageNotificationTriggerService {
 
     public void notifyStoreMembersStockShortage(
             Long storeId,
-            Map<Long, BigDecimal> usageMap,
-            Map<Long, BigDecimal> shortageMap,
-            Map<Long, Ingredient> ingredientMap
+            Map<Long, Ingredient> ingredientMap,
+            List<Long> newlyShortageIngredientIds
     ) {
-        if (shortageMap == null || shortageMap.isEmpty()) {
+        if (newlyShortageIngredientIds == null || newlyShortageIngredientIds.isEmpty()) {
             return;
         }
 
+        List<Ingredient> ingredients = newlyShortageIngredientIds.stream()
+                .map(ingredientMap::get)
+                .filter(java.util.Objects::nonNull)
+                .sorted(Comparator.comparing(Ingredient::getName))
+                .toList();
+
+        if (ingredients.isEmpty()) {
+            return;
+        }
+
+        Ingredient firstIngredient = ingredients.get(0);
+        List<String> ingredientNames = ingredients.stream()
+                .map(Ingredient::getName)
+                .toList();
+
         List<Long> memberUserIds = storeMemberQueryService.findActiveMemberUserIds(storeId);
 
-        for (Map.Entry<Long, BigDecimal> entry : shortageMap.entrySet()) {
-            Long ingredientId = entry.getKey();
-            BigDecimal shortageQuantity = entry.getValue();
+        for (Long userId : memberUserIds) {
+            NotificationPublishCommand command =
+                    NotificationPublishCommand.stockShortageDetectedGrouped(
+                            userId,
+                            firstIngredient.getStore().getStorePublicId(),
+                            ingredientNames
+                    );
 
-            Ingredient ingredient = ingredientMap.get(ingredientId);
-            if (ingredient == null) {
-                continue;
-            }
-
-            BigDecimal requiredQuantity = usageMap.getOrDefault(ingredientId, BigDecimal.ZERO);
-            BigDecimal availableQuantity = requiredQuantity.subtract(shortageQuantity);
-
-            for (Long userId : memberUserIds) {
-                NotificationPublishCommand command =
-                        NotificationPublishCommand.stockShortageDetected(
-                                userId,
-                                ingredient.getStore().getStorePublicId(),
-                                ingredient.getIngredientPublicId(),
-                                ingredient.getName(),
-                                requiredQuantity,
-                                availableQuantity.max(BigDecimal.ZERO),
-                                shortageQuantity
-                        );
-
-                notificationPublishService.publish(command);
-            }
+            notificationPublishService.publish(command);
         }
     }
 }

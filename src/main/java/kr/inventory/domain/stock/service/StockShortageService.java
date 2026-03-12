@@ -70,18 +70,14 @@ public class StockShortageService {
 
         stockShortageRepository.saveAll(shortages);
 
-        Map<Long, BigDecimal> newlyEnteredShortageMap = shortageMap.entrySet().stream()
-                .filter(entry -> !alreadyPendingIngredientIds.contains(entry.getKey()))
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue
-                ));
+        List<Long> newlyShortageIngredientIds = shortageMap.keySet().stream()
+                .filter(ingredientId -> !alreadyPendingIngredientIds.contains(ingredientId))
+                .toList();
 
         stockShortageNotificationTriggerService.notifyStoreMembersStockShortage(
                 storeId,
-                usageMap,
-                newlyEnteredShortageMap,
-                ingredientMap
+                ingredientMap,
+                newlyShortageIngredientIds
         );
     }
 
