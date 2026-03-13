@@ -2,5 +2,5 @@ package kr.inventory.domain.stock.entity.enums;
 
 public enum ShortageStatus {
     PENDING,
-    RESOLVED
+    CLOSED
 }

@@ -52,11 +52,11 @@ public class StockShortage extends AuditableEntity {
         return new StockShortage(storeId, salesOrderId, ingredientId, requiredAmount, shortageAmount);
     }
 
-    public void resolve() {
+    public void close() {
         if (this.status != ShortageStatus.PENDING) {
             return;
         }
 
-        this.status = ShortageStatus.RESOLVED;
+        this.status = ShortageStatus.CLOSED;
     }
 }

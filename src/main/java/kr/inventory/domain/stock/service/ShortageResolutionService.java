@@ -20,7 +20,7 @@ public class ShortageResolutionService {
     private final StockShortageRepository stockShortageRepository;
     private final IngredientStockBatchRepository ingredientStockBatchRepository;
 
-    public void resolveIfFilled(Long storeId, Long ingredientId) {
+    public void clearPendingShortagesIfStockAvailable(Long storeId, Long ingredientId) {
         BigDecimal currentStock = ingredientStockBatchRepository.calculateTotalQuantity(storeId, ingredientId);
         if (currentStock == null) {
             currentStock = BigDecimal.ZERO;
@@ -33,18 +33,18 @@ public class ShortageResolutionService {
 
         for (StockShortage shortage : pendingShortages) {
             if (currentStock.compareTo(shortage.getShortageAmount()) >= 0) {
-                shortage.resolve();
+                shortage.close();
             }
         }
     }
 
-    public void resolveIfFilled(Long storeId, Collection<Long> ingredientIds) {
+    public void clearPendingShortagesIfStockAvailable(Long storeId, Collection<Long> ingredientIds) {
         if (ingredientIds == null || ingredientIds.isEmpty()) {
             return;
         }
 
         for (Long ingredientId : ingredientIds) {
-            resolveIfFilled(storeId, ingredientId);
+            clearPendingShortagesIfStockAvailable(storeId, ingredientId);
         }
     }
 }

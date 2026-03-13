@@ -166,7 +166,7 @@ public class StockInboundService {
 			);
 			ingredientStockBatchRepository.save(batch);
 
-            shortageResolutionService.resolveIfFilled(storeId, item.getIngredient().getIngredientId());
+            shortageResolutionService.clearPendingShortagesIfStockAvailable(storeId, item.getIngredient().getIngredientId());
 
 			try {
 				stockBatchIndexingService.index(batch);
