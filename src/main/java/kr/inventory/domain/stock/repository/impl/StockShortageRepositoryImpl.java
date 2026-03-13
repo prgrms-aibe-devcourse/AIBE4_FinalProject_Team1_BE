@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.support.PageableExecutionUtils;
 
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -94,5 +95,18 @@ public class StockShortageRepositoryImpl implements StockShortageRepositoryCusto
                 .fetch();
 
         return new HashSet<>(result);
+    }
+
+    @Override
+    public List<StockShortage> findPendingShortages(Long storeId, Collection<Long> ingredientIds, ShortageStatus status) {
+        return queryFactory
+                .selectFrom(stockShortage)
+                .where(
+                        stockShortage.storeId.eq(storeId),
+                        stockShortage.ingredientId.in(ingredientIds),
+                        stockShortage.status.eq(status)
+                )
+                .orderBy(stockShortage.ingredientId.asc(), stockShortage.createdAt.asc())
+                .fetch();
     }
 }

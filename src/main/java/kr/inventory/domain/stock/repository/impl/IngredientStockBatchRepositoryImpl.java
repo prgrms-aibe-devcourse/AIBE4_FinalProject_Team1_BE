@@ -6,7 +6,6 @@ import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-
 import jakarta.persistence.LockModeType;
 import kr.inventory.domain.stock.controller.dto.request.StockSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockSummaryResponse;
@@ -15,9 +14,9 @@ import kr.inventory.domain.stock.entity.QIngredientStockBatch;
 import kr.inventory.domain.stock.entity.enums.StockBatchSourceType;
 import kr.inventory.domain.stock.entity.enums.StockBatchStatus;
 import kr.inventory.domain.stock.repository.IngredientStockBatchRepositoryCustom;
+import kr.inventory.domain.stock.repository.dto.IngredientStockTotalDto;
 import kr.inventory.domain.stock.service.command.IngredientStockTotal;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.support.PageableExecutionUtils;
@@ -231,6 +230,25 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
                         IngredientStockTotal.class,
                         batch.ingredient.ingredientId,
                         batch.remainingQuantity.sum()
+                ))
+                .from(batch)
+                .where(
+                        batch.store.storeId.eq(storeId),
+                        batch.ingredient.ingredientId.in(ingredientIds)
+                )
+                .groupBy(batch.ingredient.ingredientId)
+                .fetch();
+    }
+
+    @Override
+    public List<IngredientStockTotalDto> calculateTotalQuantities(Long storeId, Collection<Long> ingredientIds) {
+        QIngredientStockBatch batch = QIngredientStockBatch.ingredientStockBatch;
+
+        return queryFactory
+                .select(Projections.constructor(
+                        IngredientStockTotalDto.class,
+                        batch.ingredient.ingredientId,
+                        batch.remainingQuantity.sum().coalesce(java.math.BigDecimal.ZERO)
                 ))
                 .from(batch)
                 .where(
