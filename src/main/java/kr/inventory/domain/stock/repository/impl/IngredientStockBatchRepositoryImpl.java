@@ -8,6 +8,7 @@ import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.LockModeType;
 import kr.inventory.domain.stock.controller.dto.request.StockSearchRequest;
+import kr.inventory.domain.stock.controller.dto.response.LowStockIngredientResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockSummaryResponse;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.QIngredientStockBatch;
@@ -26,6 +27,7 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static kr.inventory.domain.reference.entity.QIngredient.ingredient;
 import static kr.inventory.domain.stock.entity.QIngredientStockBatch.ingredientStockBatch;
 
 @RequiredArgsConstructor
@@ -256,6 +258,34 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
                         batch.ingredient.ingredientId.in(ingredientIds)
                 )
                 .groupBy(batch.ingredient.ingredientId)
+                .fetch();
+    }
+
+    @Override
+    public List<LowStockIngredientResponse> findLowStockIngredients(Long storeId) {
+        return queryFactory
+                .select(Projections.constructor(
+                        LowStockIngredientResponse.class,
+                        ingredient.ingredientPublicId,
+                        ingredient.name,
+                        ingredientStockBatch.remainingQuantity.sum(),
+                        ingredient.lowStockThreshold
+                ))
+                .from(ingredientStockBatch)
+                .join(ingredientStockBatch.ingredient, ingredient)
+                .where(
+                        ingredientStockBatch.store.storeId.eq(storeId),
+                        ingredientStockBatch.remainingQuantity.gt(0)
+                )
+                .groupBy(
+                        ingredient.ingredientId,
+                        ingredient.ingredientPublicId,
+                        ingredient.name,
+                        ingredient.lowStockThreshold
+                )
+                .having(
+                        ingredientStockBatch.remainingQuantity.sum().loe(ingredient.lowStockThreshold)
+                )
                 .fetch();
     }
 }

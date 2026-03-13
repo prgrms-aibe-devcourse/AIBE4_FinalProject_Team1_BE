@@ -1,4 +1,4 @@
-package kr.inventory.mcp.dto.stock.request;
+package kr.inventory.mcp.stock.dto.request;
 
 import java.util.UUID;
 

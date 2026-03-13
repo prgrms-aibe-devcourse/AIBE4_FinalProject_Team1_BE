@@ -1,6 +1,6 @@
-package kr.inventory.mcp.repository.stock;
+package kr.inventory.mcp.stock.repository;
 
-import kr.inventory.mcp.dto.stock.response.GetCurrentStockToolResponse;
+import kr.inventory.mcp.stock.dto.response.GetCurrentStockToolResponse;
 
 import java.util.List;
 

@@ -1,12 +1,17 @@
-package kr.inventory.mcp.application.stock;
+package kr.inventory.mcp.stock.service;
 
+import kr.inventory.domain.stock.controller.dto.response.LowStockIngredientResponse;
+import kr.inventory.domain.stock.service.StockQueryService;
 import kr.inventory.domain.store.service.StoreAccessValidator;
-import kr.inventory.mcp.dto.stock.request.GetCurrentStockToolRequest;
-import kr.inventory.mcp.dto.stock.response.GetCurrentStockToolResponse;
-import kr.inventory.mcp.repository.stock.StockMcpRepository;
+import kr.inventory.mcp.stock.dto.request.GetCurrentStockToolRequest;
+import kr.inventory.mcp.stock.dto.response.GetCurrentStockToolResponse;
+import kr.inventory.mcp.stock.repository.StockMcpRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +22,7 @@ public class StockMcpQueryService {
 
     private final StoreAccessValidator storeAccessValidator;
     private final StockMcpRepository stockMcpRepository;
+    private final StockQueryService stockQueryService;
 
     public GetCurrentStockToolResponse getCurrentStockStatus(Long userId, GetCurrentStockToolRequest request) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, request.storePublicId());
@@ -27,5 +33,9 @@ public class StockMcpQueryService {
                 totalCount,
                 stockMcpRepository.findCurrentStockItems(storeId, request.keyword(), STOCK_LIST_LIMIT)
         );
+    }
+
+    public List<LowStockIngredientResponse> getLowStockIngredients(Long userId, UUID storePublicId) {
+        return stockQueryService.getLowStockIngredients(userId, storePublicId);
     }
 }

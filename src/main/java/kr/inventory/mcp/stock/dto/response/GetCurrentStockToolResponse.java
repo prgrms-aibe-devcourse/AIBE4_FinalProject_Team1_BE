@@ -1,4 +1,4 @@
-package kr.inventory.mcp.dto.stock.response;
+package kr.inventory.mcp.stock.dto.response;
 
 import java.math.BigDecimal;
 import java.util.List;

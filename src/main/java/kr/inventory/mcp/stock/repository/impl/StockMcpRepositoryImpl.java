@@ -1,11 +1,11 @@
-package kr.inventory.mcp.repository.stock.impl;
+package kr.inventory.mcp.stock.repository.impl;
 
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import kr.inventory.domain.stock.entity.enums.StockBatchStatus;
-import kr.inventory.mcp.dto.stock.response.GetCurrentStockToolResponse;
-import kr.inventory.mcp.repository.stock.StockMcpRepository;
+import kr.inventory.mcp.stock.dto.response.GetCurrentStockToolResponse;
+import kr.inventory.mcp.stock.repository.StockMcpRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;

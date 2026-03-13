@@ -1,9 +1,9 @@
-package kr.inventory.mcp.controller.stock;
+package kr.inventory.mcp.stock.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import kr.inventory.mcp.dto.stock.response.GetCurrentStockToolResponse;
-import kr.inventory.mcp.tool.stock.StockMcpTools;
+import kr.inventory.mcp.stock.dto.response.GetCurrentStockToolResponse;
+import kr.inventory.mcp.stock.tool.StockMcpTools;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
