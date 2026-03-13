@@ -64,7 +64,10 @@ public class SecurityConfig {
                                 "/actuator/**"
                         ).permitAll()
 
-                        // Public customer-facing APIs
+                        // WebSocket (STOMP)
+                        .requestMatchers("/ws/**").permitAll()
+
+                        // Public customer
                         .requestMatchers(HttpMethod.GET, "/api/menus/*/customer").permitAll()
                         .requestMatchers("/api/table-sessions/**").permitAll()
                         .requestMatchers("/api/dining/**").permitAll()
@@ -72,7 +75,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/chat/**").permitAll()
                         .requestMatchers("/api/mcp-test/**").permitAll()
 
-                        // Backoffice APIs
+                        // Backoffice
                         .requestMatchers("/api/users/**").authenticated()
                         .requestMatchers("/api/stores/**").authenticated()
                         .requestMatchers("/api/menus/**").authenticated()
