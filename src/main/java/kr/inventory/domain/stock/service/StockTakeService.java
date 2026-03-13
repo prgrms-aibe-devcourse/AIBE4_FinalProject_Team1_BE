@@ -167,7 +167,7 @@ public class StockTakeService {
                 .map(item -> item.getIngredient().getIngredientId())
                 .collect(Collectors.toSet());
 
-        shortageResolutionService.clearPendingShortagesIfStockAvailable(storeId, increasedIngredientIds);
+        shortageResolutionService.closePendingShortagesIfStockRecovered(storeId, increasedIngredientIds);
 
 		sheet.confirm();
 	}
