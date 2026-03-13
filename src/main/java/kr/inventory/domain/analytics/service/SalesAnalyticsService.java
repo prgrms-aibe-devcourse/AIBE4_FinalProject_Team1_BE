@@ -31,15 +31,11 @@ public class SalesAnalyticsService {
 
     /**
      * 일/주/월 매출 추이
-     * TTL: RedisConfig 기본값 30분
-     * 조건부 캐싱: 조회 종료일이 오늘 00:00 이전(= 어제까지)인 경우만 캐싱
-     * - 과거 기간 조회: 캐싱 O (데이터 불변, 성능 최적화)
-     * - 오늘 포함 조회: 캐싱 X (실시간 데이터 반영)
      */
     @Cacheable(
             value = "sales:trend",
             key = "#storePublicId + ':' + #from.toInstant().toEpochMilli() + ':' + #to.toInstant().toEpochMilli() + ':' + #interval",
-            condition = "#to.isBefore(T(java.time.OffsetDateTime).now().withHour(0).withMinute(0).withSecond(0).withNano(0))"
+            condition = "#to != null && #to.isBefore(T(java.time.OffsetDateTime).now().withHour(0).withMinute(0).withSecond(0).withNano(0))"
     )
     public List<SalesTrendResponse> getSalesTrend(
             Long userId,
@@ -64,15 +60,11 @@ public class SalesAnalyticsService {
 
     /**
      * 요일×시간대 피크
-     * TTL: RedisConfig 기본값 30분
-     * 조건부 캐싱: 조회 종료일이 오늘 00:00 이전(= 어제까지)인 경우만 캐싱
-     * - 과거 기간 조회: 캐싱 O (피크 패턴 불변, 성능 최적화)
-     * - 오늘 포함 조회: 캐싱 X (실시간 데이터 반영)
      */
     @Cacheable(
             value = "sales:peak",
             key = "#storePublicId + ':' + #from.toInstant().toEpochMilli() + ':' + #to.toInstant().toEpochMilli()",
-            condition = "#to.isBefore(T(java.time.OffsetDateTime).now().withHour(0).withMinute(0).withSecond(0).withNano(0))"
+            condition = "#to != null && #to.isBefore(T(java.time.OffsetDateTime).now().withHour(0).withMinute(0).withSecond(0).withNano(0))"
     )
     public List<SalesPeakResponse> getSalesPeak(
             Long userId,
@@ -95,15 +87,11 @@ public class SalesAnalyticsService {
 
     /**
      * 메뉴 TOP N
-     * TTL: 30분
-     * 조건부 캐싱: 조회 종료일이 오늘 00:00 이전(= 어제까지)인 경우만 캐싱
-     * - 과거 기간 조회: 캐싱 O (메뉴 랭킹 불변, 성능 최적화)
-     * - 오늘 포함 조회: 캐싱 X (실시간 데이터 반영)
      */
     @Cacheable(
             value = "sales:menu-ranking",
             key = "#storePublicId + ':' + #from.toInstant().toEpochMilli() + ':' + #to.toInstant().toEpochMilli() + ':' + #topN",
-            condition = "#to.isBefore(T(java.time.OffsetDateTime).now().withHour(0).withMinute(0).withSecond(0).withNano(0))"
+            condition = "#to != null && #to.isBefore(T(java.time.OffsetDateTime).now().withHour(0).withMinute(0).withSecond(0).withNano(0))"
     )
     public List<MenuRankingResponse> getMenuRanking(
             Long userId,
@@ -129,15 +117,11 @@ public class SalesAnalyticsService {
 
     /**
      * 매출 요약 (객단가 등)
-     * TTL: 30분
-     * 조건부 캐싱: 조회 종료일이 오늘 00:00 이전(= 어제까지)인 경우만 캐싱
-     * - 과거 기간 조회: 캐싱 O (요약 데이터 불변, 성능 최적화)
-     * - 오늘 포함 조회: 캐싱 X (실시간 데이터 반영)
      */
     @Cacheable(
             value = "sales:summary",
             key = "#storePublicId + ':' + #from.toInstant().toEpochMilli() + ':' + #to.toInstant().toEpochMilli() + ':' + #interval",
-            condition = "#to.isBefore(T(java.time.OffsetDateTime).now().withHour(0).withMinute(0).withSecond(0).withNano(0))"
+            condition = "#to != null && #to.isBefore(T(java.time.OffsetDateTime).now().withHour(0).withMinute(0).withSecond(0).withNano(0))"
     )
     public SalesSummaryResponse getSalesSummary(
             Long userId,
@@ -205,10 +189,6 @@ public class SalesAnalyticsService {
                 .multiply(BigDecimal.valueOf(100))
                 .doubleValue();
     }
-
-    // ────────────────────────────────────────────────────────
-    // Private Helper Methods
-    // ────────────────────────────────────────────────────────
 
     /**
      * interval 정규화 (소문자 → 대문자 첫글자)

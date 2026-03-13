@@ -52,8 +52,8 @@ class SalesAnalyticsServiceTest {
         Long userId = 100L;
         Long storeId = 1L;
         UUID storePublicId = UUID.randomUUID();
-        OffsetDateTime from = OffsetDateTime.of(2025, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
-        OffsetDateTime to = OffsetDateTime.of(2025, 1, 31, 23, 59, 59, 0, ZoneOffset.UTC);
+        OffsetDateTime from = OffsetDateTime.now(ZoneOffset.UTC).minusDays(31);
+        OffsetDateTime to = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
 
         List<SalesTrendResponse> expected = List.of(
                 new SalesTrendResponse("2025-01-01", 5L, new BigDecimal("120000.00"))
@@ -74,8 +74,8 @@ class SalesAnalyticsServiceTest {
         Long userId = 100L;
         Long storeId = 1L;
         UUID storePublicId = UUID.randomUUID();
-        OffsetDateTime from = OffsetDateTime.of(2025, 2, 1, 0, 0, 0, 0, ZoneOffset.UTC);
-        OffsetDateTime to = OffsetDateTime.of(2025, 2, 7, 23, 59, 59, 0, ZoneOffset.UTC);
+        OffsetDateTime from = OffsetDateTime.now(ZoneOffset.UTC).minusDays(7);
+        OffsetDateTime to = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
 
         given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
         given(salesOrderSearchRepository.aggregateSalesTrend(storeId, from, to, "Day")).willReturn(List.of());
@@ -90,8 +90,8 @@ class SalesAnalyticsServiceTest {
     void givenInvalidInterval_whenGetSalesTrend_thenThrowException() {
         Long userId = 100L;
         UUID storePublicId = UUID.randomUUID();
-        OffsetDateTime from = OffsetDateTime.of(2025, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
-        OffsetDateTime to = OffsetDateTime.of(2025, 1, 10, 23, 59, 59, 0, ZoneOffset.UTC);
+        OffsetDateTime from = OffsetDateTime.now(ZoneOffset.UTC).minusDays(10);
+        OffsetDateTime to = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
 
         assertThatThrownBy(() -> salesAnalyticsService.getSalesTrend(userId, storePublicId, from, to, "year"))
                 .isInstanceOf(AnalyticsException.class)
@@ -106,8 +106,8 @@ class SalesAnalyticsServiceTest {
         Long storeId = 1L;
         UUID storePublicId = UUID.randomUUID();
 
-        OffsetDateTime from = OffsetDateTime.of(2025, 3, 10, 0, 0, 0, 0, ZoneOffset.UTC);
-        OffsetDateTime to = OffsetDateTime.of(2025, 3, 16, 23, 59, 59, 0, ZoneOffset.UTC);
+        OffsetDateTime from = OffsetDateTime.now(ZoneOffset.UTC).minusDays(14);
+        OffsetDateTime to = OffsetDateTime.now(ZoneOffset.UTC).minusDays(8);
 
         SalesSummaryResponse current = new SalesSummaryResponse(
                 20L,
@@ -150,8 +150,8 @@ class SalesAnalyticsServiceTest {
         Long storeId = 1L;
         UUID storePublicId = UUID.randomUUID();
 
-        OffsetDateTime from = OffsetDateTime.of(2025, 2, 1, 0, 0, 0, 0, ZoneOffset.UTC);
-        OffsetDateTime to = OffsetDateTime.of(2025, 2, 28, 23, 59, 59, 0, ZoneOffset.UTC);
+        OffsetDateTime from = OffsetDateTime.now(ZoneOffset.UTC).minusDays(60);
+        OffsetDateTime to = OffsetDateTime.now(ZoneOffset.UTC).minusDays(32);
 
         SalesSummaryResponse current = new SalesSummaryResponse(1L, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE,
                 null, null, null, null);
@@ -196,8 +196,8 @@ class SalesAnalyticsServiceTest {
         Long storeId = 1L;
         UUID storePublicId = UUID.randomUUID();
 
-        OffsetDateTime from = OffsetDateTime.of(2025, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
-        OffsetDateTime to = OffsetDateTime.of(2025, 1, 10, 23, 59, 59, 0, ZoneOffset.UTC);
+        OffsetDateTime from = OffsetDateTime.now(ZoneOffset.UTC).minusDays(10);
+        OffsetDateTime to = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
 
         given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
         given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), eq(from), eq(to), eq(10))).willReturn(List.of());
