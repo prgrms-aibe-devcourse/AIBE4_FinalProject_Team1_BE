@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
@@ -38,6 +39,8 @@ public class StockShortage extends AuditableEntity {
     @Enumerated(EnumType.STRING)
     private ShortageStatus status;
 
+    private OffsetDateTime closedAt;
+
     private StockShortage(Long storeId, Long salesOrderId, Long ingredientId, BigDecimal requiredAmount, BigDecimal shortageAmount) {
         this.stockShortagePublicId = UUID.randomUUID();
         this.storeId = storeId;
@@ -50,5 +53,10 @@ public class StockShortage extends AuditableEntity {
 
     public static StockShortage createPending(Long storeId, Long salesOrderId, Long ingredientId, BigDecimal requiredAmount, BigDecimal shortageAmount) {
         return new StockShortage(storeId, salesOrderId, ingredientId, requiredAmount, shortageAmount);
+    }
+
+    public void close() {
+        this.status = ShortageStatus.CLOSED;
+        this.closedAt = OffsetDateTime.now();
     }
 }
