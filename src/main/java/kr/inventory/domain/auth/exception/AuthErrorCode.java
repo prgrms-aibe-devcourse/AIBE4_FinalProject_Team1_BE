@@ -15,7 +15,9 @@ public enum AuthErrorCode implements ErrorModel {
     LOGOUT_TOKEN(HttpStatus.UNAUTHORIZED, "A005", "이미 로그아웃 처리된 토큰입니다. 다시 로그인해주세요."),
     INVALID_AUTH_CODE(HttpStatus.UNAUTHORIZED, "A006", "유효하지 않은 코드입니다."),
     INVALID_TOKEN(HttpStatus.BAD_REQUEST, "A007", "유효하지 않은 토큰입니다."),
-    INVALID_TOKEN_FORMAT(HttpStatus.BAD_REQUEST, "A008", "유효하지 않은 토큰 형식입니다.");
+    INVALID_TOKEN_FORMAT(HttpStatus.BAD_REQUEST, "A008", "유효하지 않은 토큰 형식입니다."),
+    USER_INFO_NOT_FOUND(HttpStatus.UNAUTHORIZED, "A009", "인증된 사용자 정보를 찾을 수 없습니다."),
+    INVALID_USER_ID_FORMAT(HttpStatus.BAD_REQUEST, "A010", "사용자 식별자를 해석할 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;
