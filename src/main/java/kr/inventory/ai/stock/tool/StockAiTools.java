@@ -19,7 +19,7 @@ public class StockAiTools {
 
     @Tool(
             name = "get_low_stock_ingredients",
-            description = "현재 로그인한 사용자의 매장에서 재고가 임계치 미만은 재료 목록을 조회합니다."
+            description = "현재 로그인한 사용자의 매장에서 재고가 임계치 미만인 재료 목록을 조회합니다."
     )
     public List<LowStockIngredientResponse> getLowStockIngredients() {
         ChatToolContext context = chatToolContextProvider.getRequired();
