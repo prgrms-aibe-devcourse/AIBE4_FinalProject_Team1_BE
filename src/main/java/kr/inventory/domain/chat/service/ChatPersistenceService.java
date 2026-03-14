@@ -19,6 +19,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -28,10 +30,10 @@ public class ChatPersistenceService {
     private final ChatThreadRepository chatThreadRepository;
     private final ChatMessageRepository chatMessageRepository;
 
-    public ChatThreadCreateResponse createThread(Long userId, String title) {
+    public ChatThreadCreateResponse createThread(Long userId, String title, UUID storePublicId) {
         User userReference = entityManager.getReference(User.class, userId);
 
-        ChatThread thread = ChatThread.create(userReference, title);
+        ChatThread thread = ChatThread.create(userReference, title, storePublicId);
         chatThreadRepository.saveAndFlush(thread);
 
         return ChatThreadCreateResponse.from(thread);

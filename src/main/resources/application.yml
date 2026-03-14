@@ -12,6 +12,15 @@ spring:
         type: SYNC
         annotation-scanner:
           enabled: true
+    model:
+      chat: google-genai
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY}
+        chat:
+          options:
+            model: gemini-2.5-flash
+            temperature: 0.2
 
   datasource:
     url: ${DB_URL}

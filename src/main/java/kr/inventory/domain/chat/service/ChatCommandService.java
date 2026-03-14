@@ -6,13 +6,15 @@ import kr.inventory.domain.chat.exception.ChatErrorCode;
 import kr.inventory.domain.chat.exception.ChatException;
 import kr.inventory.domain.chat.service.command.AcceptedUserMessageResult;
 import kr.inventory.domain.chat.service.command.FailedChatResult;
-import kr.inventory.domain.chat.service.stream.ChatStreamPublisher;
 import kr.inventory.domain.chat.service.stream.ChatStreamMessageType;
+import kr.inventory.domain.chat.service.stream.ChatStreamPublisher;
 import kr.inventory.domain.chat.service.stream.ChatStreamUserMessagePayload;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -23,9 +25,9 @@ public class ChatCommandService {
     private final ChatStreamPublisher chatStreamPublisher;
     private final ChatPushService chatPushService;
 
-    public ChatThreadCreateResponse createThread(Long userId, String rawTitle) {
+    public ChatThreadCreateResponse createThread(Long userId, String rawTitle, UUID storePublicId) {
         String title = normalizeTitle(rawTitle);
-        return chatPersistenceService.createThread(userId, title);
+        return chatPersistenceService.createThread(userId, title, storePublicId);
     }
 
     public void acceptUserMessage(

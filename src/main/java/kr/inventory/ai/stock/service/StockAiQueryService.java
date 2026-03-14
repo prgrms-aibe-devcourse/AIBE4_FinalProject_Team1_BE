@@ -1,4 +1,4 @@
-package kr.inventory.mcp.stock.service;
+package kr.inventory.ai.stock.service;
 
 import kr.inventory.domain.stock.controller.dto.response.LowStockIngredientResponse;
 import kr.inventory.domain.stock.service.StockQueryService;
@@ -12,7 +12,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class StockMcpQueryService {
+public class StockAiQueryService {
     private final StockQueryService stockQueryService;
 
     public List<LowStockIngredientResponse> getLowStockIngredients(Long userId, UUID storePublicId) {
