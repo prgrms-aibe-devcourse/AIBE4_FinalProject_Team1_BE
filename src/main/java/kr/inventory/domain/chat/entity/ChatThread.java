@@ -1,13 +1,15 @@
 package kr.inventory.domain.chat.entity;
 
 import jakarta.persistence.*;
-import java.time.OffsetDateTime;
 import kr.inventory.domain.chat.entity.enums.ChatThreadStatus;
 import kr.inventory.domain.common.AuditableEntity;
 import kr.inventory.domain.user.entity.User;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(
@@ -28,6 +30,9 @@ public class ChatThread extends AuditableEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(nullable = false)
+    private UUID storePublicId;
+
     @Column(length = 100)
     private String title;
 
@@ -37,10 +42,11 @@ public class ChatThread extends AuditableEntity {
 
     private OffsetDateTime lastMessageAt;
 
-    public static ChatThread create(User user, String title) {
+    public static ChatThread create(User user, String title, UUID storePublicId) {
         ChatThread thread = new ChatThread();
         thread.user = user;
         thread.title = title;
+        thread.storePublicId = storePublicId;
         thread.status = ChatThreadStatus.ACTIVE;
         return thread;
     }

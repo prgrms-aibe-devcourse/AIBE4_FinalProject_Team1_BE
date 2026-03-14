@@ -3,8 +3,6 @@ package kr.inventory.domain.chat.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.net.URI;
-import java.util.List;
 import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.chat.controller.dto.request.ChatCreateThreadRequest;
 import kr.inventory.domain.chat.controller.dto.response.ChatMessageResponse;
@@ -17,6 +15,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
+import java.util.List;
+import java.util.UUID;
+
 @Tag(name = "챗봇(Chat)", description = "챗봇 API")
 @RestController
 @RequestMapping("/api/chat")
@@ -27,14 +29,16 @@ public class ChatController {
     private final ChatQueryService chatQueryService;
 
     @Operation(summary = "채팅 스레드 생성")
-    @PostMapping("/threads")
+    @PostMapping("/{storePublicId}/threads")
     public ResponseEntity<ChatThreadCreateResponse> createThread(
+            @PathVariable UUID storePublicId,
             @AuthenticationPrincipal CustomUserDetails principal,
             @RequestBody @Valid ChatCreateThreadRequest request
     ) {
         ChatThreadCreateResponse response = chatCommandService.createThread(
                 principal.getUserId(),
-                request.title()
+                request.title(),
+                storePublicId
         );
 
         return ResponseEntity

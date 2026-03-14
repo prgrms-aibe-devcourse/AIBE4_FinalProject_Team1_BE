@@ -1,18 +1,23 @@
 package kr.inventory.domain.chat.service;
 
-import java.util.List;
 import kr.inventory.domain.chat.constant.ChatConstants;
+import kr.inventory.domain.chat.entity.ChatThread;
 import kr.inventory.domain.chat.exception.ChatErrorCode;
+import kr.inventory.domain.chat.repository.ChatThreadRepository;
 import kr.inventory.domain.chat.service.command.CompletedChatResult;
 import kr.inventory.domain.chat.service.command.FailedChatResult;
 import kr.inventory.domain.chat.service.stream.ChatStreamUserMessagePayload;
 import kr.inventory.global.llm.dto.LlmChatResponse;
 import kr.inventory.global.llm.dto.LlmMessage;
 import kr.inventory.global.llm.service.LlmService;
+import kr.inventory.ai.context.ChatToolContextProvider;
+import kr.inventory.ai.context.dto.ChatToolContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -23,6 +28,8 @@ public class ChatWorkerService {
     private final ChatPromptService chatPromptService;
     private final LlmService llmService;
     private final ChatPushService chatPushService;
+    private final ChatThreadRepository chatThreadRepository;
+    private final ChatToolContextProvider chatToolContextProvider;
 
     public void process(ChatStreamUserMessagePayload payload) {
         chatPersistenceService.markProcessing(payload.requestMessageId());
@@ -35,6 +42,18 @@ public class ChatWorkerService {
         );
 
         try {
+            ChatThread thread = chatThreadRepository.findById(payload.threadId())
+                    .orElseThrow(() -> new IllegalStateException("채팅 스레드를 찾을 수 없습니다."));
+
+            chatToolContextProvider.set(
+                    new ChatToolContext(
+                            payload.userId(),
+                            thread.getStorePublicId(),
+                            payload.threadId(),
+                            payload.requestMessageId()
+                    )
+            );
+
             List<LlmMessage> messages = chatPromptService.buildConversationMessages(
                     payload.threadId(),
                     payload.requestMessageId()
@@ -69,6 +88,8 @@ public class ChatWorkerService {
             );
 
             chatPushService.sendFailed(failed);
+        } finally {
+            chatToolContextProvider.clear();
         }
     }
 
