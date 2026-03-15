@@ -38,8 +38,7 @@ public class StockAnalyticService {
 		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 		return stockSearchRepository.searchStockBatches(storeId, keyword, status, daysUntilExpiry);
 	}
-
-	@Cacheable(value = "stock:integrated-analysis", key = "#storePublicId")
+	
 	public List<StockAnalyticResponse> getIntegratedAnalysis(Long userId, UUID storePublicId) {
 		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 		log.debug("[Analytics] 재고/폐기 통합 분석 집계 storeId={}", storeId);
