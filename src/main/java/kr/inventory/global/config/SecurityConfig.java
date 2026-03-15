@@ -34,6 +34,7 @@ public class SecurityConfig {
     private final RedisTemplate<String, String> redisTemplate;
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
     private final RestAccessDeniedHandler restAccessDeniedHandler;
+    private final CorsProperties corsProperties;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -53,10 +54,8 @@ public class SecurityConfig {
                         .requestMatchers("/qr_menu_order.html", "/js/**").permitAll()
                         .requestMatchers("/", "/error", "/favicon.ico").permitAll()
 
-                        // OAuth2 / Auth
                         .requestMatchers("/login/**", "/oauth2/**", "/api/auth/**").permitAll()
 
-                        // Swagger / Actuator
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
@@ -64,10 +63,8 @@ public class SecurityConfig {
                                 "/actuator/**"
                         ).permitAll()
 
-                        // WebSocket (STOMP)
                         .requestMatchers("/ws/**").permitAll()
 
-                        // Public customer
                         .requestMatchers(HttpMethod.GET, "/api/menus/*/customer").permitAll()
                         .requestMatchers("/api/table-sessions/**").permitAll()
                         .requestMatchers("/api/dining/**").permitAll()
@@ -75,7 +72,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/chat/**").permitAll()
                         .requestMatchers("/api/mcp-test/**").permitAll()
 
-                        // Backoffice
                         .requestMatchers("/api/users/**").authenticated()
                         .requestMatchers("/api/stores/**").authenticated()
                         .requestMatchers("/api/menus/**").authenticated()
@@ -99,11 +95,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of(
-                "http://localhost",
-                "http://localhost:5173",
-                "http://localhost:3000"
-        ));
+        configuration.setAllowedOrigins(corsProperties.getAllowedOrigins());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization"));
