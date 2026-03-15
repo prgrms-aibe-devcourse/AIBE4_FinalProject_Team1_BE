@@ -5,25 +5,17 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.util.Collections;
 import java.util.List;
 
-import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.stereotype.Repository;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
-import co.elastic.clients.elasticsearch._types.aggregations.LongTermsBucket;
-import co.elastic.clients.elasticsearch._types.query_dsl.RangeQuery;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-import co.elastic.clients.json.JsonData;
 import kr.inventory.domain.analytics.controller.dto.request.ESStockShortageSearchRequest;
 import kr.inventory.domain.analytics.controller.dto.response.StockShortageSummaryResponse;
 import kr.inventory.domain.analytics.document.stock.StockShortageDocument;
-import kr.inventory.domain.analytics.exception.AnalyticsErrorCode;
-import kr.inventory.domain.analytics.exception.AnalyticsException;
 import kr.inventory.domain.analytics.repository.StockShortageSearchRepositoryCustom;
-import kr.inventory.domain.stock.controller.dto.request.StockShortageSearchRequest;
 import lombok.RequiredArgsConstructor;
 
 @Repository

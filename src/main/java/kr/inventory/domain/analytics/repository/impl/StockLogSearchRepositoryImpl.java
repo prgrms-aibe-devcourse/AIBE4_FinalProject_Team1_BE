@@ -1,26 +1,20 @@
 package kr.inventory.domain.analytics.repository.impl;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
 import org.springframework.stereotype.Repository;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-import co.elastic.clients.elasticsearch.core.search.Hit;
 import kr.inventory.domain.analytics.controller.dto.request.ESStockLogSearchRequest;
 import kr.inventory.domain.analytics.controller.dto.response.StockLogAnalyticResponse;
 import kr.inventory.domain.analytics.document.stock.StockLogDocument;
-import kr.inventory.domain.analytics.exception.AnalyticsErrorCode;
-import kr.inventory.domain.analytics.exception.AnalyticsException;
 import kr.inventory.domain.analytics.repository.StockLogSearchRepositoryCustom;
-import kr.inventory.domain.stock.controller.dto.response.StockLogResponse;
 import lombok.RequiredArgsConstructor;
 
 @Repository
