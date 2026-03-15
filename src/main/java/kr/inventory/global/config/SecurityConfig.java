@@ -7,7 +7,6 @@ import kr.inventory.global.auth.jwt.JwtProvider;
 import kr.inventory.global.security.handler.RestAccessDeniedHandler;
 import kr.inventory.global.security.handler.RestAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -35,9 +34,7 @@ public class SecurityConfig {
     private final RedisTemplate<String, String> redisTemplate;
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
     private final RestAccessDeniedHandler restAccessDeniedHandler;
-
-    @Value("${cors.allowed-origins}")
-    private List<String> allowedOrigins;
+    private final CorsProperties corsProperties;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -57,10 +54,8 @@ public class SecurityConfig {
                         .requestMatchers("/qr_menu_order.html", "/js/**").permitAll()
                         .requestMatchers("/", "/error", "/favicon.ico").permitAll()
 
-                        // OAuth2 / Auth
                         .requestMatchers("/login/**", "/oauth2/**", "/api/auth/**").permitAll()
 
-                        // Swagger / Actuator
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
@@ -68,10 +63,8 @@ public class SecurityConfig {
                                 "/actuator/**"
                         ).permitAll()
 
-                        // WebSocket (STOMP)
                         .requestMatchers("/ws/**").permitAll()
 
-                        // Public customer
                         .requestMatchers(HttpMethod.GET, "/api/menus/*/customer").permitAll()
                         .requestMatchers("/api/table-sessions/**").permitAll()
                         .requestMatchers("/api/dining/**").permitAll()
@@ -79,7 +72,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/chat/**").permitAll()
                         .requestMatchers("/api/mcp-test/**").permitAll()
 
-                        // Backoffice
                         .requestMatchers("/api/users/**").authenticated()
                         .requestMatchers("/api/stores/**").authenticated()
                         .requestMatchers("/api/menus/**").authenticated()
@@ -103,7 +95,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(allowedOrigins);
+        configuration.setAllowedOrigins(corsProperties.getAllowedOrigins());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization"));

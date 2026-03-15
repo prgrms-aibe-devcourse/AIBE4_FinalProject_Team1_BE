@@ -2,9 +2,9 @@ package kr.inventory.global.auth.handler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.auth.model.RefreshToken;
 import kr.inventory.domain.auth.repository.RefreshTokenRepository;
+import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.global.auth.constant.AuthConstant;
 import kr.inventory.global.auth.jwt.JwtProvider;
 import kr.inventory.global.util.CookieUtil;
@@ -54,7 +54,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl)
                 .path(AuthConstant.OAUTH_REDIRECT_PATH)
                 .queryParam(AuthConstant.REDIRECT_PARAM_CODE, temporaryCode)
-                .build().toUriString();
+                .build()
+                .toUriString();
 
         clearAuthenticationAttributes(request);
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
