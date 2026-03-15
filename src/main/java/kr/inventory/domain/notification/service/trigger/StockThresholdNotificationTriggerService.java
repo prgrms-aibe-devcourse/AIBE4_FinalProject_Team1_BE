@@ -8,8 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -21,25 +22,37 @@ public class StockThresholdNotificationTriggerService {
 
     public void notifyStoreMembersBelowThreshold(
             Long storeId,
-            Ingredient ingredient,
-            BigDecimal currentQuantity
+            Map<Long, Ingredient> ingredientMap,
+            List<Long> thresholdCrossedIngredientIds
     ) {
-        BigDecimal threshold = ingredient.getLowStockThreshold();
-        if (threshold == null) {
+        if (thresholdCrossedIngredientIds == null || thresholdCrossedIngredientIds.isEmpty()) {
             return;
         }
+
+        List<Ingredient> ingredients = thresholdCrossedIngredientIds.stream()
+                .map(ingredientMap::get)
+                .filter(java.util.Objects::nonNull)
+                .sorted(Comparator.comparing(Ingredient::getName))
+                .toList();
+
+        if (ingredients.isEmpty()) {
+            return;
+        }
+
+        Ingredient firstIngredient = ingredients.get(0);
+        List<String> ingredientNames = ingredients.stream()
+                .map(Ingredient::getName)
+                .distinct()
+                .toList();
 
         List<Long> memberUserIds = storeMemberQueryService.findActiveMemberUserIds(storeId);
 
         for (Long userId : memberUserIds) {
             NotificationPublishCommand command =
-                    NotificationPublishCommand.stockBelowThreshold(
+                    NotificationPublishCommand.stockBelowThresholdGrouped(
                             userId,
-                            ingredient.getStore().getStorePublicId(),
-                            ingredient.getIngredientPublicId(),
-                            ingredient.getName(),
-                            currentQuantity,
-                            threshold
+                            firstIngredient.getStore().getStorePublicId(),
+                            ingredientNames
                     );
 
             notificationPublishService.publish(command);

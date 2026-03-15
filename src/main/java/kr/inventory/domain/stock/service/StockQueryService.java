@@ -1,20 +1,20 @@
 package kr.inventory.domain.stock.service;
 
-import java.util.List;
-import java.util.UUID;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import kr.inventory.domain.stock.controller.dto.request.StockSearchRequest;
+import kr.inventory.domain.stock.controller.dto.response.LowStockIngredientResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockBatchResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockSummaryResponse;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.repository.IngredientStockBatchRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -40,4 +40,10 @@ public class StockQueryService {
 			.map(StockBatchResponse::from)
 			.toList();
 	}
+
+    public List<LowStockIngredientResponse> getLowStockIngredients(Long userId, UUID storePublicId) {
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
+        return batchRepository.findLowStockIngredients(storeId);
+    }
 }

@@ -31,11 +31,11 @@ public class SalesAnalyticsService {
 
     /**
      * 일/주/월 매출 추이
-     * TTL: RedisConfig 기본값 30분
      */
     @Cacheable(
             value = "sales:trend",
-            key = "#storePublicId + ':' + #from.toInstant().toEpochMilli() + ':' + #to.toInstant().toEpochMilli() + ':' + #interval"
+            key = "#storePublicId + ':' + #from.toInstant().toEpochMilli() + ':' + #to.toInstant().toEpochMilli() + ':' + #interval",
+            condition = "#to != null && #to.isBefore(T(java.time.OffsetDateTime).now().withHour(0).withMinute(0).withSecond(0).withNano(0))"
     )
     public List<SalesTrendResponse> getSalesTrend(
             Long userId,
@@ -60,11 +60,11 @@ public class SalesAnalyticsService {
 
     /**
      * 요일×시간대 피크
-     * TTL: 1시간 (피크 패턴은 자주 안 바뀜)
      */
     @Cacheable(
             value = "sales:peak",
-            key = "#storePublicId + ':' + #from.toInstant().toEpochMilli() + ':' + #to.toInstant().toEpochMilli()"
+            key = "#storePublicId + ':' + #from.toInstant().toEpochMilli() + ':' + #to.toInstant().toEpochMilli()",
+            condition = "#to != null && #to.isBefore(T(java.time.OffsetDateTime).now().withHour(0).withMinute(0).withSecond(0).withNano(0))"
     )
     public List<SalesPeakResponse> getSalesPeak(
             Long userId,
@@ -87,11 +87,11 @@ public class SalesAnalyticsService {
 
     /**
      * 메뉴 TOP N
-     * TTL: 30분
      */
     @Cacheable(
             value = "sales:menu-ranking",
-            key = "#storePublicId + ':' + #from.toInstant().toEpochMilli() + ':' + #to.toInstant().toEpochMilli() + ':' + #topN"
+            key = "#storePublicId + ':' + #from.toInstant().toEpochMilli() + ':' + #to.toInstant().toEpochMilli() + ':' + #topN",
+            condition = "#to != null && #to.isBefore(T(java.time.OffsetDateTime).now().withHour(0).withMinute(0).withSecond(0).withNano(0))"
     )
     public List<MenuRankingResponse> getMenuRanking(
             Long userId,
@@ -117,11 +117,11 @@ public class SalesAnalyticsService {
 
     /**
      * 매출 요약 (객단가 등)
-     * TTL: 30분
      */
     @Cacheable(
             value = "sales:summary",
-            key = "#storePublicId + ':' + #from.toInstant().toEpochMilli() + ':' + #to.toInstant().toEpochMilli() + ':' + #interval"
+            key = "#storePublicId + ':' + #from.toInstant().toEpochMilli() + ':' + #to.toInstant().toEpochMilli() + ':' + #interval",
+            condition = "#to != null && #to.isBefore(T(java.time.OffsetDateTime).now().withHour(0).withMinute(0).withSecond(0).withNano(0))"
     )
     public SalesSummaryResponse getSalesSummary(
             Long userId,
@@ -189,10 +189,6 @@ public class SalesAnalyticsService {
                 .multiply(BigDecimal.valueOf(100))
                 .doubleValue();
     }
-
-    // ────────────────────────────────────────────────────────
-    // Private Helper Methods
-    // ────────────────────────────────────────────────────────
 
     /**
      * interval 정규화 (소문자 → 대문자 첫글자)

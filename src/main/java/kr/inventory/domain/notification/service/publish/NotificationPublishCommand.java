@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import kr.inventory.domain.notification.entity.enums.NotificationType;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 public record NotificationPublishCommand(
@@ -100,7 +101,7 @@ public record NotificationPublishCommand(
             BigDecimal thresholdQuantity
     ){
         String title = "재고 부족 경고";
-        String message = ingredientName + " 재고가 임계치 이하로 내려갔습니다.";
+        String message = ingredientName + " 재고가 임계치 아래로 내려갔습니다.";
         String deepLink = "/stock";
 
         ObjectNode metadata = JsonNodeFactory.instance.objectNode();
@@ -119,5 +120,147 @@ public record NotificationPublishCommand(
                 deepLink,
                 metadata
         );
+    }
+
+    public static NotificationPublishCommand stockBelowThresholdGrouped(
+            Long userId,
+            UUID storePublicId,
+            java.util.List<String> ingredientNames
+    ) {
+        java.util.List<String> distinctNames = ingredientNames.stream()
+                .filter(name -> name != null && !name.isBlank())
+                .distinct()
+                .toList();
+
+        String title = "재고 부족 경고";
+        String message = buildGroupedThresholdMessage(distinctNames);
+        String deepLink = "/stock";
+
+        ObjectNode metadata = JsonNodeFactory.instance.objectNode();
+        metadata.put("storePublicId", storePublicId.toString());
+        metadata.put("displayPolicy", NotificationDisplayPolicy.TOAST_AND_INBOX.name());
+
+        var ingredientArray = metadata.putArray("ingredientNames");
+        distinctNames.forEach(ingredientArray::add);
+        metadata.put("ingredientCount", distinctNames.size());
+
+        return new NotificationPublishCommand(
+                userId,
+                NotificationType.STOCK_BELOW_THRESHOLD,
+                title,
+                message,
+                deepLink,
+                metadata
+        );
+    }
+
+    private static String buildGroupedThresholdMessage(java.util.List<String> ingredientNames) {
+        if (ingredientNames.isEmpty()) {
+            return "임계치 아래로 내려간 재료가 있습니다.";
+        }
+
+        if (ingredientNames.size() == 1) {
+            return ingredientNames.get(0) + " 재고가 임계치 아래로 내려갔습니다.";
+        }
+
+        if (ingredientNames.size() == 2) {
+            return ingredientNames.get(0) + ", " + ingredientNames.get(1) + " 재고가 임계치 아래로 내려갔습니다.";
+        }
+
+        return ingredientNames.get(0) + ", " + ingredientNames.get(1)
+                + " 외 " + (ingredientNames.size() - 2) + "개의 재료 재고가 임계치 아래로 내려갔습니다.";
+    }
+
+    public static NotificationPublishCommand stockShortageDetected(
+            Long userId,
+            UUID storePublicId,
+            UUID ingredientPublicId,
+            String ingredientName,
+            BigDecimal requiredQuantity,
+            BigDecimal availableQuantity,
+            BigDecimal shortageQuantity
+    ) {
+        String title = "재고 부족 발생";
+        String message = String.format(
+                "[%s] 재고가 부족합니다. 요청 수량: %s, 현재 재고: %s, 부족 수량: %s",
+                ingredientName,
+                toPlain(requiredQuantity),
+                toPlain(availableQuantity),
+                toPlain(shortageQuantity)
+        );
+        String deepLink = "/stock/shortages";
+
+        ObjectNode metadata = JsonNodeFactory.instance.objectNode();
+        metadata.put("storePublicId", storePublicId.toString());
+        metadata.put("ingredientPublicId", ingredientPublicId.toString());
+        metadata.put("ingredientName", ingredientName);
+        metadata.put("requiredQuantity", requiredQuantity.toPlainString());
+        metadata.put("availableQuantity", availableQuantity.toPlainString());
+        metadata.put("shortageQuantity", shortageQuantity.toPlainString());
+        metadata.put("displayPolicy", NotificationDisplayPolicy.TOAST_AND_INBOX.name());
+
+        return new NotificationPublishCommand(
+                userId,
+                NotificationType.STOCK_SHORTAGE_DETECTED,
+                title,
+                message,
+                deepLink,
+                metadata
+        );
+    }
+
+    public static NotificationPublishCommand stockShortageDetectedGrouped(
+            Long userId,
+            UUID storePublicId,
+            List<String> ingredientNames
+    ) {
+        List<String> distinctNames = ingredientNames.stream()
+                .filter(name -> name != null && !name.isBlank())
+                .distinct()
+                .toList();
+
+        String title = "재고 부족 발생";
+        String message = buildGroupedShortageMessage(distinctNames);
+        String deepLink = "/stock/shortages";
+
+        ObjectNode metadata = JsonNodeFactory.instance.objectNode();
+        metadata.put("storePublicId", storePublicId.toString());
+        metadata.put("displayPolicy", NotificationDisplayPolicy.TOAST_AND_INBOX.name());
+
+        var ingredientArray = metadata.putArray("ingredientNames");
+        distinctNames.forEach(ingredientArray::add);
+        metadata.put("ingredientCount", distinctNames.size());
+
+        return new NotificationPublishCommand(
+                userId,
+                NotificationType.STOCK_SHORTAGE_DETECTED,
+                title,
+                message,
+                deepLink,
+                metadata
+        );
+    }
+
+    private static String buildGroupedShortageMessage(List<String> ingredientNames) {
+        if (ingredientNames.isEmpty()) {
+            return "재고가 부족한 재료가 있습니다.";
+        }
+
+        if (ingredientNames.size() == 1) {
+            return ingredientNames.get(0) + "의 재고가 부족합니다.";
+        }
+
+        if (ingredientNames.size() == 2) {
+            return ingredientNames.get(0) + ", " + ingredientNames.get(1) + "의 재고가 부족합니다.";
+        }
+
+        return ingredientNames.get(0) + ", " + ingredientNames.get(1)
+                + " 외 " + (ingredientNames.size() - 2) + "개의 재료 재고가 부족합니다.";
+    }
+
+    private static String toPlain(BigDecimal value) {
+        return value == null
+                ? "0"
+                : value.stripTrailingZeros().toPlainString();
     }
 }

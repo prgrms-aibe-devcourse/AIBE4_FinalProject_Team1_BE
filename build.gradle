@@ -29,10 +29,14 @@ repositories {
 dependencies {
     // AI/MCP
     implementation platform("org.springframework.ai:spring-ai-bom:1.1.0")
+    implementation "org.springframework.ai:spring-ai-starter-model-google-genai"
     implementation 'org.springframework.ai:spring-ai-starter-mcp-server-webmvc'
 
     // Web
     implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // Web Socket
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
 
     // AOP
     implementation 'org.springframework.boot:spring-boot-starter-aop'

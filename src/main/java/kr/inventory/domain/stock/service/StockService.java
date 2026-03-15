@@ -146,30 +146,30 @@ public class StockService {
             Map<Long, BigDecimal> afterStockMap,
             Map<Long, Ingredient> ingredientMap
     ) {
-        for (Long ingredientId : ingredientIds) {
-            Ingredient ingredient = ingredientMap.get(ingredientId);
-            if (ingredient == null) {
-                continue;
-            }
+        List<Long> thresholdCrossedIngredientIds = ingredientIds.stream()
+                .filter(ingredientId -> {
+                    Ingredient ingredient = ingredientMap.get(ingredientId);
+                    if (ingredient == null) {
+                        return false;
+                    }
 
-            BigDecimal threshold = ingredient.getLowStockThreshold();
-            if (threshold == null) {
-                continue;
-            }
+                    BigDecimal threshold = ingredient.getLowStockThreshold();
+                    if (threshold == null) {
+                        return false;
+                    }
 
-            BigDecimal before = beforeStockMap.getOrDefault(ingredientId, BigDecimal.ZERO);
-            BigDecimal after = afterStockMap.getOrDefault(ingredientId, BigDecimal.ZERO);
+                    BigDecimal before = beforeStockMap.getOrDefault(ingredientId, BigDecimal.ZERO);
+                    BigDecimal after = afterStockMap.getOrDefault(ingredientId, BigDecimal.ZERO);
 
-            boolean crossedBelowThreshold =
-                    before.compareTo(threshold) >= 0 && after.compareTo(threshold) < 0;
+                    return before.compareTo(threshold) >= 0
+                            && after.compareTo(threshold) < 0;
+                })
+                .toList();
 
-            if (crossedBelowThreshold) {
-                stockThresholdNotificationTriggerService.notifyStoreMembersBelowThreshold(
-                        storeId,
-                        ingredient,
-                        after
-                );
-            }
-        }
+        stockThresholdNotificationTriggerService.notifyStoreMembersBelowThreshold(
+                storeId,
+                ingredientMap,
+                thresholdCrossedIngredientIds
+        );
     }
 }
