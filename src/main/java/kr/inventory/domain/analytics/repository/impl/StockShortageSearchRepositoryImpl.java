@@ -14,69 +14,98 @@ import org.springframework.stereotype.Repository;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
 import co.elastic.clients.elasticsearch._types.aggregations.LongTermsBucket;
+import co.elastic.clients.elasticsearch._types.query_dsl.RangeQuery;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.json.JsonData;
+import kr.inventory.domain.analytics.controller.dto.request.ESStockShortageSearchRequest;
 import kr.inventory.domain.analytics.controller.dto.response.StockShortageSummaryResponse;
 import kr.inventory.domain.analytics.document.stock.StockShortageDocument;
 import kr.inventory.domain.analytics.exception.AnalyticsErrorCode;
 import kr.inventory.domain.analytics.exception.AnalyticsException;
 import kr.inventory.domain.analytics.repository.StockShortageSearchRepositoryCustom;
+import kr.inventory.domain.stock.controller.dto.request.StockShortageSearchRequest;
 import lombok.RequiredArgsConstructor;
 
 @Repository
 @RequiredArgsConstructor
 public class StockShortageSearchRepositoryImpl implements StockShortageSearchRepositoryCustom {
+
 	private final ElasticsearchClient elasticsearchClient;
-	private final ElasticsearchOperations elasticsearchOperations;
 
 	@Override
-	public List<StockShortageSummaryResponse> getShortageSummary(Long storeId) {
+	public List<StockShortageSummaryResponse> getShortageSummary(Long storeId, ESStockShortageSearchRequest request) {
 		try {
 			SearchResponse<StockShortageDocument> response = elasticsearchClient.search(s -> s
 				.index("stock_shortage")
-				.size(0) // 검색 결과 자체는 필요 없고 집계 결과만 필요
-				.query(q -> q.bool(b -> b
-					.filter(f -> f.term(t -> t.field("storeId").value(storeId)))
-				))
+				.size(0) // 집계용이므로 검색 결과는 0
+				.query(q -> q.bool(b -> {
+					// 1. 필수 필터
+					b.filter(f -> f.term(t -> t.field("storeId").value(storeId)));
+
+					// 2. 동적 키워드 검색
+					if (request.keyword() != null && !request.keyword().isBlank()) {
+						b.must(m -> m.multiMatch(mm -> mm
+							.query(request.keyword())
+							.fields(List.of("ingredientName^3", "ingredientName.ko"))
+						));
+					}
+
+					// 3. 동적 기간 필터 (date 빌더를 사용하여 field 지정)
+					if (request.from() != null || request.to() != null) {
+						b.filter(f -> f.range(r -> r
+							.date(d -> {
+								d.field("createdAt");
+								if (request.from() != null)
+									d.gte(request.from().toString());
+								if (request.to() != null)
+									d.lte(request.to().toString());
+								return d;
+							})
+						));
+					}
+					return b;
+				}))
 				.aggregations("by_ingredient", a -> a
-					.terms(t -> t.field("ingredientId").size(100)) // 식재료별 그룹화
+					.terms(t -> t.field("ingredientId").size(100))
 					.aggregations("total_shortage", sa -> sa.sum(sm -> sm.field("shortageAmount")))
-					.aggregations("related_orders", sa -> sa.terms(t -> t.field("salesOrderId").size(5))) // 관련 주문 ID 5개
+					.aggregations("related_orders", sa -> sa.terms(t -> t.field("salesOrderId").size(5)))
 					.aggregations("latest_time", sa -> sa.max(m -> m.field("createdAt")))
-					.aggregations("top_hit", sa -> sa.topHits(th -> th.size(1))) // 이름 추출용
+					.aggregations("top_hit", sa -> sa.topHits(th -> th.size(1)))
 				), StockShortageDocument.class);
 
 			return parseShortageBuckets(response);
 		} catch (IOException e) {
-			throw new AnalyticsException(AnalyticsErrorCode.STOCK_ANALYSIS_FAILED);
+			throw new RuntimeException("Elasticsearch 집계 쿼리 실행 실패", e);
 		}
 	}
 
 	private List<StockShortageSummaryResponse> parseShortageBuckets(SearchResponse<StockShortageDocument> response) {
 		Aggregate aggregate = response.aggregations().get("by_ingredient");
-		if (aggregate == null)
-			return Collections.emptyList();
+		if (aggregate == null || !aggregate.isLterms())
+			return List.of();
 
 		return aggregate.lterms().buckets().array().stream()
 			.map(bucket -> {
 				double totalShortage = bucket.aggregations().get("total_shortage").sum().value();
-				double lastTime = bucket.aggregations().get("latest_time").max().value();
+				double lastTimeEpoch = bucket.aggregations().get("latest_time").max().value();
 
-				// 관련 주문 ID 리스트 추출
+				if (totalShortage <= 0)
+					return null;
+
 				List<Long> orderIds = bucket.aggregations().get("related_orders").lterms().buckets().array().stream()
-					.map(LongTermsBucket::key)
+					.map(b -> Long.valueOf(b.key()))
 					.toList();
 
-				// 이름 추출 (top_hits 활용)
 				var hits = bucket.aggregations().get("top_hit").topHits().hits().hits();
 				String name = hits.isEmpty() ? "알 수 없는 식재료" :
 					hits.get(0).source().to(StockShortageDocument.class).ingredientName();
 
 				return new StockShortageSummaryResponse(
-					bucket.key(),
+					Long.valueOf(bucket.key()),
 					name,
 					BigDecimal.valueOf(totalShortage),
-					bucket.docCount(), // 해당 버킷에 담긴 문서 수 = 주문 수
-					convertEpochToOffsetDateTime(lastTime),
+					bucket.docCount(),
+					convertEpochToOffsetDateTime(lastTimeEpoch),
 					orderIds
 				);
 			})
@@ -84,14 +113,10 @@ public class StockShortageSearchRepositoryImpl implements StockShortageSearchRep
 	}
 
 	private OffsetDateTime convertEpochToOffsetDateTime(double epoch) {
-		if (Double.isInfinite(epoch) || Double.isNaN(epoch) || epoch <= 0) {
+		if (Double.isInfinite(epoch) || Double.isNaN(epoch) || epoch <= 0)
 			return null;
-		}
-
-		// 1. Instant 생성 (밀리초 단위)
-		Instant instant = Instant.ofEpochMilli((long)epoch);
-
-		// 2. 시스템 기본 시간대를 사용하여 OffsetDateTime으로 변환
-		return instant.atZone(ZoneId.systemDefault()).toOffsetDateTime();
+		return Instant.ofEpochMilli((long)epoch)
+			.atZone(ZoneId.systemDefault())
+			.toOffsetDateTime();
 	}
 }
