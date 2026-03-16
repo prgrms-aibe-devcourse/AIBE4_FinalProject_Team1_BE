@@ -115,12 +115,13 @@ public class MenuService {
     }
 
     private void validateDuplicateMenuNameForUpdate(Menu menu, String name) {
-        boolean exists = menuRepository.existsByStoreAndNameAndStatusNotAndMenuIdNot(
-                menu.getStore(),
-                name,
-                MenuStatus.DELETED,
-                menu.getMenuId()
-        );
+        if (name != null && !name.equals(menu.getName())) {
+            boolean exists = menuRepository.existsByStoreAndNameAndStatusNotAndMenuIdNot(
+                    menu.getStore(),
+                    name,
+                    MenuStatus.DELETED,
+                    menu.getMenuId()
+            );
 
         if(exists) {
             throw new MenuException(MenuErrorCode.DUPLICATE_MENU_NAME);
