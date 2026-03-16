@@ -66,20 +66,6 @@ public class StoreMemberRepositoryImpl  implements StoreMemberRepositoryCustom  
     }
 
     @Override
-    public boolean isStoreMember(Long storeId, Long userId) {
-        Integer count = queryFactory
-                .selectOne()
-                .from(storeMember)
-                .where(
-                        storeMember.store.storeId.eq(storeId),
-                        storeMember.user.userId.eq(userId),
-                        storeMember.status.eq(StoreMemberStatus.ACTIVE)
-                )
-                .fetchFirst();
-        return count != null;
-    }
-
-    @Override
     public List<StoreMember> findAllByStorePublicIdWithUser(UUID storePublicId) {
         return queryFactory
                 .selectFrom(storeMember)
@@ -90,49 +76,19 @@ public class StoreMemberRepositoryImpl  implements StoreMemberRepositoryCustom  
     }
 
     @Override
-    public boolean isStoreMemberByPublicId(UUID storePublicId, Long userId) {
-        Integer count = queryFactory
-                .selectOne()
-                .from(storeMember)
-                .join(storeMember.store, store)
-                .where(
-                        store.storePublicId.eq(storePublicId),
-                        storeMember.user.userId.eq(userId),
-                        storeMember.status.eq(StoreMemberStatus.ACTIVE)
-                )
-                .fetchFirst();
-        return count != null;
-    }
-
-    @Override
-    public boolean hasRole(Long storeId, Long userId, StoreMemberRole role) {
-        Integer count = queryFactory
-                .selectOne()
-                .from(storeMember)
-                .where(
-                        storeMember.store.storeId.eq(storeId),
-                        storeMember.user.userId.eq(userId),
-                        storeMember.status.eq(StoreMemberStatus.ACTIVE),
-                        storeMember.role.eq(role)
-                )
-                .fetchFirst();
-        return count != null;
-    }
-
-    @Override
-    public boolean hasRoleByPublicId(UUID storePublicId, Long userId, StoreMemberRole role) {
-        Integer count = queryFactory
-                .selectOne()
-                .from(storeMember)
-                .join(storeMember.store, store)
-                .where(
-                        store.storePublicId.eq(storePublicId),
-                        storeMember.user.userId.eq(userId),
-                        storeMember.status.eq(StoreMemberStatus.ACTIVE),
-                        storeMember.role.eq(role)
-                )
-                .fetchFirst();
-        return count != null;
+    public Optional<StoreMemberRole> findActiveRoleByStorePublicIdAndUserId(UUID storePublicId, Long userId) {
+        return Optional.ofNullable(
+                queryFactory
+                        .select(storeMember.role)
+                        .from(storeMember)
+                        .join(storeMember.store, store)
+                        .where(
+                                store.storePublicId.eq(storePublicId),
+                                storeMember.user.userId.eq(userId),
+                                storeMember.status.eq(StoreMemberStatus.ACTIVE)
+                        )
+                        .fetchOne()
+        );
     }
 
     @Override
@@ -155,5 +111,18 @@ public class StoreMemberRepositoryImpl  implements StoreMemberRepositoryCustom  
                         storeMember.isDefault.isTrue()
                 )
                 .execute();
+    }
+
+    @Override
+    public long countActiveByUserId(Long userId) {
+        Long count = queryFactory
+                .select(storeMember.count())
+                .from(storeMember)
+                .where(
+                        storeMember.user.userId.eq(userId),
+                        storeMember.status.eq(StoreMemberStatus.ACTIVE)
+                )
+                .fetchOne();
+        return count != null ? count : 0;
     }
 }
