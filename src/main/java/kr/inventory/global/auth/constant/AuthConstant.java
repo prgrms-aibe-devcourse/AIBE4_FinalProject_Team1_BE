@@ -13,4 +13,6 @@ public class AuthConstant {
 
     public static final String OAUTH_REDIRECT_PATH = "/oauth/redirect";
     public static final String REDIRECT_PARAM_CODE = "code";
+    public static final String REDIRECT_URI_PARAM = "redirect_uri";
+    public static final String OAUTH_REDIRECT_URI_COOKIE_NAME = "oauthRedirectUri";
 }

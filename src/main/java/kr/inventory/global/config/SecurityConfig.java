@@ -2,6 +2,7 @@ package kr.inventory.global.config;
 
 import kr.inventory.domain.auth.service.CustomOAuth2UserService;
 import kr.inventory.global.auth.filter.JwtAuthenticationFilter;
+import kr.inventory.global.auth.filter.OAuth2AuthorizationRedirectFilter;
 import kr.inventory.global.auth.handler.OAuth2SuccessHandler;
 import kr.inventory.global.auth.jwt.JwtProvider;
 import kr.inventory.global.security.handler.RestAccessDeniedHandler;
@@ -15,6 +16,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -29,6 +31,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtProvider jwtProvider;
+    private final OAuth2AuthorizationRedirectFilter oAuth2AuthorizationRedirectFilter;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final RedisTemplate<String, String> redisTemplate;
@@ -83,6 +86,10 @@ public class SecurityConfig {
                                 userInfo.userService(customOAuth2UserService)
                         )
                         .successHandler(oAuth2SuccessHandler)
+                )
+                .addFilterBefore(
+                        oAuth2AuthorizationRedirectFilter,
+                        OAuth2AuthorizationRequestRedirectFilter.class
                 )
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtProvider, redisTemplate),
