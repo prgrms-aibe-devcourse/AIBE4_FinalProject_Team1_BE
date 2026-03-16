@@ -1,9 +1,6 @@
 package kr.inventory.ai.stock.tool.dto.request;
 
-import kr.inventory.domain.stock.entity.enums.InboundStatus;
-
 public record InboundListToolRequest(
-    InboundStatus status,
     String keyword,
     Integer limit
 ) {
