@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 import java.util.UUID;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -20,28 +19,21 @@ public class StorePermissionService {
     private final StoreRolePermissionPolicy storeRolePermissionPolicy;
 
     public boolean hasPermission(Long userId, UUID storePublicId, PermissionCode permissionCode) {
-        log.debug("[Permission] Checking permission - userId: {}, storePublicId: {}, permission: {}",
-                userId, storePublicId, permissionCode);
 
         Optional<StoreMemberRole> roleOpt = storeMemberRepository.findActiveRoleByStorePublicIdAndUserId(storePublicId, userId);
 
         if (roleOpt.isEmpty()) {
-            log.warn("[Permission] No active role found - userId: {}, storePublicId: {}", userId, storePublicId);
             return false;
         }
 
         StoreMemberRole role = roleOpt.get();
         boolean hasPermission = storeRolePermissionPolicy.hasPermission(role, permissionCode);
 
-        log.debug("[Permission] Role: {}, HasPermission: {}", role, hasPermission);
-
         return hasPermission;
     }
 
     public void validatePermission(Long userId, UUID storePublicId, PermissionCode permissionCode) {
         if (!hasPermission(userId, storePublicId, permissionCode)) {
-            log.error("[Permission] Permission denied - userId: {}, storePublicId: {}, permission: {}",
-                    userId, storePublicId, permissionCode);
             throw new PermissionException(PermissionErrorCode.PERMISSION_DENIED);
         }
     }
