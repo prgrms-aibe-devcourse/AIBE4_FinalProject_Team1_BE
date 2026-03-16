@@ -4,6 +4,7 @@ import kr.inventory.domain.analytics.constant.ReportConstants;
 import kr.inventory.domain.analytics.constant.SalesAnalyticsConstants;
 import kr.inventory.domain.analytics.controller.dto.request.ReportSearchRequest;
 import kr.inventory.domain.analytics.controller.dto.response.MenuRankingResponse;
+import kr.inventory.domain.analytics.controller.dto.response.ReportSummaryResponse;
 import kr.inventory.domain.analytics.controller.dto.response.SalesSummaryResponse;
 import kr.inventory.domain.analytics.exception.AnalyticsErrorCode;
 import kr.inventory.domain.analytics.exception.AnalyticsException;
@@ -32,6 +33,38 @@ public class ReportService {
     private final SalesOrderSearchRepositoryCustom salesOrderSearchRepository;
     private final ReportSearchRepositoryCustom reportSearchRepository;
     private final ReportPdfService reportPdfService;
+
+    /**
+     * 리포트 요약 조회 (JSON)
+     */
+    public ReportSummaryResponse getReportSummary(Long userId, UUID storePublicId, ReportSearchRequest request) {
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
+        LocalDate from = request.from();
+        LocalDate to = request.to();
+        validateDateRange(from, to);
+
+        ReportData reportData = buildReportData(storeId, from, to);
+        return ReportSummaryResponse.from(reportData, from, to);
+    }
+
+    /**
+     * 월간 리포트 요약 조회 (JSON)
+     */
+    public ReportSummaryResponse getMonthlyReportSummary(Long userId, UUID storePublicId, String yearMonth) {
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
+        YearMonth ym = parseYearMonth(yearMonth);
+        if (!ym.isBefore(YearMonth.now())) {
+            throw new AnalyticsException(AnalyticsErrorCode.FUTURE_DATE_NOT_ALLOWED);
+        }
+
+        LocalDate from = ym.atDay(1);
+        LocalDate to = ym.atEndOfMonth();
+
+        ReportData reportData = buildReportData(storeId, from, to);
+        return ReportSummaryResponse.from(reportData, from, to);
+    }
 
     /**
      * 사용자 지정 기간 리포트 발행
@@ -125,6 +158,7 @@ public class ReportService {
         if (from.isAfter(to)) {
             throw new AnalyticsException(AnalyticsErrorCode.INVALID_DATE_RANGE);
         }
+
         long daysBetween = to.toEpochDay() - from.toEpochDay();
         if (daysBetween > SalesAnalyticsConstants.MAX_QUERY_DAYS) {
             throw new AnalyticsException(AnalyticsErrorCode.DATE_RANGE_TOO_LONG);
