@@ -2,6 +2,7 @@ package kr.inventory.domain.reference.repository;
 
 import kr.inventory.domain.reference.entity.Menu;
 import kr.inventory.domain.reference.entity.enums.MenuStatus;
+import kr.inventory.domain.store.entity.Store;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -23,4 +24,13 @@ public interface MenuRepository extends JpaRepository<Menu, Long> {
     );
 
     List<Menu> findByMenuPublicIdInAndStatusNot(List<UUID> menuPublicIds, MenuStatus status);
+
+    boolean existsByStoreAndNameAndStatusNot(Store store, String name, MenuStatus status);
+
+    boolean existsByStoreAndNameAndStatusNotAndMenuIdNot(
+            Store store,
+            String name,
+            MenuStatus status,
+            Long menuId
+    );
 }

@@ -15,10 +15,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
-@Table(
-        name = "menus",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"store_id", "name"})
-)
+@Table(name = "menus")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Menu extends AuditableEntity {
