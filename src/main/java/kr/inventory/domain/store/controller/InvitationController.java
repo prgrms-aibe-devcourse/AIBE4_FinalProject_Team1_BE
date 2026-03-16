@@ -7,6 +7,8 @@ import kr.inventory.domain.store.controller.dto.request.InvitationAcceptRequest;
 import kr.inventory.domain.store.controller.dto.response.InvitationAcceptResponse;
 import kr.inventory.domain.store.controller.dto.response.InvitationCreateResponse;
 import kr.inventory.domain.store.controller.dto.response.InvitationItemResponse;
+import kr.inventory.domain.store.permission.PermissionCode;
+import kr.inventory.domain.store.permission.RequirePermission;
 import kr.inventory.domain.store.service.InvitationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -28,6 +30,7 @@ public class InvitationController {
         summary = "초대 생성/갱신",
         description = "OWNER만 가능. 매장당 1개의 초대만 존재하며, 재발급 시 기존 초대가 자동으로 갱신됩니다. 초대는 생성 후 30분간 유효합니다."
     )
+    @RequirePermission(PermissionCode.INVITE_ISSUE)
     @PostMapping("/stores/{storePublicId}/invitations")
     public ResponseEntity<InvitationCreateResponse> createInvitation(
         @AuthenticationPrincipal CustomUserDetails principal,
@@ -54,28 +57,22 @@ public class InvitationController {
     }
 
     @Operation(summary = "현재 초대 조회")
+    @RequirePermission(PermissionCode.INVITE_ISSUE)
     @GetMapping("/stores/{storePublicId}/invitations/active")
     public ResponseEntity<InvitationItemResponse> getActiveInvitation(
-        @AuthenticationPrincipal CustomUserDetails principal,
         @PathVariable UUID storePublicId
     ) {
-        InvitationItemResponse response = invitationService.getActiveInvitation(
-            principal.getUserId(),
-            storePublicId
-        );
+        InvitationItemResponse response = invitationService.getActiveInvitation(storePublicId);
         return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "현재 초대 취소")
+    @RequirePermission(PermissionCode.INVITE_ISSUE)
     @DeleteMapping("/stores/{storePublicId}/invitations/active")
     public ResponseEntity<Void> revokeActiveInvitation(
-        @AuthenticationPrincipal CustomUserDetails principal,
         @PathVariable UUID storePublicId
     ) {
-        invitationService.revokeActiveInvitation(
-            principal.getUserId(),
-            storePublicId
-        );
+        invitationService.revokeActiveInvitation(storePublicId);
         return ResponseEntity.noContent().build();
     }
 }

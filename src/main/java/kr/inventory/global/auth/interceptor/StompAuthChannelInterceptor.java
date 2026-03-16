@@ -33,12 +33,19 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
             return message;
         }
 
+        log.debug("[StompInterceptor] Received STOMP message - command: {}, destination: {}, sessionId: {}",
+                accessor.getCommand(), accessor.getDestination(), accessor.getSessionId());
+
         if (!requiresAuthentication(accessor.getCommand()) || accessor.getUser() != null) {
+            log.debug("[StompInterceptor] Skipping auth - command: {}, requiresAuth: {}, hasUser: {}",
+                    accessor.getCommand(), requiresAuthentication(accessor.getCommand()), accessor.getUser() != null);
             return message;
         }
 
         String accessToken = resolveToken(accessor);
         if (!StringUtils.hasText(accessToken)) {
+            log.warn("[StompInterceptor] No access token found - command: {}, sessionId: {}",
+                    accessor.getCommand(), accessor.getSessionId());
             return message;
         }
 
