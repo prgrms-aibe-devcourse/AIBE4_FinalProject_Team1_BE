@@ -1,4 +1,4 @@
-package kr.inventory.domain.stock.controller.dto.response;
+package kr.inventory.ai.stock.tool.dto.response;
 
 import java.math.BigDecimal;
 import java.util.UUID;
