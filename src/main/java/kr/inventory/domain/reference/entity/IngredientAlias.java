@@ -7,16 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(
-        name = "ingredient_aliases",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"alias"})
-        },
-        indexes = {
-                @Index(name = "idx_ingredient_aliases_alias", columnList = "alias"),
-                @Index(name = "idx_ingredient_aliases_canonical", columnList = "canonical")
-        }
-)
+@Table(name = "ingredient_aliases")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class IngredientAlias extends AuditableEntity {

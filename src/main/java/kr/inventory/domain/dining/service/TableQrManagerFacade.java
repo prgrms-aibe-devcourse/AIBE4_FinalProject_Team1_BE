@@ -3,6 +3,7 @@ package kr.inventory.domain.dining.service;
 import kr.inventory.domain.dining.controller.dto.response.TableQrIssueResponse;
 import kr.inventory.domain.dining.entity.DiningTable;
 import kr.inventory.domain.dining.entity.TableQr;
+import kr.inventory.domain.dining.entity.enums.TableStatus;
 import kr.inventory.domain.dining.exception.TableErrorCode;
 import kr.inventory.domain.dining.exception.TableException;
 import kr.inventory.domain.dining.repository.DiningTableRepository;
@@ -36,7 +37,7 @@ public class TableQrManagerFacade {
     public List<TableQrIssueResponse> issueTableQrs(Long userId, UUID storePublicId, List<UUID> tablePublicIds) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
-        List<DiningTable> tables = diningTableRepository.findAllByStore_StoreIdAndTablePublicIdIn(storeId, tablePublicIds);
+        List<DiningTable> tables = diningTableRepository.findAllByStore_StoreIdAndTablePublicIdInAndStatusNot(storeId, tablePublicIds, TableStatus.DELETED);
 
         if (tables.size() != tablePublicIds.size()) {
             throw new TableException(TableErrorCode.SOME_TABLES_NOT_FOUND);

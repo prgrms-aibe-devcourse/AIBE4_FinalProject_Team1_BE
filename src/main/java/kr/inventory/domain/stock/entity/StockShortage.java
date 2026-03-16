@@ -12,6 +12,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
+@Table(name = "stock_shortage")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class StockShortage extends AuditableEntity {

@@ -6,6 +6,7 @@ import kr.inventory.domain.dining.entity.DiningTable;
 import kr.inventory.domain.dining.entity.TableQr;
 import kr.inventory.domain.dining.entity.TableSession;
 import kr.inventory.domain.dining.entity.enums.TableSessionStatus;
+import kr.inventory.domain.dining.entity.enums.TableStatus;
 import kr.inventory.domain.dining.exception.QrErrorCode;
 import kr.inventory.domain.dining.exception.QrException;
 import kr.inventory.domain.dining.exception.TableErrorCode;
@@ -58,7 +59,7 @@ public class TableSessionService {
 
     private DiningTable getDiningTable(UUID storePublicId, UUID tablePublicId) {
         return diningTableRepository
-                .findByStore_StorePublicIdAndTablePublicId(storePublicId, tablePublicId)
+                .findByStore_StorePublicIdAndTablePublicIdAndStatusNot(storePublicId, tablePublicId, TableStatus.DELETED)
                 .orElseThrow(() -> new TableException(TableErrorCode.TABLE_NOT_FOUND));
     }
 

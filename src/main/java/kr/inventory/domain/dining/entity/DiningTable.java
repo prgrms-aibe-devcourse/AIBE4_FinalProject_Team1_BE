@@ -7,24 +7,11 @@ import kr.inventory.domain.store.entity.Store;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.Where;
 
 import java.util.UUID;
 
 @Entity
-@Table(
-        name = "dining_tables",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"store_id", "table_code"})
-        },
-        indexes = {
-                @Index(name = "idx_dining_tables_store", columnList = "store_id"),
-                @Index(name = "idx_dining_tables_public_id", columnList = "table_public_id")
-        }
-)
-@SQLDelete(sql = "UPDATE dining_tables SET status = 'DELETED' WHERE table_id = ?")
-@Where(clause = "status <> 'DELETED'")
+@Table(name = "dining_tables")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class DiningTable extends AuditableEntity {

@@ -4,6 +4,7 @@ import kr.inventory.domain.dining.controller.dto.request.DiningTableCreateReques
 import kr.inventory.domain.dining.controller.dto.response.DiningTableResponse;
 import kr.inventory.domain.dining.controller.dto.request.DiningTableUpdateRequest;
 import kr.inventory.domain.dining.entity.DiningTable;
+import kr.inventory.domain.dining.entity.enums.TableStatus;
 import kr.inventory.domain.dining.exception.TableErrorCode;
 import kr.inventory.domain.dining.exception.TableException;
 import kr.inventory.domain.dining.repository.DiningTableRepository;
@@ -41,7 +42,7 @@ public class DiningTableService {
 
     public List<DiningTableResponse> getTables(Long userId, UUID storePublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        return diningTableRepository.findAllByStore_StoreId(storeId).stream()
+        return diningTableRepository.findAllByStore_StoreIdAndStatusNot(storeId, TableStatus.DELETED).stream()
                 .map(DiningTableResponse::from)
                 .toList();
     }
@@ -63,11 +64,11 @@ public class DiningTableService {
     public void deleteTable(Long userId, UUID storePublicId, UUID tablePublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
         DiningTable table = findTable(storeId, tablePublicId);
-        diningTableRepository.delete(table);
+        table.update(null, TableStatus.DELETED);
     }
 
     private DiningTable findTable(Long storeId, UUID tablePublicId) {
-        return diningTableRepository.findByStore_StoreIdAndTablePublicId(storeId, tablePublicId)
+        return diningTableRepository.findByStore_StoreIdAndTablePublicIdAndStatusNot(storeId, tablePublicId, TableStatus.DELETED)
                 .orElseThrow(() -> new TableException(TableErrorCode.TABLE_NOT_FOUND));
     }
 }

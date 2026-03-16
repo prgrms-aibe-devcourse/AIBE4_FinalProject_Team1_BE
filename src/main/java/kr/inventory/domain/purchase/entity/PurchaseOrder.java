@@ -25,9 +25,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "purchase_orders", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_purchase_order_order_no", columnNames = "order_no")
-})
+@Table(name = "purchase_orders")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PurchaseOrder extends AuditableEntity {

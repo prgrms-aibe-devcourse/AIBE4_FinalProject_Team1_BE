@@ -8,12 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(
-    name = "social_login",
-    uniqueConstraints = {
-        @UniqueConstraint(name = "uq_social_login_provider", columnNames = {"provider", "provider_id"})
-    }
-)
+@Table(name = "social_login")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SocialLogin extends CreatedAtEntity {

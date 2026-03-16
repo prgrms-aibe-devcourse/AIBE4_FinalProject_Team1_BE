@@ -11,14 +11,7 @@ import lombok.NoArgsConstructor;
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(
-        name = "store_invitations",
-        uniqueConstraints = {
-                @UniqueConstraint(name = "uk_store_invitation_store", columnNames = "store_id"),
-                @UniqueConstraint(name = "uk_store_invitation_token", columnNames = "token"),
-                @UniqueConstraint(name = "uk_store_invitation_code", columnNames = "code")
-        }
-)
+@Table(name = "store_invitations")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Invitation extends AuditableEntity {

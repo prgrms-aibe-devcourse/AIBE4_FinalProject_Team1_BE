@@ -11,13 +11,7 @@ import lombok.NoArgsConstructor;
 import java.util.UUID;
 
 @Entity
-@Table(
-        name = "vendors",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_vendors_store_name",
-                columnNames = {"store_id", "name"}
-        )
-)
+@Table(name = "vendors")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Vendor extends AuditableEntity {
