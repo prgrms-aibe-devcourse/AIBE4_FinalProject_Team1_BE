@@ -2,6 +2,7 @@ package kr.inventory.global.config;
 
 import kr.inventory.domain.auth.service.CustomOAuth2UserService;
 import kr.inventory.global.auth.filter.JwtAuthenticationFilter;
+import kr.inventory.global.auth.filter.OAuth2AuthorizationRedirectFilter;
 import kr.inventory.global.auth.handler.OAuth2SuccessHandler;
 import kr.inventory.global.auth.jwt.JwtProvider;
 import kr.inventory.global.security.handler.RestAccessDeniedHandler;
@@ -15,6 +16,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -29,11 +31,13 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtProvider jwtProvider;
+    private final OAuth2AuthorizationRedirectFilter oAuth2AuthorizationRedirectFilter;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final RedisTemplate<String, String> redisTemplate;
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
     private final RestAccessDeniedHandler restAccessDeniedHandler;
+    private final CorsProperties corsProperties;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -53,10 +57,8 @@ public class SecurityConfig {
                         .requestMatchers("/qr_menu_order.html", "/js/**").permitAll()
                         .requestMatchers("/", "/error", "/favicon.ico").permitAll()
 
-                        // OAuth2 / Auth
                         .requestMatchers("/login/**", "/oauth2/**", "/api/auth/**").permitAll()
 
-                        // Swagger / Actuator
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
@@ -64,10 +66,8 @@ public class SecurityConfig {
                                 "/actuator/**"
                         ).permitAll()
 
-                        // WebSocket (STOMP)
                         .requestMatchers("/ws/**").permitAll()
 
-                        // Public customer
                         .requestMatchers(HttpMethod.GET, "/api/menus/*/customer").permitAll()
                         .requestMatchers("/api/table-sessions/**").permitAll()
                         .requestMatchers("/api/dining/**").permitAll()
@@ -75,7 +75,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/chat/**").permitAll()
                         .requestMatchers("/api/mcp-test/**").permitAll()
 
-                        // Backoffice
                         .requestMatchers("/api/users/**").authenticated()
                         .requestMatchers("/api/stores/**").authenticated()
                         .requestMatchers("/api/menus/**").authenticated()
@@ -89,6 +88,10 @@ public class SecurityConfig {
                         .successHandler(oAuth2SuccessHandler)
                 )
                 .addFilterBefore(
+                        oAuth2AuthorizationRedirectFilter,
+                        OAuth2AuthorizationRequestRedirectFilter.class
+                )
+                .addFilterBefore(
                         new JwtAuthenticationFilter(jwtProvider, redisTemplate),
                         UsernamePasswordAuthenticationFilter.class
                 );
@@ -99,11 +102,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of(
-                "http://localhost",
-                "http://localhost:5173",
-                "http://localhost:3000"
-        ));
+        configuration.setAllowedOrigins(corsProperties.getAllowedOrigins());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization"));

@@ -48,8 +48,10 @@ public record ChatStreamUserMessagePayload(
     }
 
     public static ChatStreamUserMessagePayload fromRecord(MapRecord<String, Object, Object> record) {
-        Map<Object, Object> value = record.getValue();
+        return fromMap(record.getValue());
+    }
 
+    public static ChatStreamUserMessagePayload fromMap(Map<?, ?> value) {
         ChatStreamMessageType type = ChatStreamMessageType.valueOf(String.valueOf(value.get(ChatConstants.TYPE)));
 
         Long userId = value.containsKey(ChatConstants.USER_ID)

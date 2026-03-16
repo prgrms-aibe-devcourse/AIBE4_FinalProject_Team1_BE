@@ -43,6 +43,11 @@ cors:
     - https://inventorykitchen.cloud
     - https://www.inventorykitchen.cloud
 
+app:
+  frontend-url: https://www.inventorykitchen.cloud
+  auth:
+    refresh-cookie-secure: true
+
 invitation:
   ttl: PT30M
   front-base-url: https://inventorykitchen.cloud
