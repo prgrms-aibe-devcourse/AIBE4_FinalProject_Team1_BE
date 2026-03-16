@@ -1,5 +1,6 @@
 package kr.inventory.domain.stock.service;
 
+import kr.inventory.domain.analytics.service.StockShortageIndexingService;
 import kr.inventory.domain.notification.service.trigger.StockShortageNotificationTriggerService;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.repository.IngredientRepository;
@@ -13,6 +14,8 @@ import kr.inventory.domain.stock.repository.StockShortageRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,133 +28,142 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class StockShortageService {
 
-    private final StockShortageRepository stockShortageRepository;
-    private final IngredientRepository ingredientRepository;
-    private final SalesOrderRepository salesOrderRepository;
-    private final StoreAccessValidator storeAccessValidator;
-    private final StockShortageNotificationTriggerService stockShortageNotificationTriggerService;
+	private final StockShortageRepository stockShortageRepository;
+	private final IngredientRepository ingredientRepository;
+	private final SalesOrderRepository salesOrderRepository;
+	private final StoreAccessValidator storeAccessValidator;
+	private final StockShortageNotificationTriggerService stockShortageNotificationTriggerService;
+	private final StockShortageIndexingService stockShortageService;
 
-    @Transactional
-    public void recordShortages(
-            Long storeId,
-            Long salesOrderId,
-            Map<Long, BigDecimal> usageMap,
-            Map<Long, BigDecimal> shortageMap
-    ) {
-        if (shortageMap == null || shortageMap.isEmpty()) {
-            return;
-        }
+	@Transactional
+	public void recordShortages(
+		Long storeId,
+		Long salesOrderId,
+		Map<Long, BigDecimal> usageMap,
+		Map<Long, BigDecimal> shortageMap
+	) {
+		if (shortageMap == null || shortageMap.isEmpty()) {
+			return;
+		}
 
-        List<Long> ingredientIds = shortageMap.keySet().stream().toList();
+		List<Long> ingredientIds = shortageMap.keySet().stream().toList();
 
-        Set<Long> alreadyPendingIngredientIds =
-                stockShortageRepository.findPendingIngredientIds(storeId, ingredientIds);
+		Set<Long> alreadyPendingIngredientIds =
+			stockShortageRepository.findPendingIngredientIds(storeId, ingredientIds);
 
-        Map<Long, Ingredient> ingredientMap = ingredientRepository.findAllById(ingredientIds).stream()
-                .collect(Collectors.toMap(Ingredient::getIngredientId, Function.identity()));
+		Map<Long, Ingredient> ingredientMap = ingredientRepository.findAllById(ingredientIds).stream()
+			.collect(Collectors.toMap(Ingredient::getIngredientId, Function.identity()));
 
-        List<StockShortage> shortages = shortageMap.entrySet().stream()
-                .map(entry -> {
-                    Long ingredientId = entry.getKey();
-                    BigDecimal shortageAmount = entry.getValue();
-                    BigDecimal requiredAmount = usageMap.get(ingredientId);
+		List<StockShortage> shortages = shortageMap.entrySet().stream()
+			.map(entry -> {
+				Long ingredientId = entry.getKey();
+				BigDecimal shortageAmount = entry.getValue();
+				BigDecimal requiredAmount = usageMap.get(ingredientId);
 
-                    return StockShortage.createPending(
-                            storeId,
-                            salesOrderId,
-                            ingredientId,
-                            requiredAmount,
-                            shortageAmount
-                    );
-                })
-                .toList();
+				return StockShortage.createPending(
+					storeId,
+					salesOrderId,
+					ingredientId,
+					requiredAmount,
+					shortageAmount
+				);
+			})
+			.toList();
 
-        stockShortageRepository.saveAll(shortages);
+		stockShortageRepository.saveAll(shortages);
 
-        List<Long> newlyShortageIngredientIds = shortageMap.keySet().stream()
-                .filter(ingredientId -> !alreadyPendingIngredientIds.contains(ingredientId))
-                .toList();
+		try {
+			stockShortageService.index(shortages);
+		} catch (Exception e) {
+			log.error("[ES] 재고 부족 데이터 인덱싱 실패 salesOrderId={}", salesOrderId, e);
+		}
 
-        stockShortageNotificationTriggerService.notifyStoreMembersStockShortage(
-                storeId,
-                ingredientMap,
-                newlyShortageIngredientIds
-        );
-    }
+		List<Long> newlyShortageIngredientIds = shortageMap.keySet().stream()
+			.filter(ingredientId -> !alreadyPendingIngredientIds.contains(ingredientId))
+			.toList();
 
-    @Transactional(readOnly = true)
-    public PageResponse<StockShortageGroupResponse> getShortagesGroupedByOrder(
-            Long userId,
-            UUID storePublicId,
-            StockShortageSearchRequest searchRequest,
-            Pageable pageable
-    ) {
-        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+		stockShortageNotificationTriggerService.notifyStoreMembersStockShortage(
+			storeId,
+			ingredientMap,
+			newlyShortageIngredientIds
+		);
 
-        Page<Long> salesOrderIdsPage = stockShortageRepository.findDistinctSalesOrderIdsByStoreId(
-                storeId,
-                searchRequest,
-                pageable
-        );
+	}
 
-        List<Long> salesOrderIds = salesOrderIdsPage.getContent();
+	@Transactional(readOnly = true)
+	public PageResponse<StockShortageGroupResponse> getShortagesGroupedByOrder(
+		Long userId,
+		UUID storePublicId,
+		StockShortageSearchRequest searchRequest,
+		Pageable pageable
+	) {
+		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
-        if (salesOrderIds.isEmpty()) {
-            return new PageResponse<>(
-                    Collections.emptyList(),
-                    salesOrderIdsPage.getNumber(),
-                    salesOrderIdsPage.getSize(),
-                    salesOrderIdsPage.getTotalElements(),
-                    salesOrderIdsPage.getTotalPages(),
-                    salesOrderIdsPage.hasNext()
-            );
-        }
+		Page<Long> salesOrderIdsPage = stockShortageRepository.findDistinctSalesOrderIdsByStoreId(
+			storeId,
+			searchRequest,
+			pageable
+		);
 
-        List<StockShortage> shortages = stockShortageRepository.findAllBySalesOrderIds(
-                salesOrderIds,
-                searchRequest
-        );
+		List<Long> salesOrderIds = salesOrderIdsPage.getContent();
 
-        Map<Long, SalesOrder> salesOrderMap = salesOrderRepository.findAllById(salesOrderIds).stream()
-                .collect(Collectors.toMap(SalesOrder::getSalesOrderId, Function.identity()));
+		if (salesOrderIds.isEmpty()) {
+			return new PageResponse<>(
+				Collections.emptyList(),
+				salesOrderIdsPage.getNumber(),
+				salesOrderIdsPage.getSize(),
+				salesOrderIdsPage.getTotalElements(),
+				salesOrderIdsPage.getTotalPages(),
+				salesOrderIdsPage.hasNext()
+			);
+		}
 
-        List<Long> ingredientIds = shortages.stream()
-                .map(StockShortage::getIngredientId)
-                .distinct()
-                .toList();
+		List<StockShortage> shortages = stockShortageRepository.findAllBySalesOrderIds(
+			salesOrderIds,
+			searchRequest
+		);
 
-        Map<Long, Ingredient> ingredientMap = ingredientRepository.findAllById(ingredientIds).stream()
-                .collect(Collectors.toMap(Ingredient::getIngredientId, Function.identity()));
+		Map<Long, SalesOrder> salesOrderMap = salesOrderRepository.findAllById(salesOrderIds).stream()
+			.collect(Collectors.toMap(SalesOrder::getSalesOrderId, Function.identity()));
 
-        Map<Long, List<StockShortage>> groupedByOrder = shortages.stream()
-                .collect(Collectors.groupingBy(StockShortage::getSalesOrderId));
+		List<Long> ingredientIds = shortages.stream()
+			.map(StockShortage::getIngredientId)
+			.distinct()
+			.toList();
 
-        List<StockShortageGroupResponse> content = salesOrderIds.stream()
-                .map(orderId -> {
-                    SalesOrder order = salesOrderMap.get(orderId);
+		Map<Long, Ingredient> ingredientMap = ingredientRepository.findAllById(ingredientIds).stream()
+			.collect(Collectors.toMap(Ingredient::getIngredientId, Function.identity()));
 
-                    List<StockShortageItemResponse> itemResponses = groupedByOrder
-                            .getOrDefault(orderId, Collections.emptyList())
-                            .stream()
-                            .map(shortage -> {
-                                Ingredient ingredient = ingredientMap.get(shortage.getIngredientId());
-                                return StockShortageItemResponse.from(shortage, ingredient);
-                            })
-                            .toList();
+		Map<Long, List<StockShortage>> groupedByOrder = shortages.stream()
+			.collect(Collectors.groupingBy(StockShortage::getSalesOrderId));
 
-                    return StockShortageGroupResponse.from(order, itemResponses);
-                })
-                .toList();
+		List<StockShortageGroupResponse> content = salesOrderIds.stream()
+			.map(orderId -> {
+				SalesOrder order = salesOrderMap.get(orderId);
 
-        return new PageResponse<>(
-                content,
-                salesOrderIdsPage.getNumber(),
-                salesOrderIdsPage.getSize(),
-                salesOrderIdsPage.getTotalElements(),
-                salesOrderIdsPage.getTotalPages(),
-                salesOrderIdsPage.hasNext()
-        );
-    }
+				List<StockShortageItemResponse> itemResponses = groupedByOrder
+					.getOrDefault(orderId, Collections.emptyList())
+					.stream()
+					.map(shortage -> {
+						Ingredient ingredient = ingredientMap.get(shortage.getIngredientId());
+						return StockShortageItemResponse.from(shortage, ingredient);
+					})
+					.toList();
+
+				return StockShortageGroupResponse.from(order, itemResponses);
+			})
+			.toList();
+
+		return new PageResponse<>(
+			content,
+			salesOrderIdsPage.getNumber(),
+			salesOrderIdsPage.getSize(),
+			salesOrderIdsPage.getTotalElements(),
+			salesOrderIdsPage.getTotalPages(),
+			salesOrderIdsPage.hasNext()
+		);
+	}
 }
