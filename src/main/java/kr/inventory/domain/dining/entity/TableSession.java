@@ -11,15 +11,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(
-        name = "table_sessions",
-        indexes = {
-                @Index(name = "idx_table_sessions_table", columnList = "table_id"),
-                @Index(name = "idx_table_sessions_token_hash", columnList = "session_token_hash"),
-                @Index(name = "idx_table_sessions_expires_at", columnList = "expires_at"),
-                @Index(name = "idx_table_sessions_public_id", columnList = "session_public_id")
-        }
-)
+@Table(name = "table_sessions")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class TableSession extends AuditableEntity {

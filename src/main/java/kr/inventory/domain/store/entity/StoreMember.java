@@ -10,13 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(
-        name = "store_members",
-        uniqueConstraints = {
-                @UniqueConstraint(name = "uk_store_user", columnNames = {"store_id", "user_id"}),
-                @UniqueConstraint(name = "uk_user_display_order", columnNames = {"user_id", "display_order"})
-        }
-)
+@Table(name = "store_members")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class StoreMember extends AuditableEntity {

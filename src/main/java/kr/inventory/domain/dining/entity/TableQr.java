@@ -11,17 +11,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(
-        name = "table_qrs",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"table_id", "rotation_version"})
-        },
-        indexes = {
-                @Index(name = "idx_table_qrs_table", columnList = "table_id"),
-                @Index(name = "idx_table_qrs_token_hash", columnList = "entry_token_hash"),
-                @Index(name = "idx_table_qrs_public_id", columnList = "qr_public_id")
-        }
-)
+@Table(name = "table_qrs")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class TableQr extends AuditableEntity {

@@ -14,17 +14,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
-@Table(
-        name = "ingredients",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"store_id", "name"}),
-                @UniqueConstraint(columnNames = {"store_id", "normalized_name"})
-        },
-        indexes = {
-                @Index(name = "idx_ingredients_store_id", columnList = "store_id"),
-                @Index(name = "idx_ingredients_normalized_name", columnList = "normalized_name")
-        }
-)
+@Table(name = "ingredients")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Ingredient extends AuditableEntity {

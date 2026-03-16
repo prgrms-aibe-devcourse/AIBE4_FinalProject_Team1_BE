@@ -15,13 +15,7 @@ import org.hibernate.type.SqlTypes;
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(
-        name = "notifications",
-        indexes = {
-                @Index(name = "idx_notifications_user_deleted_created", columnList = "user_id, is_deleted, created_at"),
-                @Index(name = "idx_notifications_user_read_deleted", columnList = "user_id, is_read, is_deleted")
-        }
-)
+@Table(name = "notifications")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Notification extends AuditableEntity {

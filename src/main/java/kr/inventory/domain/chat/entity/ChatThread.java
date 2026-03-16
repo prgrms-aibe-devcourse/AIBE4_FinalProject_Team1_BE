@@ -12,13 +12,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(
-        name = "chat_threads",
-        indexes = {
-                @Index(name = "idx_chat_threads_user_store_last_message_at", columnList = "user_id,store_public_id,last_message_at"),
-                @Index(name = "idx_chat_threads_user_last_message_at", columnList = "user_id,last_message_at")
-        }
-)
+@Table(name = "chat_threads")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ChatThread extends AuditableEntity {

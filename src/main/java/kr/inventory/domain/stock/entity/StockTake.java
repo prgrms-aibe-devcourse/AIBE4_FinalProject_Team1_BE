@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 
 @Entity
+@Table(name = "stock_take")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class StockTake extends AuditableEntity {

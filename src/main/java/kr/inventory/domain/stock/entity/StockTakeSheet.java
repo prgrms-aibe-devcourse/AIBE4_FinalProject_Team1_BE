@@ -14,6 +14,7 @@ import java.time.ZoneOffset;
 import java.util.UUID;
 
 @Entity
+@Table(name = "stock_take_sheet")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class StockTakeSheet extends AuditableEntity {
