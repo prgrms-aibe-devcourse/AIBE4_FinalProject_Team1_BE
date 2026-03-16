@@ -1,18 +1,10 @@
 package kr.inventory.domain.analytics.service;
 
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
-import org.springframework.cache.annotation.Cacheable;
 
 import org.springframework.stereotype.Service;
 
@@ -32,14 +24,6 @@ public class StockAnalyticService {
 	private final StoreAccessValidator storeAccessValidator;
 	private final StockBatchSearchRepositoryCustom stockSearchRepository;
 
-	public List<IngredientStockBatchDocument> searchStockBatches(
-		Long userId, UUID storePublicId, String keyword, String status, Integer daysUntilExpiry
-	) {
-		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-		return stockSearchRepository.searchStockBatches(storeId, keyword, status, daysUntilExpiry);
-	}
-
-	@Cacheable(value = "stock:integrated-analysis", key = "#storePublicId")
 	public List<StockAnalyticResponse> getIntegratedAnalysis(Long userId, UUID storePublicId) {
 		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 		log.debug("[Analytics] 재고/폐기 통합 분석 집계 storeId={}", storeId);
@@ -59,4 +43,5 @@ public class StockAnalyticService {
 			))
 			.toList();
 	}
+
 }

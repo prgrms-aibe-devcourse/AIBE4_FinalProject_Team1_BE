@@ -4,12 +4,16 @@ import kr.inventory.domain.analytics.document.sales.SalesOrderDocument;
 import kr.inventory.domain.analytics.document.stock.IngredientStockBatchDocument;
 import kr.inventory.domain.analytics.document.stock.StockInboundDocument;
 import kr.inventory.domain.analytics.document.stock.StockLogDocument;
+import kr.inventory.domain.analytics.document.stock.StockShortageDocument;
 import kr.inventory.domain.analytics.document.stock.WasteRecordDocument;
 import kr.inventory.domain.analytics.repository.SalesOrderSearchRepository;
 import kr.inventory.domain.analytics.repository.StockBatchSearchRepository;
 import kr.inventory.domain.analytics.repository.StockInboundSearchRepository;
 import kr.inventory.domain.analytics.repository.StockLogSearchRepository;
+import kr.inventory.domain.analytics.repository.StockShortageSearchRepository;
 import kr.inventory.domain.analytics.repository.WasteRecordSearchRepository;
+import kr.inventory.domain.reference.entity.Ingredient;
+import kr.inventory.domain.reference.repository.IngredientRepository;
 import kr.inventory.domain.sales.entity.SalesOrder;
 import kr.inventory.domain.sales.entity.SalesOrderItem;
 import kr.inventory.domain.sales.entity.enums.SalesOrderStatus;
@@ -18,11 +22,13 @@ import kr.inventory.domain.sales.repository.SalesOrderRepository;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.StockInbound;
 import kr.inventory.domain.stock.entity.StockLog;
+import kr.inventory.domain.stock.entity.StockShortage;
 import kr.inventory.domain.stock.entity.WasteRecord;
 import kr.inventory.domain.stock.entity.enums.InboundStatus;
 import kr.inventory.domain.stock.repository.IngredientStockBatchRepository;
 import kr.inventory.domain.stock.repository.StockInboundRepository;
 import kr.inventory.domain.stock.repository.StockLogRepository;
+import kr.inventory.domain.stock.repository.StockShortageRepository;
 import kr.inventory.domain.stock.repository.WasteRecordRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -58,12 +65,15 @@ public class BulkIndexingRunner implements ApplicationRunner {
 	private final StockLogRepository stockLogRepository;
 	private final WasteRecordRepository wasteRecordRepository;
 	private final IngredientStockBatchRepository ingredientStockBatchRepository;
+	private final StockShortageRepository stockShortageRepository;
+	private final IngredientRepository ingredientRepository;
 
 	private final SalesOrderSearchRepository salesOrderSearchRepository;
 	private final StockInboundSearchRepository stockInboundSearchRepository;
 	private final StockLogSearchRepository stockLogSearchRepository;
 	private final WasteRecordSearchRepository wasteRecordSearchRepository;
 	private final StockBatchSearchRepository stockBatchSearchRepository;
+	private final StockShortageSearchRepository stockShortageSearchRepository;
 
 	@Override
 	@Transactional(readOnly = true)
@@ -74,6 +84,7 @@ public class BulkIndexingRunner implements ApplicationRunner {
 		bulkIndexStockLogs();
 		bulkIndexWasteRecords();
 		bulkIndexStockBatches();
+		bulkIndexStockShortage();
 		log.info("[ES] BulkIndexingRunner 완료");
 	}
 
@@ -279,7 +290,7 @@ public class BulkIndexingRunner implements ApplicationRunner {
 		}
 		if (esCount > 0) {
 			log.info("[ES] stock_batch DB({})건 ≠ ES({})건 불일치, 재인덱싱 시작", dbCount, esCount);
-stockBatchSearchRepository.deleteAll();
+			stockBatchSearchRepository.deleteAll();
 		}
 
 		log.info("[ES] stock_batches bulk 인덱싱 시작");
@@ -311,6 +322,58 @@ stockBatchSearchRepository.deleteAll();
 			page++;
 		}
 		log.info("[ES] stock_batches 총 {}건 인덱싱 완료", total);
+	}
+
+	// 부족 주문
+	private void bulkIndexStockShortage() {
+		long dbCount = stockShortageRepository.count();
+		long esCount = stockShortageSearchRepository.count();
+		if (esCount > 0 && esCount == dbCount) {
+			log.info("[ES] stock_shortage DB({})건 = ES({})건 일치, 스킵", dbCount, esCount);
+			return;
+		}
+		if (esCount > 0) {
+			log.info("[ES] stock_shortage DB({})건 ≠ ES({})건 불일치, 재인덱싱 시작", dbCount, esCount);
+			stockShortageSearchRepository.deleteAll();
+		}
+
+		log.info("[ES] stock_shortage bulk 인덱싱 시작");
+		int page = 0;
+		int total = 0;
+
+		while (true) {
+			// QueryDSL로 구현한 Fetch Join 메서드 호출
+			Page<StockShortage> pageResult = stockShortageRepository.findAll(
+				PageRequest.of(page, BATCH_SIZE)
+			);
+
+			List<StockShortage> shortages = pageResult.getContent();
+			if (shortages.isEmpty())
+				break;
+
+			Set<Long> ingredientIds = shortages.stream()
+				.map(StockShortage::getIngredientId)
+				.collect(Collectors.toSet());
+
+			Map<Long, String> ingredientNameMap = ingredientRepository.findAllById(ingredientIds)
+				.stream()
+				.collect(Collectors.toMap(Ingredient::getIngredientId, Ingredient::getName));
+
+			List<StockShortageDocument> docs = shortages.stream()
+				.map(shortage -> StockShortageDocument.from(
+					shortage,
+					ingredientNameMap.getOrDefault(shortage.getIngredientId(), "알 수 없는 식재료")
+				))
+				.toList();
+
+			stockShortageSearchRepository.saveAll(docs);
+
+			log.info("[ES] stock_shortage {}건 인덱싱 완료", docs.size());
+			if (!pageResult.hasNext())
+				break;
+			page++;
+		}
+		log.info("[ES] stock_shortage 총 {}건 인덱싱 완료", total);
 	}
 
 }

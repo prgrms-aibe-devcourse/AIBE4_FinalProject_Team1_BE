@@ -3,13 +3,24 @@ package kr.inventory.domain.analytics.controller.dto.response;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
+
 public record StockAnalyticResponse(
 	Long ingredientId,
 	String ingredientName,
 
 	// 재고 정보
 	BigDecimal currentQuantity,
+
+	@JsonSerialize(using = LocalDateSerializer.class)
+	@JsonDeserialize(using = LocalDateDeserializer.class)
+	@JsonFormat(pattern = "yyyy-MM-dd")
 	LocalDate minExpirationDate,
+
 	boolean isLowStock,
 	long activeBatchCount,
 
