@@ -8,6 +8,8 @@ public record IngredientConfirmRequest(
 
     String newIngredientName,
 
-    String newIngredientUnit
+    String newIngredientUnit,
+
+    String specText
 ) {
 }

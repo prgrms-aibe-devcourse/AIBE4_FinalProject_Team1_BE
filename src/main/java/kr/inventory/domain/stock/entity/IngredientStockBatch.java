@@ -77,11 +77,7 @@ public class IngredientStockBatch extends AuditableEntity {
 		batch.inboundItem = inboundItem;
         batch.sourceType = StockBatchSourceType.INBOUND;
 
-		BigDecimal effectiveQuantity = inboundItem.getQuantity();
-		if (ingredient.getUnitSize() != null) {
-			effectiveQuantity = effectiveQuantity.multiply(ingredient.getUnitSize());
-		}
-
+		BigDecimal effectiveQuantity = inboundItem.getEffectiveQuantity();
 		batch.initialQuantity = effectiveQuantity;
 		batch.remainingQuantity = effectiveQuantity;
 		batch.unitCost = inboundItem.getUnitCost();

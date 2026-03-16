@@ -44,6 +44,9 @@ public class StockInboundItem extends CreatedAtEntity {
     @Column(nullable = false, precision = 14, scale = 3)
     private BigDecimal quantity;
 
+    @Column(precision = 14, scale = 3)
+    private BigDecimal normalizedQuantity;
+
     @Column(precision = 14, scale = 2)
     private BigDecimal unitCost;
 
@@ -80,6 +83,7 @@ public class StockInboundItem extends CreatedAtEntity {
         item.inbound = inbound;
         item.rawProductName = rawProductName;
         item.quantity = quantity;
+        item.normalizedQuantity = quantity;
         item.unitCost = unitCost;
         item.expirationDate = expirationDate;
         return item;
@@ -98,6 +102,7 @@ public class StockInboundItem extends CreatedAtEntity {
         item.ingredient = ingredient;
         item.rawProductName = ingredient.getName();
         item.quantity = quantity;
+        item.normalizedQuantity = quantity;
         item.unitCost = unitCost;
         item.expirationDate = expirationDate;
         return item;
@@ -132,6 +137,14 @@ public class StockInboundItem extends CreatedAtEntity {
         this.normalizedRawFull = normalizedRawFull;
     }
 
+    public void updateNormalizedQuantity(BigDecimal normalizedQuantity) {
+        this.normalizedQuantity = normalizedQuantity;
+    }
+
+    public BigDecimal getEffectiveQuantity() {
+        return normalizedQuantity != null ? normalizedQuantity : quantity;
+    }
+
     public void confirmResolution(Ingredient ingredient) {
         this.ingredient = ingredient;
         this.resolutionStatus = ResolutionStatus.CONFIRMED;
@@ -141,5 +154,9 @@ public class StockInboundItem extends CreatedAtEntity {
     public void updateProductName(String productDisplayName, String productKey) {
         this.productDisplayName = productDisplayName;
         this.productKey = productKey;
+    }
+
+    public void updateSpecText(String specText) {
+        this.specText = specText;
     }
 }

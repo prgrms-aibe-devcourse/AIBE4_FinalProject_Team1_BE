@@ -33,7 +33,7 @@ public record StockInboundLogCommand(
         return new StockInboundLogCommand(
                 inbound.getStore(),
                 item.getIngredient(),
-                item.getQuantity(),
+                item.getEffectiveQuantity(),
                 balanceAfter,
                 batch,
                 batch.getProductDisplayName(),
