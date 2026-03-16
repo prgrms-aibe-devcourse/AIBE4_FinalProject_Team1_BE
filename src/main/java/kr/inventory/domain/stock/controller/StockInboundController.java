@@ -7,6 +7,7 @@ import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.stock.controller.dto.request.IngredientConfirmRequest;
 import kr.inventory.domain.stock.controller.dto.request.ManualInboundRequest;
 import kr.inventory.domain.stock.controller.dto.request.StockInboundSearchRequest;
+import kr.inventory.domain.stock.controller.dto.request.UpdateNormalizationRequest;
 import kr.inventory.domain.stock.controller.dto.response.*;
 import kr.inventory.domain.stock.normalization.service.IngredientResolutionService;
 import kr.inventory.domain.stock.normalization.service.ProductNormalizationService;
@@ -86,6 +87,25 @@ public class StockInboundController {
                 request
         );
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "입고 아이템 수량 정규화 업데이트 (재료 매핑 없이 정규화 정보만 저장)")
+    @PutMapping("/{inboundPublicId}/items/{inboundItemPublicId}/normalization")
+    public ResponseEntity<Void> updateInboundItemNormalization(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @PathVariable UUID storePublicId,
+            @PathVariable UUID inboundPublicId,
+            @PathVariable UUID inboundItemPublicId,
+            @RequestBody UpdateNormalizationRequest request
+    ) {
+        stockInboundService.updateItemNormalization(
+                principal.getUserId(),
+                storePublicId,
+                inboundPublicId,
+                inboundItemPublicId,
+                request
+        );
+        return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "입고 아이템 전체 상품명 정규화")

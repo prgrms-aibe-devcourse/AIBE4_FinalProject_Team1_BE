@@ -16,12 +16,14 @@ public record StockInboundItemResponse(
         String ingredientName,
         String rawProductName,
         BigDecimal quantity,
+        BigDecimal normalizedQuantity,
         BigDecimal unitCost,
         LocalDate expirationDate,
         ResolutionStatus resolutionStatus,
         String normalizedRawKey,
         String normalizedRawFull,
-        String specText
+        String specText,
+        String productDisplayName
 ) {
     public static StockInboundItemResponse from(StockInboundItem item) {
         Ingredient ingredient = item.getIngredient();
@@ -34,12 +36,14 @@ public record StockInboundItemResponse(
                 ingredient != null ? ingredient.getName() : null,
                 item.getRawProductName(),
                 item.getQuantity(),
+                item.getEffectiveQuantity(),
                 item.getUnitCost(),
                 item.getExpirationDate(),
                 item.getResolutionStatus(),
                 item.getNormalizedRawKey(),
                 item.getNormalizedRawFull(),
-                item.getSpecText()
+                item.getSpecText(),
+                item.getProductDisplayName()
         );
     }
 }

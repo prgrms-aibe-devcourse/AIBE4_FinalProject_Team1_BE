@@ -6,6 +6,7 @@ import kr.inventory.domain.reference.controller.dto.response.IngredientResponse;
 import kr.inventory.domain.reference.controller.dto.request.IngredientUpdateRequest;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.entity.enums.IngredientStatus;
+import kr.inventory.domain.reference.entity.enums.IngredientUnit;
 import kr.inventory.domain.reference.exception.IngredientErrorCode;
 import kr.inventory.domain.reference.exception.IngredientException;
 import kr.inventory.domain.reference.repository.IngredientRepository;
@@ -22,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,24 +44,33 @@ public class IngredientService {
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_NOT_FOUND));
 
-        // 입고 원문에서 규격 추출 시도
         Optional<InboundSpecExtractor.Spec> spec = specExtractor.extract(request.name());
 
-        Ingredient ingredient;
-        // 규격 추출 성공: baseName, unit, unitSize 사용
-        // 규격 추출 실패: 기존 방식대로 생성 (unitSize=null)
-        ingredient = spec.map(value -> Ingredient.create(
-                store,
-                value.baseName(),
-                value.unit(),
-                request.lowStockThreshold(),
-                value.unitSize()
-        )).orElseGet(() -> Ingredient.create(
-                store,
-                request.name(),
-                request.unit(),
-                request.lowStockThreshold()
-        ));
+        Ingredient ingredient = spec.map(value -> {
+                    BigDecimal unitSize = resolveIngredientUnitSize(value);
+                    if (unitSize == null) {
+                        return Ingredient.create(
+                                store,
+                                value.baseName(),
+                                value.unit(),
+                                request.lowStockThreshold()
+                        );
+                    }
+
+                    return Ingredient.create(
+                            store,
+                            value.baseName(),
+                            value.unit(),
+                            request.lowStockThreshold(),
+                            unitSize
+                    );
+                })
+                .orElseGet(() -> Ingredient.create(
+                        store,
+                        request.name(),
+                        request.unit(),
+                        request.lowStockThreshold()
+                ));
 
         ingredientRepository.save(ingredient);
         return IngredientResponse.from(ingredient);
@@ -116,5 +127,17 @@ public class IngredientService {
                         IngredientStatus.DELETED
                 )
                 .orElseThrow(() -> new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND));
+    }
+
+    private BigDecimal resolveIngredientUnitSize(InboundSpecExtractor.Spec spec) {
+        if (spec == null || spec.unit() == IngredientUnit.EA) {
+            return null;
+        }
+
+        if (spec.unitSize() == null || spec.unitSize().compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+
+        return spec.unitSize();
     }
 }

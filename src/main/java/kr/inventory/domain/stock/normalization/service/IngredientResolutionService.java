@@ -4,6 +4,7 @@ import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.entity.IngredientAlias;
 import kr.inventory.domain.reference.entity.IngredientMapping;
 import kr.inventory.domain.reference.entity.enums.IngredientStatus;
+import kr.inventory.domain.reference.entity.enums.IngredientUnit;
 import kr.inventory.domain.reference.exception.IngredientErrorCode;
 import kr.inventory.domain.reference.exception.IngredientException;
 import kr.inventory.domain.reference.repository.IngredientRepository;
@@ -19,6 +20,7 @@ import kr.inventory.domain.stock.exception.StockException;
 import kr.inventory.domain.stock.normalization.constant.InboundItemResolutionConstants;
 import kr.inventory.domain.stock.normalization.model.BulkResolveResult;
 import kr.inventory.domain.stock.normalization.model.ConfirmResult;
+import kr.inventory.domain.stock.normalization.model.InboundSpecExtractor;
 import kr.inventory.domain.stock.normalization.model.ResolutionResult;
 import kr.inventory.domain.stock.normalization.normalizer.RawProductNameNormalizer;
 import kr.inventory.domain.stock.normalization.repository.IngredientAliasRepository;
@@ -32,6 +34,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -47,6 +50,8 @@ public class IngredientResolutionService {
     private final StockInboundRepository stockInboundRepository;
     private final StoreAccessValidator storeAccessValidator;
     private final RawProductNameNormalizer normalizer;
+    private final InboundSpecExtractor inboundSpecExtractor;
+    private final InboundQuantityNormalizer inboundQuantityNormalizer;
 
     @Transactional
     public BulkResolveResponse resolveAllForInbound(Long userId, UUID storePublicId, UUID inboundPublicId) {
@@ -143,14 +148,17 @@ public class IngredientResolutionService {
         Optional<IngredientMapping> mapping = ingredientMappingRepository.findActiveStoreLevelMapping(storeId, canonicalKey);
         if (mapping.isPresent()) {
             Ingredient ingredient = mapping.get().getIngredient();
-            if (isUsableIngredient(ingredient, storeId)) {
+            if (isUsableIngredient(ingredient, storeId) && isUnitCompatible(inboundItem, ingredient)) {
                 inboundItem.updateResolution(ResolutionStatus.AUTO_SUGGESTED, ingredient, null);
+                applyNormalizedQuantity(inboundItem, ingredient);
+                updateInboundItemKeyToIngredientNormalizedName(inboundItem, ingredient, normalizedFull);
+
                 return ResolutionResult.confirmed(canonicalKey, normalizedFull, ingredient);
             }
         }
 
         if (activeIngredients != null && !activeIngredients.isEmpty()) {
-            List<ScoredCandidate> scored = scoreCandidates(tokens, activeIngredients);
+            List<ScoredCandidate> scored = scoreCandidates(tokens, activeIngredients, inboundItem);
             if (!scored.isEmpty()) {
                 List<ScoredCandidate> top = scored.stream()
                         .limit(InboundItemResolutionConstants.TOP_N_CANDIDATES)
@@ -165,12 +173,16 @@ public class IngredientResolutionService {
                 if (confidentAuto) {
                     Ingredient chosen = top.get(0).ingredient;
                     inboundItem.updateResolution(ResolutionStatus.AUTO_SUGGESTED, chosen, null);
+                    applyNormalizedQuantity(inboundItem, chosen);
+                    updateInboundItemKeyToIngredientNormalizedName(inboundItem, chosen, normalizedFull);
+
                     return ResolutionResult.confirmed(canonicalKey, normalizedFull, chosen);
                 }
             }
         }
 
         inboundItem.updateResolution(ResolutionStatus.AUTO_SUGGESTED, null, null);
+        applyNormalizedQuantity(inboundItem, null);
         return ResolutionResult.autoSuggestedWithoutIngredient(canonicalKey, normalizedFull);
     }
 
@@ -206,6 +218,10 @@ public class IngredientResolutionService {
         validateInboundItemScopeOrThrow(inboundItem, storeId, inboundPublicId);
 
         String key = resolveNormalizedRawKey(inboundItem);
+        InboundSpecExtractor.Spec extractedSpec = inboundSpecExtractor
+                .extract(inboundItem.getRawProductName(), inboundItem.getSpecText())
+                .orElse(null);
+
         Ingredient ingredient;
 
         if (hasExistingIngredient(request)) {
@@ -219,14 +235,17 @@ public class IngredientResolutionService {
             if (!isUsableIngredient(ingredient, storeId)) {
                 throw new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND);
             }
+            validateUnitCompatibilityOrThrow(extractedSpec, ingredient.getUnit());
         } else {
             Store store = inboundItem.getInbound().getStore();
-            kr.inventory.domain.reference.entity.enums.IngredientUnit unit =
-                    parseIngredientUnitOrDefault(request.newIngredientUnit());
-
+            IngredientUnit unit = resolveIngredientUnit(request.newIngredientUnit(), extractedSpec);
+            validateUnitCompatibilityOrThrow(extractedSpec, unit);
             String ingredientNameToCreate = resolveIngredientNameForCreate(inboundItem, request, key);
+            BigDecimal unitSize = resolveIngredientUnitSize(extractedSpec, unit);
 
-            ingredient = Ingredient.create(store, ingredientNameToCreate, unit, null);
+            ingredient = unitSize == null
+                    ? Ingredient.create(store, ingredientNameToCreate, unit, null)
+                    : Ingredient.create(store, ingredientNameToCreate, unit, null, unitSize);
 
             try {
                 ingredient = ingredientRepository.save(ingredient);
@@ -235,13 +254,20 @@ public class IngredientResolutionService {
             }
         }
 
-        inboundItem.confirmResolution(ingredient);
+        if (request.specText() != null && !request.specText().isBlank()) {
+            inboundItem.updateSpecText(request.specText());
+        }
 
+        inboundItem.confirmResolution(ingredient);
+        applyNormalizedQuantity(inboundItem, ingredient);
+        updateInboundItemKeyToIngredientNormalizedName(inboundItem, ingredient, inboundItem.getNormalizedRawFull());
+
+        String confirmedKey = ingredient.getNormalizedName();
         return new ConfirmResult(
                 inboundItemPublicId,
                 ingredient.getIngredientPublicId(),
                 ingredient.getName(),
-                key,
+                confirmedKey != null ? confirmedKey.trim().toLowerCase() : key,
                 false
         );
     }
@@ -316,16 +342,93 @@ public class IngredientResolutionService {
         return value != null && !value.isBlank();
     }
 
-    private kr.inventory.domain.reference.entity.enums.IngredientUnit parseIngredientUnitOrDefault(String unitValue) {
-        if (unitValue == null || unitValue.isBlank()) {
-            return kr.inventory.domain.reference.entity.enums.IngredientUnit.EA;
+    private IngredientUnit resolveIngredientUnit(String unitValue, InboundSpecExtractor.Spec spec) {
+        if (unitValue != null && !unitValue.isBlank()) {
+            try {
+                return IngredientUnit.valueOf(unitValue.trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                return IngredientUnit.EA;
+            }
         }
 
-        try {
-            return kr.inventory.domain.reference.entity.enums.IngredientUnit.valueOf(unitValue.trim().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return kr.inventory.domain.reference.entity.enums.IngredientUnit.EA;
+        if (spec != null) {
+            return spec.unit();
         }
+
+        return IngredientUnit.EA;
+    }
+
+    private BigDecimal resolveIngredientUnitSize(InboundSpecExtractor.Spec spec, IngredientUnit unit) {
+        if (spec == null || unit == null) {
+            return null;
+        }
+
+        if (unit == IngredientUnit.EA) {
+            return null;
+        }
+
+        if (spec.unit() != unit) {
+            return null;
+        }
+
+        if (spec.unitSize() == null || spec.unitSize().compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+
+        return spec.unitSize();
+    }
+
+    private void applyNormalizedQuantity(StockInboundItem inboundItem, Ingredient ingredient) {
+        InboundQuantityNormalizer.NormalizationResult result = inboundQuantityNormalizer.normalize(inboundItem, ingredient);
+        inboundItem.updateNormalizedQuantity(result.normalizedQuantity());
+    }
+
+
+    private boolean isUnitCompatible(StockInboundItem inboundItem, Ingredient ingredient) {
+        if (ingredient == null || ingredient.getUnit() == null) {
+            return true;
+        }
+
+        InboundSpecExtractor.Spec spec = inboundSpecExtractor
+                .extract(inboundItem.getRawProductName(), inboundItem.getSpecText())
+                .orElse(null);
+
+        if (spec == null) {
+            return true;
+        }
+
+        return spec.unit() == ingredient.getUnit();
+    }
+
+    private void validateUnitCompatibilityOrThrow(InboundSpecExtractor.Spec spec, IngredientUnit unit) {
+        if (spec == null || unit == null) {
+            return;
+        }
+
+        // G/ML 규격이 있는 품목은 EA 재료와 매핑되지 않도록 차단
+        if (spec.unit() != unit) {
+            throw new StockException(StockErrorCode.INVALID_INBOUND_ITEM_UNIT_MAPPING);
+        }
+    }
+
+    private void updateInboundItemKeyToIngredientNormalizedName(
+            StockInboundItem inboundItem,
+            Ingredient ingredient,
+            String normalizedRawFull
+    ) {
+        if (ingredient == null) {
+            return;
+        }
+
+        String ingredientKey = ingredient.getNormalizedName();
+        if (ingredientKey == null || ingredientKey.isBlank()) {
+            return;
+        }
+
+        inboundItem.updateNormalizedKeys(
+                ingredientKey.trim().toLowerCase(),
+                normalizedRawFull
+        );
     }
 
     private static class ScoredCandidate {
@@ -338,7 +441,9 @@ public class IngredientResolutionService {
         }
     }
 
-    private List<ScoredCandidate> scoreCandidates(List<String> tokens, List<Ingredient> ingredients) {
+    private List<ScoredCandidate> scoreCandidates(List<String> tokens,
+                                               List<Ingredient> ingredients,
+                                               StockInboundItem inboundItem) {
         Set<String> query = tokens.stream()
                 .map(t -> t.trim().toLowerCase())
                 .filter(t -> !t.isBlank())
@@ -352,6 +457,7 @@ public class IngredientResolutionService {
         for (Ingredient ingredient : ingredients) {
             if (ingredient == null) continue;
             if (ingredient.getStatus() == IngredientStatus.DELETED) continue;
+            if (!isUnitCompatible(inboundItem, ingredient)) continue;
 
             String normalizedName = ingredient.getNormalizedName();
             if (normalizedName == null || normalizedName.isBlank()) {
