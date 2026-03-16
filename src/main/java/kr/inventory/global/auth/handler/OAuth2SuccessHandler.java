@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,7 +35,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final CookieUtil cookieUtil;
     private final CorsProperties corsProperties;
 
-    @Value("${app.frontend-url:http://localhost:5173}")
+    @Value("${app.frontend-url:http://localhost}")
     private String frontendUrl;
 
     @Override
@@ -83,17 +84,43 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private boolean isAllowedRedirectUri(String redirectUri) {
         try {
             URI requestedUri = URI.create(redirectUri);
+
             if (requestedUri.getScheme() == null || requestedUri.getHost() == null) {
                 return false;
             }
 
-            String requestedOrigin = requestedUri.getScheme() + "://" + requestedUri.getHost()
-                    + (requestedUri.getPort() > -1 ? ":" + requestedUri.getPort() : "");
-
+            String requestedOrigin = normalizeOrigin(requestedUri);
             List<String> allowedOrigins = corsProperties.getAllowedOrigins();
-            return allowedOrigins.stream().anyMatch(requestedOrigin::equals);
+
+            return allowedOrigins.stream()
+                    .map(this::normalizeOrigin)
+                    .anyMatch(requestedOrigin::equals);
         } catch (IllegalArgumentException exception) {
             return false;
         }
+    }
+
+    private String normalizeOrigin(String origin) {
+        return normalizeOrigin(URI.create(origin));
+    }
+
+    private String normalizeOrigin(URI uri) {
+        String scheme = Optional.ofNullable(uri.getScheme())
+                .orElse("")
+                .toLowerCase(Locale.ROOT);
+        String host = Optional.ofNullable(uri.getHost())
+                .orElse("")
+                .toLowerCase(Locale.ROOT);
+        int port = uri.getPort();
+
+        boolean isDefaultPort = port == -1
+                || ("http".equals(scheme) && port == 80)
+                || ("https".equals(scheme) && port == 443);
+
+        if (isDefaultPort) {
+            return scheme + "://" + host;
+        }
+
+        return scheme + "://" + host + ":" + port;
     }
 }
