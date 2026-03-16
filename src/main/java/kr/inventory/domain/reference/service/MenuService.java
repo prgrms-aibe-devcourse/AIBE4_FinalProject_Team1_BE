@@ -1,8 +1,8 @@
 package kr.inventory.domain.reference.service;
 
 import kr.inventory.domain.reference.controller.dto.request.MenuCreateRequest;
-import kr.inventory.domain.reference.controller.dto.response.MenuResponse;
 import kr.inventory.domain.reference.controller.dto.request.MenuUpdateRequest;
+import kr.inventory.domain.reference.controller.dto.response.MenuResponse;
 import kr.inventory.domain.reference.entity.Menu;
 import kr.inventory.domain.reference.entity.enums.MenuStatus;
 import kr.inventory.domain.reference.exception.MenuErrorCode;
@@ -14,6 +14,7 @@ import kr.inventory.domain.store.exception.StoreException;
 import kr.inventory.domain.store.repository.StoreRepository;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,9 +36,15 @@ public class MenuService {
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_NOT_FOUND));
 
-        Menu menu = Menu.create(store, request.name(), request.basePrice(), request.ingredientsJson());
-        menuRepository.save(menu);
-        return menu.getMenuPublicId();
+        validateDuplicateMenuName(store, request.name());
+
+        try{
+            Menu menu = Menu.create(store, request.name(), request.basePrice(), request.ingredientsJson());
+            menuRepository.save(menu);
+            return menu.getMenuPublicId();
+        } catch (DataIntegrityViolationException e) {
+            throw new MenuException(MenuErrorCode.DUPLICATE_MENU_NAME);
+        }
     }
 
     public List<MenuResponse> getMenus(Long userId, UUID storePublicId) {
@@ -56,13 +63,18 @@ public class MenuService {
     public void updateMenu(Long userId, UUID storePublicId, UUID menuPublicId, MenuUpdateRequest request) {
         Menu menu = validateAndGetMenu(userId, storePublicId, menuPublicId);
 
-        menu.update(request.name(), request.basePrice(), request.status(), request.ingredientsJson());
+        validateDuplicateMenuNameForUpdate(menu, request.name());
+
+        try {
+            menu.update(request.name(), request.basePrice(), request.status(), request.ingredientsJson());
+        } catch (DataIntegrityViolationException e) {
+            throw new MenuException(MenuErrorCode.DUPLICATE_MENU_NAME);
+        }
     }
 
     @Transactional
     public void deleteMenu(Long userId, UUID storePublicId, UUID menuPublicId) {
         Menu menu = validateAndGetMenu(userId, storePublicId, menuPublicId);
-        // Soft Delete: Entity의 delete() 메서드 사용
         menu.delete();
     }
 
@@ -88,5 +100,30 @@ public class MenuService {
         return menuRepository.findAllByStoreStoreIdAndStatusNot(storeId, MenuStatus.DELETED).stream()
                 .map(MenuResponse::from)
                 .toList();
+    }
+
+    private void validateDuplicateMenuName(Store store, String name) {
+        boolean exists = menuRepository.existsByStoreAndNameAndStatusNot(
+                store,
+                name,
+                MenuStatus.DELETED
+        );
+
+        if (exists) {
+            throw new MenuException(MenuErrorCode.DUPLICATE_MENU_NAME);
+        }
+    }
+
+    private void validateDuplicateMenuNameForUpdate(Menu menu, String name) {
+        boolean exists = menuRepository.existsByStoreAndNameAndStatusNotAndMenuIdNot(
+                menu.getStore(),
+                name,
+                MenuStatus.DELETED,
+                menu.getMenuId()
+        );
+
+        if(exists) {
+            throw new MenuException(MenuErrorCode.DUPLICATE_MENU_NAME);
+        }
     }
 }
