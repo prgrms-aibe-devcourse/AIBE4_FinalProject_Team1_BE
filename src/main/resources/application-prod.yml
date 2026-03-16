@@ -45,6 +45,8 @@ cors:
 
 app:
   frontend-url: https://www.inventorykitchen.cloud
+  auth:
+    refresh-cookie-secure: true
 
 invitation:
   ttl: PT30M

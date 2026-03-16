@@ -5,6 +5,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import kr.inventory.domain.chat.entity.ChatMessage;
 import kr.inventory.domain.chat.entity.QChatMessage;
+import kr.inventory.domain.chat.entity.enums.ChatMessageRole;
 import kr.inventory.domain.chat.entity.enums.ChatMessageStatus;
 import kr.inventory.domain.chat.repository.ChatMessageRepositoryCustom;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +49,23 @@ public class ChatMessageRepositoryImpl implements ChatMessageRepositoryCustom {
                 )
                 .orderBy(chatMessage.messageId.desc())
                 .limit(size)
+                .fetch();
+    }
+
+    @Override
+    public List<Long> findThreadIdsHavingQueuedUserMessages(int limit) {
+        QChatMessage chatMessage = QChatMessage.chatMessage;
+
+        return queryFactory
+                .select(chatMessage.thread.threadId)
+                .from(chatMessage)
+                .where(
+                        chatMessage.role.eq(ChatMessageRole.USER),
+                        chatMessage.status.eq(ChatMessageStatus.QUEUED)
+                )
+                .groupBy(chatMessage.thread.threadId)
+                .orderBy(chatMessage.messageId.min().asc())
+                .limit(Math.max(1, limit))
                 .fetch();
     }
 }

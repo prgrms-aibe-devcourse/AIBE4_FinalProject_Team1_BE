@@ -1,7 +1,8 @@
 package kr.inventory.global.auth.interceptor;
 
-import kr.inventory.domain.auth.constant.AuthConstant;
+import java.util.Map;
 import kr.inventory.global.auth.jwt.JwtProvider;
+import kr.inventory.global.constant.WebSocketConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -21,12 +22,6 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
-    private static final String AUTHORIZATION_HEADER = "Authorization";
-    private static final String AUTHORIZATION_HEADER_LOWER_CASE = "authorization";
-    private static final String TOKEN_HEADER = "token";
-    private static final String ACCESS_TOKEN_HEADER = "accessToken";
-    private static final String BEARER_PREFIX = "Bearer ";
-
     private final JwtProvider jwtProvider;
     private final RedisTemplate<String, String> redisTemplate;
 
@@ -34,16 +29,11 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-        if (accessor == null) {
+        if (accessor == null || accessor.getCommand() == null) {
             return message;
         }
 
-        StompCommand command = accessor.getCommand();
-        if (command == null) {
-            return message;
-        }
-
-        if (!requiresAuthentication(command) || accessor.getUser() != null) {
+        if (!requiresAuthentication(accessor.getCommand()) || accessor.getUser() != null) {
             return message;
         }
 
@@ -53,21 +43,30 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         }
 
         if (!jwtProvider.validateToken(accessToken)) {
-            log.warn("Ignoring STOMP frame with invalid token. sessionId={}, command={}", accessor.getSessionId(), command);
-            return message;
+            log.warn(
+                    "Ignoring STOMP frame with invalid token. sessionId={}, command={}",
+                    accessor.getSessionId(),
+                    accessor.getCommand()
+            );
+            return null;
         }
 
         String jti = jwtProvider.getJti(accessToken);
-        String isLogout = redisTemplate.opsForValue().get(AuthConstant.BLACKLIST_PREFIX + jti);
+        String isLogout = redisTemplate.opsForValue().get(
+                kr.inventory.domain.auth.constant.AuthConstant.BLACKLIST_PREFIX + jti
+        );
 
         if (!ObjectUtils.isEmpty(isLogout)) {
-            log.warn("Ignoring STOMP frame with blacklisted token. sessionId={}, command={}", accessor.getSessionId(), command);
-            return message;
+            log.warn(
+                    "Ignoring STOMP frame with blacklisted token. sessionId={}, command={}",
+                    accessor.getSessionId(),
+                    accessor.getCommand()
+            );
+            return null;
         }
 
         Authentication authentication = jwtProvider.getAuthentication(accessToken);
         accessor.setUser(authentication);
-
         return message;
     }
 
@@ -80,21 +79,32 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
     private String resolveToken(StompHeaderAccessor accessor) {
         String authorization = firstNativeHeader(
                 accessor,
-                AUTHORIZATION_HEADER,
-                AUTHORIZATION_HEADER_LOWER_CASE
+                WebSocketConstants.AUTHORIZATION_HEADER,
+                WebSocketConstants.AUTHORIZATION_HEADER_LOWER_CASE
         );
 
         if (StringUtils.hasText(authorization)) {
-            String value = authorization.trim();
-            if (value.startsWith(BEARER_PREFIX)) {
-                return value.substring(BEARER_PREFIX.length());
-            }
-            return value;
+            return stripBearerPrefix(authorization);
         }
 
-        String token = firstNativeHeader(accessor, TOKEN_HEADER, ACCESS_TOKEN_HEADER);
+        String token = firstNativeHeader(accessor, WebSocketConstants.TOKEN_HEADER, WebSocketConstants.ACCESS_TOKEN_HEADER);
         if (StringUtils.hasText(token)) {
             return token.trim();
+        }
+
+        Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
+        if (sessionAttributes == null || sessionAttributes.isEmpty()) {
+            return null;
+        }
+
+        Object sessionAuthorization = sessionAttributes.get(WebSocketConstants.SESSION_AUTHORIZATION);
+        if (sessionAuthorization instanceof String value && StringUtils.hasText(value)) {
+            return stripBearerPrefix(value);
+        }
+
+        Object sessionToken = sessionAttributes.get(WebSocketConstants.SESSION_ACCESS_TOKEN);
+        if (sessionToken instanceof String value && StringUtils.hasText(value)) {
+            return value.trim();
         }
 
         return null;
@@ -108,5 +118,13 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
             }
         }
         return null;
+    }
+
+    private String stripBearerPrefix(String rawValue) {
+        String value = rawValue.trim();
+        if (value.startsWith(WebSocketConstants.BEARER_PREFIX)) {
+            return value.substring(WebSocketConstants.BEARER_PREFIX.length());
+        }
+        return value;
     }
 }
