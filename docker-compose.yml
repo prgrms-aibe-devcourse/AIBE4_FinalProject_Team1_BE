@@ -74,6 +74,8 @@ services:
     build:
       context: ../AIBE4_FinalProject_Team1_FE
       dockerfile: Dockerfile
+      args:
+        BUILD_MODE: dev
     container_name: inventory-web
     depends_on:
       backend:

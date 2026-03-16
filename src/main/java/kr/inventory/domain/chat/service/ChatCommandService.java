@@ -7,9 +7,11 @@ import kr.inventory.domain.chat.exception.ChatErrorCode;
 import kr.inventory.domain.chat.exception.ChatException;
 import kr.inventory.domain.chat.service.command.AcceptedUserMessageResult;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatCommandService {
@@ -29,8 +31,13 @@ public class ChatCommandService {
             String rawClientMessageId,
             String rawContent
     ) {
+        log.info("[ChatCommand] Accepting user message - userId: {}, threadId: {}, clientMessageId: {}, contentLength: {}",
+                userId, threadId, rawClientMessageId, rawContent != null ? rawContent.length() : 0);
+
         String clientMessageId = normalizeClientMessageId(rawClientMessageId);
         String content = normalizeContent(rawContent);
+
+        log.debug("[ChatCommand] After normalization - clientMessageId: {}, content: {}", clientMessageId, content);
 
         AcceptedUserMessageResult accepted = chatPersistenceService.persistUserMessage(
                 userId,
@@ -39,8 +46,13 @@ public class ChatCommandService {
                 content
         );
 
+        log.info("[ChatCommand] Message persisted - messageId: {}", accepted.requestMessage().messageId());
+
         chatPushService.sendAccepted(accepted);
+        log.debug("[ChatCommand] Accepted event sent to user");
+
         chatThreadDispatchService.dispatchHeadOfLine(accepted.requestMessage().threadId());
+        log.debug("[ChatCommand] Message dispatched to worker");
     }
 
     private String normalizeTitle(String rawTitle) {

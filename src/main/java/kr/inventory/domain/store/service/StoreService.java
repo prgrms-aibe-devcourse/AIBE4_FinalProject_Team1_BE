@@ -56,8 +56,9 @@ public class StoreService {
         Integer maxDisplayOrder = storeMemberRepository.findMaxDisplayOrderByUserUserId(userId);
         Integer displayOrder = maxDisplayOrder + 1;
 
-        // 첫 매장 여부 확인
-        boolean isFirstStore = (maxDisplayOrder == -1);
+        // ACTIVE 매장 개수로 첫 매장 여부 판단 (INACTIVE는 제외)
+        long activeStoreCount = storeMemberRepository.countActiveByUserId(userId);
+        boolean isFirstStore = (activeStoreCount == 0);
 
         StoreMember owner = StoreMember.create(savedStore, user, StoreMemberRole.OWNER, displayOrder, isFirstStore);
         storeMemberRepository.save(owner);

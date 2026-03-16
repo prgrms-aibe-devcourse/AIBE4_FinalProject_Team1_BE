@@ -49,25 +49,16 @@ public class InvitationService {
 
     @Transactional
     public InvitationCreateResponse createInvitation(Long userId, UUID storePublicId) {
-        boolean isOwner = storeMemberRepository.hasRoleByPublicId(storePublicId, userId, StoreMemberRole.OWNER);
-        if (!isOwner) {
-            throw new StoreException(StoreErrorCode.OWNER_PERMISSION_REQUIRED);
-        }
-
         Store store = storeRepository.findByStorePublicId(storePublicId)
                 .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_NOT_FOUND));
 
         User invitedBy = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
-        // 초대 만료 시간 설정
         OffsetDateTime expiresAt = OffsetDateTime.now().plus(invitationProperties.getTtl());
-
-        // 매장당 초대는 1개만 존재 -> 있으면 갱신하고 없으면 새로 생성
         Optional<Invitation> existingInvitationOpt = invitationRepository.findByStoreStoreId(store.getStoreId());
 
         String token = generateToken();
-
         String currentCode = existingInvitationOpt.map(Invitation::getCode).orElse(null);
         String code = generateCodeAvoidingSame(currentCode);
 
@@ -83,11 +74,6 @@ public class InvitationService {
         return InvitationCreateResponse.from(invitation, invitationProperties.getFrontBaseUrl());
     }
 
-    /*
-     * - token 또는 code 중 하나만 허용
-     * - REVOKED(취소)면 거절
-     * - expiresAt 지났으면 만료 처리 거절
-     * */
     @Transactional
     public InvitationAcceptResponse acceptInvitation(Long userId, InvitationAcceptRequest request) {
         boolean hasToken = request != null
@@ -98,13 +84,10 @@ public class InvitationService {
                 && request.code() != null
                 && !request.code().isBlank();
 
-        // true = ture / false = false
-        // 둘 다 없음 또는 둘 다 있음 -> 입력 형태 오류(xor)
         if (hasToken == hasCode) {
             throw new StoreException(StoreErrorCode.INVALID_INVITATION_REQUEST);
         }
 
-        // 토큰 or 코드 검증
         Invitation invitation = hasToken
                 ? invitationRepository.findByToken(request.token())
                 .orElseThrow(() -> new StoreException(StoreErrorCode.INVITATION_NOT_FOUND))
@@ -115,7 +98,6 @@ public class InvitationService {
             throw new StoreException(StoreErrorCode.INVITATION_REVOKED);
         }
 
-        // 만료 시간 검증 (now >= expiresAt)
         if (!OffsetDateTime.now().isBefore(invitation.getExpiresAt())) {
             throw new StoreException(StoreErrorCode.INVITATION_EXPIRED);
         }
@@ -133,32 +115,40 @@ public class InvitationService {
         if (existingMember.isPresent()) {
             StoreMember member = existingMember.get();
             if (member.getStatus() == StoreMemberStatus.ACTIVE) {
-                throw new StoreException(StoreErrorCode.ALREADY_MEMBER); // 이미 존재하는 멤버일 때, ACTIVE 이면 에러 메시지
+                throw new StoreException(StoreErrorCode.ALREADY_MEMBER);
             }
-            member.updateStatus(StoreMemberStatus.ACTIVE); // INACTIVE 이면, ACTIVE 전환
+
+            // INACTIVE → ACTIVE 재활성화
+            member.updateStatus(StoreMemberStatus.ACTIVE);
+
+            // 재활성화 후 ACTIVE 매장이 1개뿐이면 대표 매장으로 설정
+            long activeStoreCount = storeMemberRepository.countActiveByUserId(userId);
+            if (activeStoreCount == 1) {
+                storeMemberRepository.unsetAllDefaultsByUserId(userId);
+                member.setAsDefault();
+            }
+
             joinedMember = member;
             role = member.getRole();
         } else {
-            // displayOrder 계산
             Integer maxDisplayOrder = storeMemberRepository.findMaxDisplayOrderByUserUserId(userId);
             Integer displayOrder = maxDisplayOrder + 1;
 
-            // 첫 매장 여부 확인
-            boolean isFirstStore = (maxDisplayOrder == -1);
+            // ACTIVE 매장 개수로 첫 매장 여부 판단 (INACTIVE는 제외)
+            long activeStoreCount = storeMemberRepository.countActiveByUserId(userId);
+            boolean isFirstStore = (activeStoreCount == 0);
 
             StoreMember newMember = StoreMember.create(store, user, StoreMemberRole.MEMBER, displayOrder, isFirstStore);
             joinedMember = storeMemberRepository.save(newMember);
             role = StoreMemberRole.MEMBER;
         }
 
-        // 알림 발송
         sendInvitationNotifications(user, store, role);
 
         return InvitationAcceptResponse.from(joinedMember);
     }
 
     private void sendInvitationNotifications(User joinedUser, Store store, StoreMemberRole role) {
-        // 가입 당사자에게 알림
         notificationPublishService.publish(
                 NotificationPublishCommand.storeMemberRegistered(
                         joinedUser.getUserId(),
@@ -168,7 +158,6 @@ public class InvitationService {
                 )
         );
 
-        // 대표(OWNER) 전원에게 알림
         storeMemberRepository.findAllByStoreStoreIdWithUser(store.getStoreId())
                 .stream()
                 .filter(member -> member.getRole() == StoreMemberRole.OWNER)
@@ -188,19 +177,13 @@ public class InvitationService {
                 ));
     }
 
-    public InvitationItemResponse getActiveInvitation(Long userId, UUID storePublicId) {
-        boolean isOwner = storeMemberRepository.hasRoleByPublicId(storePublicId, userId, StoreMemberRole.OWNER);
-        if (!isOwner) {
-            throw new StoreException(StoreErrorCode.OWNER_PERMISSION_REQUIRED);
-        }
-
+    public InvitationItemResponse getActiveInvitation(UUID storePublicId) {
         Store store = storeRepository.findByStorePublicId(storePublicId)
                 .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_NOT_FOUND));
 
         Invitation invitation = invitationRepository.findByStoreStoreId(store.getStoreId())
                 .orElseThrow(() -> new StoreException(StoreErrorCode.NO_ACTIVE_INVITATION));
 
-        // ACTIVE + expiresAt 유효한 경우만 활성 초대
         if (invitation.getStatus() != InvitationStatus.ACTIVE) {
             throw new StoreException(StoreErrorCode.NO_ACTIVE_INVITATION);
         }
@@ -212,12 +195,7 @@ public class InvitationService {
     }
 
     @Transactional
-    public void revokeActiveInvitation(Long userId, UUID storePublicId) {
-        boolean isOwner = storeMemberRepository.hasRoleByPublicId(storePublicId, userId, StoreMemberRole.OWNER);
-        if (!isOwner) {
-            throw new StoreException(StoreErrorCode.OWNER_PERMISSION_REQUIRED);
-        }
-
+    public void revokeActiveInvitation(UUID storePublicId) {
         Store store = storeRepository.findByStorePublicId(storePublicId)
                 .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_NOT_FOUND));
 
@@ -234,17 +212,14 @@ public class InvitationService {
         invitation.revoke();
     }
 
-    // 초대 token 생성
     private String generateToken() {
         byte[] tokenBytes = new byte[InvitationConstants.TOKEN_BYTE_LENGTH];
         SECURE_RANDOM.nextBytes(tokenBytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
     }
 
-    // 초대 코드 생성
     private String generateCodeAvoidingSame(String currentCode) {
         String code = generateUniqueCode();
-        // 현재 초대와 동일한 코드가 생성되면 다시 생성
         if (currentCode != null && currentCode.equals(code)) {
             return generateUniqueCode();
         }
@@ -255,7 +230,6 @@ public class InvitationService {
         int maxAttempts = 10;
         for (int i = 0; i < maxAttempts; i++) {
             String code = generateRandomCode();
-            // 해당 코드가 이미 사용 중인지 확인
             if (invitationRepository.findByCode(code).isEmpty()) {
                 return code;
             }
