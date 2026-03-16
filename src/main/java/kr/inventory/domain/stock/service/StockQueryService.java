@@ -1,7 +1,7 @@
 package kr.inventory.domain.stock.service;
 
 import kr.inventory.domain.stock.controller.dto.request.StockSearchRequest;
-import kr.inventory.domain.stock.controller.dto.response.LowStockIngredientResponse;
+import kr.inventory.ai.stock.tool.dto.response.LowStockIngredientResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockBatchResponse;
 import kr.inventory.domain.stock.controller.dto.response.StockSummaryResponse;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
