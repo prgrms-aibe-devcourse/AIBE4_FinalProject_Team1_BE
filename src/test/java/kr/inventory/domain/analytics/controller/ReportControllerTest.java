@@ -2,21 +2,33 @@ package kr.inventory.domain.analytics.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.inventory.domain.analytics.controller.dto.request.ReportSearchRequest;
+import kr.inventory.domain.analytics.controller.dto.response.ReportSummaryResponse;
 import kr.inventory.domain.analytics.exception.AnalyticsErrorCode;
 import kr.inventory.domain.analytics.exception.AnalyticsException;
 import kr.inventory.domain.analytics.service.ReportService;
 import kr.inventory.domain.auth.security.CustomUserDetails;
+import kr.inventory.domain.auth.service.CustomOAuth2UserService;
+import kr.inventory.global.auth.filter.OAuth2AuthorizationRedirectFilter;
+import kr.inventory.global.auth.handler.OAuth2SuccessHandler;
+import kr.inventory.global.auth.jwt.JwtProvider;
+import kr.inventory.global.config.CorsProperties;
+import kr.inventory.global.security.handler.RestAccessDeniedHandler;
+import kr.inventory.global.security.handler.RestAuthenticationEntryPoint;
+import kr.inventory.global.util.CookieUtil;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -42,6 +54,33 @@ class ReportControllerTest {
 
     @MockitoBean
     private ReportService reportService;
+
+    @MockitoBean
+    private CorsProperties corsProperties;
+
+    @MockitoBean
+    private CookieUtil cookieUtil;
+
+    @MockitoBean
+    private JwtProvider jwtProvider;
+
+    @MockitoBean
+    private OAuth2AuthorizationRedirectFilter oAuth2AuthorizationRedirectFilter;
+
+    @MockitoBean
+    private OAuth2SuccessHandler oAuth2SuccessHandler;
+
+    @MockitoBean
+    private CustomOAuth2UserService customOAuth2UserService;
+
+    @MockitoBean
+    private RedisTemplate<String, String> redisTemplate;
+
+    @MockitoBean
+    private RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+
+    @MockitoBean
+    private RestAccessDeniedHandler restAccessDeniedHandler;
 
     private CustomUserDetails createMockUser() {
         CustomUserDetails mockUser = mock(CustomUserDetails.class);
@@ -283,6 +322,131 @@ class ReportControllerTest {
 
             // when & then
             mockMvc.perform(get("/api/analytics/{storePublicId}/reports/monthly/{yearMonth}", storePublicId, wrongFormat)
+                            .with(user(mockUser))
+                            .with(csrf()))
+                    .andDo(print())
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Nested
+    @DisplayName("리포트 요약 조회 API")
+    class GetReportSummary {
+
+        @Test
+        @WithMockUser
+        @DisplayName("정상적인 요청으로 리포트 요약을 조회하면 200 OK와 JSON이 반환된다")
+        void givenValidRequest_whenGetReportSummary_thenReturn200WithJson() throws Exception {
+            // given
+            UUID storePublicId = UUID.randomUUID();
+            LocalDate from = LocalDate.of(2025, 1, 1);
+            LocalDate to = LocalDate.of(2025, 1, 31);
+            CustomUserDetails mockUser = createMockUser();
+
+            ReportSummaryResponse response = new ReportSummaryResponse(
+                    from, to,
+                    100L, new BigDecimal("1000000.00"), new BigDecimal("10000.00"),
+                    Collections.emptyList(),
+                    5L, 5.0,
+                    new BigDecimal("30000.00"), Collections.emptyList(),
+                    10L
+            );
+
+            given(reportService.getReportSummary(eq(100L), eq(storePublicId), any(ReportSearchRequest.class)))
+                    .willReturn(response);
+
+            // when & then
+            mockMvc.perform(get("/api/analytics/{storePublicId}/reports/summary", storePublicId)
+                            .with(user(mockUser))
+                            .with(csrf())
+                            .param("from", "2025-01-01")
+                            .param("to", "2025-01-31"))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.from").value("2025-01-01"))
+                    .andExpect(jsonPath("$.to").value("2025-01-31"))
+                    .andExpect(jsonPath("$.totalOrderCount").value(100))
+                    .andExpect(jsonPath("$.totalAmount").value(1000000.00))
+                    .andExpect(jsonPath("$.refundCount").value(5))
+                    .andExpect(jsonPath("$.totalInboundCount").value(10));
+        }
+
+        @Test
+        @WithMockUser
+        @DisplayName("미래 날짜로 요청하면 예외가 발생한다")
+        void givenFutureDate_whenGetReportSummary_thenThrowException() throws Exception {
+            // given
+            UUID storePublicId = UUID.randomUUID();
+            CustomUserDetails mockUser = createMockUser();
+
+            given(reportService.getReportSummary(eq(100L), eq(storePublicId), any(ReportSearchRequest.class)))
+                    .willThrow(new AnalyticsException(AnalyticsErrorCode.FUTURE_DATE_NOT_ALLOWED));
+
+            // when & then
+            mockMvc.perform(get("/api/analytics/{storePublicId}/reports/summary", storePublicId)
+                            .with(user(mockUser))
+                            .with(csrf())
+                            .param("from", LocalDate.now().plusDays(1).toString())
+                            .param("to", LocalDate.now().plusDays(10).toString()))
+                    .andDo(print())
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Nested
+    @DisplayName("월간 리포트 요약 조회 API")
+    class GetMonthlyReportSummary {
+
+        @Test
+        @WithMockUser
+        @DisplayName("전월 yearMonth로 월간 리포트 요약을 조회하면 200 OK와 JSON이 반환된다")
+        void givenValidYearMonth_whenGetMonthlyReportSummary_thenReturn200WithJson() throws Exception {
+            // given
+            UUID storePublicId = UUID.randomUUID();
+            String yearMonth = "2025-01";
+            CustomUserDetails mockUser = createMockUser();
+
+            ReportSummaryResponse response = new ReportSummaryResponse(
+                    LocalDate.of(2025, 1, 1),
+                    LocalDate.of(2025, 1, 31),
+                    200L, new BigDecimal("2000000.00"), new BigDecimal("10000.00"),
+                    Collections.emptyList(),
+                    10L, 5.0,
+                    new BigDecimal("60000.00"), Collections.emptyList(),
+                    20L
+            );
+
+            given(reportService.getMonthlyReportSummary(eq(100L), eq(storePublicId), eq(yearMonth)))
+                    .willReturn(response);
+
+            // when & then
+            mockMvc.perform(get("/api/analytics/{storePublicId}/reports/monthly/{yearMonth}/summary", storePublicId, yearMonth)
+                            .with(user(mockUser))
+                            .with(csrf()))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.from").value("2025-01-01"))
+                    .andExpect(jsonPath("$.to").value("2025-01-31"))
+                    .andExpect(jsonPath("$.totalOrderCount").value(200))
+                    .andExpect(jsonPath("$.totalAmount").value(2000000.00))
+                    .andExpect(jsonPath("$.refundCount").value(10))
+                    .andExpect(jsonPath("$.totalInboundCount").value(20));
+        }
+
+        @Test
+        @WithMockUser
+        @DisplayName("당월을 조회하면 예외가 발생한다")
+        void givenCurrentMonth_whenGetMonthlyReportSummary_thenThrowException() throws Exception {
+            // given
+            UUID storePublicId = UUID.randomUUID();
+            String currentMonth = LocalDate.now().toString().substring(0, 7);  // yyyy-MM
+            CustomUserDetails mockUser = createMockUser();
+
+            given(reportService.getMonthlyReportSummary(eq(100L), eq(storePublicId), eq(currentMonth)))
+                    .willThrow(new AnalyticsException(AnalyticsErrorCode.FUTURE_DATE_NOT_ALLOWED));
+
+            // when & then
+            mockMvc.perform(get("/api/analytics/{storePublicId}/reports/monthly/{yearMonth}/summary", storePublicId, currentMonth)
                             .with(user(mockUser))
                             .with(csrf()))
                     .andDo(print())
