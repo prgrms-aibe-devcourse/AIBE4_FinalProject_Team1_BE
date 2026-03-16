@@ -9,19 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(
-        name = "chat_messages",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_chat_messages_thread_client_message_id",
-                        columnNames = {"thread_id", "client_message_id"}
-                )
-        },
-        indexes = {
-                @Index(name = "idx_chat_messages_thread_message_id", columnList = "thread_id,message_id"),
-                @Index(name = "idx_chat_messages_reply_to_message_id", columnList = "reply_to_message_id")
-        }
-)
+@Table(name = "chat_messages")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ChatMessage extends CreatedAtEntity {

@@ -19,13 +19,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(
-        name = "sales_orders",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_sales_order_store_idempotency",
-                columnNames = {"store_id", "idempotency_key"}
-        )
-)
+@Table(name = "sales_orders")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SalesOrder extends AuditableEntity {

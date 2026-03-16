@@ -9,17 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(
-        name = "ingredient_mappings",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"store_id", "normalized_raw_key"})
-        },
-        indexes = {
-                @Index(name = "idx_ingredient_mappings_ingredient_id", columnList = "ingredient_id"),
-                @Index(name = "idx_ingredient_mappings_store_id", columnList = "store_id"),
-                @Index(name = "idx_ingredient_mappings_store_normalized", columnList = "store_id, normalized_raw_key")
-        }
-)
+@Table(name = "ingredient_mappings")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class IngredientMapping extends AuditableEntity {
