@@ -7,6 +7,7 @@ import kr.inventory.domain.auth.repository.RefreshTokenRepository;
 import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.global.auth.constant.AuthConstant;
 import kr.inventory.global.auth.jwt.JwtProvider;
+import kr.inventory.global.config.CorsProperties;
 import kr.inventory.global.util.CookieUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,7 +18,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.net.URI;
 import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -28,8 +32,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final RefreshTokenRepository refreshTokenRepository;
     private final RedisTemplate<String, Object> redisTemplate;
     private final CookieUtil cookieUtil;
+    private final CorsProperties corsProperties;
 
-    @Value("${app.frontend-url:http://localhost}")
+    @Value("${app.frontend-url:http://localhost:5173}")
     private String frontendUrl;
 
     @Override
@@ -51,13 +56,44 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String temporaryCode = UUID.randomUUID().toString();
         redisTemplate.opsForValue().set(temporaryCode, accessToken, Duration.ofMinutes(1));
 
-        String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl)
-                .path(AuthConstant.OAUTH_REDIRECT_PATH)
+        String redirectUri = resolveRedirectUri(request);
+        String targetUrl = UriComponentsBuilder.fromUriString(redirectUri)
                 .queryParam(AuthConstant.REDIRECT_PARAM_CODE, temporaryCode)
                 .build()
                 .toUriString();
 
+        cookieUtil.deleteCookie(response, AuthConstant.OAUTH_REDIRECT_URI_COOKIE_NAME);
         clearAuthenticationAttributes(request);
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
+    }
+
+    private String resolveRedirectUri(HttpServletRequest request) {
+        Optional<String> redirectUriCookie = cookieUtil.getCookieValue(request, AuthConstant.OAUTH_REDIRECT_URI_COOKIE_NAME);
+
+        if (redirectUriCookie.isPresent() && isAllowedRedirectUri(redirectUriCookie.get())) {
+            return redirectUriCookie.get();
+        }
+
+        return UriComponentsBuilder.fromUriString(frontendUrl)
+                .path(AuthConstant.OAUTH_REDIRECT_PATH)
+                .build()
+                .toUriString();
+    }
+
+    private boolean isAllowedRedirectUri(String redirectUri) {
+        try {
+            URI requestedUri = URI.create(redirectUri);
+            if (requestedUri.getScheme() == null || requestedUri.getHost() == null) {
+                return false;
+            }
+
+            String requestedOrigin = requestedUri.getScheme() + "://" + requestedUri.getHost()
+                    + (requestedUri.getPort() > -1 ? ":" + requestedUri.getPort() : "");
+
+            List<String> allowedOrigins = corsProperties.getAllowedOrigins();
+            return allowedOrigins.stream().anyMatch(requestedOrigin::equals);
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
     }
 }

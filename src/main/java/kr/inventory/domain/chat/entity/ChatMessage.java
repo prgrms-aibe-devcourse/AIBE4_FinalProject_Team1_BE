@@ -82,6 +82,11 @@ public class ChatMessage extends CreatedAtEntity {
         return message;
     }
 
+    public void markQueued() {
+        this.status = ChatMessageStatus.QUEUED;
+        this.errorMessage = null;
+    }
+
     public void markProcessing() {
         this.status = ChatMessageStatus.PROCESSING;
         this.errorMessage = null;

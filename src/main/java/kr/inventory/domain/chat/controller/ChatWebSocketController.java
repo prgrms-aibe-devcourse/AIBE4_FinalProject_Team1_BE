@@ -5,7 +5,7 @@ import jakarta.validation.Valid;
 import java.security.Principal;
 import kr.inventory.domain.chat.controller.dto.request.ChatSendMessageRequest;
 import kr.inventory.domain.chat.service.ChatCommandService;
-import kr.inventory.global.auth.util.PrincipalUtils;
+import kr.inventory.global.util.WebSocketUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -24,7 +24,7 @@ public class ChatWebSocketController {
             Principal principal
     ) {
         chatCommandService.acceptUserMessage(
-                PrincipalUtils.extractUserId(principal),
+                WebSocketUtil.extractUserId(principal),
                 request.threadId(),
                 request.clientMessageId(),
                 request.content()

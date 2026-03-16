@@ -31,9 +31,10 @@ public class ChatThreadRepositoryImpl implements ChatThreadRepositoryCustom {
                 .select(Projections.constructor(
                         ChatThreadSummaryResponse.class,
                         chatThread.threadId,
+                        chatThread.storePublicId,
                         chatThread.title,
                         chatThread.status,
-                        chatMessage.content,
+                        chatMessage.content.coalesce(""),
                         chatThread.lastMessageAt,
                         chatThread.createdAt
                 ))

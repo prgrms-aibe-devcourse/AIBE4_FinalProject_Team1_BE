@@ -25,8 +25,4 @@ public final class ChatConstants {
     public static final String REQUEST_MESSAGE_ID = "requestMessageId";
     public static final String CLIENT_MESSAGE_ID = "clientMessageId";
     public static final String CONTENT = "content";
-    public static final String CMD_XGROUP = "XGROUP";
-    public static final String XGROUP_CREATE = "CREATE";
-    public static final String XGROUP_START_ID = "$";
-    public static final String XGROUP_MKSTREAM = "MKSTREAM";
 }

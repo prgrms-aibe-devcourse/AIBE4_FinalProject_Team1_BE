@@ -5,10 +5,12 @@ import java.util.List;
 import kr.inventory.domain.chat.constant.ChatConstants;
 import kr.inventory.domain.chat.controller.dto.response.ChatMessageResponse;
 import kr.inventory.domain.chat.controller.dto.response.ChatThreadSummaryResponse;
+import kr.inventory.domain.chat.entity.ChatThread;
 import kr.inventory.domain.chat.exception.ChatErrorCode;
 import kr.inventory.domain.chat.exception.ChatException;
 import kr.inventory.domain.chat.repository.ChatMessageRepository;
 import kr.inventory.domain.chat.repository.ChatThreadRepository;
+import kr.inventory.domain.store.service.StoreAccessValidator;
 import kr.inventory.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ public class ChatQueryService {
     private final EntityManager entityManager;
     private final ChatThreadRepository chatThreadRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final StoreAccessValidator storeAccessValidator;
 
     @Transactional(readOnly = true)
     public List<ChatThreadSummaryResponse> getMyThreads(Long userId) {
@@ -33,8 +36,10 @@ public class ChatQueryService {
         Long cursor = normalizeCursor(rawCursor);
         User userReference = entityManager.getReference(User.class, userId);
 
-        chatThreadRepository.findActiveThreadByIdAndUser(threadId, userReference)
+        ChatThread thread = chatThreadRepository.findActiveThreadByIdAndUser(threadId, userReference)
                 .orElseThrow(() -> new ChatException(ChatErrorCode.THREAD_NOT_FOUND));
+
+        storeAccessValidator.validateAndGetStoreId(userId, thread.getStorePublicId());
 
         return chatMessageRepository.findMessagePage(threadId, cursor, ChatConstants.MESSAGE_PAGE_SIZE)
                 .stream()

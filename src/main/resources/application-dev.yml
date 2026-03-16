@@ -36,6 +36,8 @@ cors:
 
 app:
   frontend-url: http://localhost:5173
+  auth:
+    refresh-cookie-secure: false
 
 invitation:
   ttl: PT30M

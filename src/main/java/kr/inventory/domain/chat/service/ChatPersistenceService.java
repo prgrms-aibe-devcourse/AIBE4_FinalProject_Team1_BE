@@ -1,6 +1,9 @@
 package kr.inventory.domain.chat.service;
 
 import jakarta.persistence.EntityManager;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import kr.inventory.domain.chat.controller.dto.response.ChatMessageResponse;
 import kr.inventory.domain.chat.controller.dto.response.ChatThreadCreateResponse;
 import kr.inventory.domain.chat.entity.ChatMessage;
@@ -14,12 +17,12 @@ import kr.inventory.domain.chat.repository.ChatThreadRepository;
 import kr.inventory.domain.chat.service.command.AcceptedUserMessageResult;
 import kr.inventory.domain.chat.service.command.CompletedChatResult;
 import kr.inventory.domain.chat.service.command.FailedChatResult;
+import kr.inventory.domain.chat.service.command.QueuedChatDispatchTarget;
+import kr.inventory.domain.store.service.StoreAccessValidator;
 import kr.inventory.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -29,8 +32,11 @@ public class ChatPersistenceService {
     private final EntityManager entityManager;
     private final ChatThreadRepository chatThreadRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final StoreAccessValidator storeAccessValidator;
 
     public ChatThreadCreateResponse createThread(Long userId, String title, UUID storePublicId) {
+        storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
         User userReference = entityManager.getReference(User.class, userId);
 
         ChatThread thread = ChatThread.create(userReference, title, storePublicId);
@@ -49,6 +55,8 @@ public class ChatPersistenceService {
 
         ChatThread thread = chatThreadRepository.findActiveThreadByIdAndUser(threadId, userReference)
                 .orElseThrow(() -> new ChatException(ChatErrorCode.THREAD_NOT_FOUND));
+
+        storeAccessValidator.validateAndGetStoreId(userId, thread.getStorePublicId());
 
         ChatMessage duplicated = chatMessageRepository.findByThreadThreadIdAndClientMessageId(threadId, clientMessageId)
                 .orElse(null);
@@ -71,6 +79,46 @@ public class ChatPersistenceService {
                 ChatMessageResponse.from(userMessage),
                 false
         );
+    }
+
+    public Optional<QueuedChatDispatchTarget> reserveNextQueuedMessage(Long threadId) {
+        boolean processingExists = chatMessageRepository.existsByThreadThreadIdAndRoleAndStatus(
+                threadId,
+                ChatMessageRole.USER,
+                ChatMessageStatus.PROCESSING
+        );
+
+        if (processingExists) {
+            return Optional.empty();
+        }
+
+        ChatMessage nextQueuedMessage = chatMessageRepository
+                .findFirstByThreadThreadIdAndRoleAndStatusOrderByMessageIdAsc(
+                        threadId,
+                        ChatMessageRole.USER,
+                        ChatMessageStatus.QUEUED
+                )
+                .orElse(null);
+
+        if (nextQueuedMessage == null) {
+            return Optional.empty();
+        }
+
+        nextQueuedMessage.markProcessing();
+
+        return Optional.of(QueuedChatDispatchTarget.from(nextQueuedMessage));
+    }
+
+    public void revertToQueued(Long requestMessageId) {
+        ChatMessage requestMessage = getRequiredUserMessage(requestMessageId);
+
+        if (requestMessage.getStatus() == ChatMessageStatus.PROCESSING) {
+            requestMessage.markQueued();
+        }
+    }
+
+    public List<Long> findThreadIdsHavingQueuedUserMessages(int limit) {
+        return chatMessageRepository.findThreadIdsHavingQueuedUserMessages(limit);
     }
 
     public void markProcessing(Long requestMessageId) {
