@@ -123,8 +123,9 @@ public class MenuService {
                     menu.getMenuId()
             );
 
-        if(exists) {
-            throw new MenuException(MenuErrorCode.DUPLICATE_MENU_NAME);
+            if (exists) {
+                throw new MenuException(MenuErrorCode.DUPLICATE_MENU_NAME);
+            }
         }
     }
 }
