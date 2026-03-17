@@ -1,5 +1,7 @@
 package kr.inventory.global.config;
 
+import java.time.Duration;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,6 +30,8 @@ public class ElasticsearchConfig extends ElasticsearchConfiguration {
 
 		return ClientConfiguration.builder()
 			.connectedTo(host)
+			.withConnectTimeout(Duration.ofSeconds(10))
+			.withSocketTimeout(Duration.ofSeconds(30))
 			.build();
 	}
 
@@ -35,9 +39,6 @@ public class ElasticsearchConfig extends ElasticsearchConfiguration {
 	public JsonpMapper jsonpMapper() {
 		ObjectMapper mapper = new ObjectMapper();
 		mapper.registerModule(new JavaTimeModule());
-
-		// 날짜를 숫자(타임스탬프)가 아닌 문자열로 쓰기 위한 설정 (선택 사항)
-		// mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
 		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
