@@ -16,7 +16,6 @@ import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
-import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
@@ -26,7 +25,7 @@ public class StockInboundQueryRepositoryImpl implements StockInboundQueryReposit
 
     @Override
     public List<StockInboundSummary> findInboundSummaries(
-            UUID storePublicId,
+            Long storeId,
             String keyword,
             int limit
     ) {
@@ -52,7 +51,7 @@ public class StockInboundQueryRepositoryImpl implements StockInboundQueryReposit
                 .leftJoin(stockInbound.confirmedByUser, confirmedByUser)
                 .leftJoin(stockInboundItem).on(stockInboundItem.inbound.eq(stockInbound))
                 .where(
-                        storePublicIdEq(storePublicId, store),
+                        storeIdEq(storeId, store),
                         confirmedOnly(stockInbound),
                         keywordContains(keyword, vendor, stockInboundItem)
                 )
@@ -72,8 +71,8 @@ public class StockInboundQueryRepositoryImpl implements StockInboundQueryReposit
                 .fetch();
     }
 
-    private BooleanExpression storePublicIdEq(UUID storePublicId, QStore store) {
-        return store.storePublicId.eq(storePublicId);
+    private BooleanExpression storeIdEq(Long storeId, QStore store) {
+        return store.storeId.eq(storeId);
     }
 
     private BooleanExpression confirmedOnly(QStockInbound stockInbound) {
