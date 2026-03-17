@@ -26,6 +26,8 @@ public final class SalesAnalyticsConstants {
     public static final String AGG_MAX_AMOUNT = "max_amount";
     public static final String AGG_MIN_AMOUNT = "min_amount";
     public static final String AGG_MENU_FILTER = "menu_filter";
+    public static final String AGG_BY_STATUS = "by_status";
+    public static final String AGG_TOTAL_SALES_AMOUNT = "total_sales_amount";
 
     // ==================== 타임존 ====================
     public static final String TIMEZONE_KST = "Asia/Seoul";
