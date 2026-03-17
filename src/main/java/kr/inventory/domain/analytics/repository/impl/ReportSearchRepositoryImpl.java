@@ -198,7 +198,9 @@ public class ReportSearchRepositoryImpl implements ReportSearchRepositoryCustom 
                             .aggregations(ReportConstants.AGG_BY_VENDOR, a -> a
                                     .terms(t -> t
                                             .field(ReportConstants.FIELD_VENDOR_NAME)
-                                            .size(ReportConstants.REPORT_VENDOR_SIZE))
+                                            .size(ReportConstants.REPORT_VENDOR_SIZE)
+                                            .missing(ReportConstants.DEFAULT_UNKNOWN_VENDOR)
+                                    )
                             ),
                     StockInboundDocument.class);
 
