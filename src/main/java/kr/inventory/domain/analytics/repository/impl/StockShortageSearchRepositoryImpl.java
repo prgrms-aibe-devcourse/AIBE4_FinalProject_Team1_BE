@@ -1,22 +1,22 @@
 package kr.inventory.domain.analytics.repository.impl;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import kr.inventory.domain.analytics.constant.ElasticsearchIndex;
+import kr.inventory.domain.analytics.controller.dto.request.ESStockShortageSearchRequest;
+import kr.inventory.domain.analytics.controller.dto.response.StockShortageSummaryResponse;
+import kr.inventory.domain.analytics.document.stock.StockShortageDocument;
+import kr.inventory.domain.analytics.repository.StockShortageSearchRepositoryCustom;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
-
-import org.springframework.stereotype.Repository;
-
-import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
-import co.elastic.clients.elasticsearch.core.SearchResponse;
-import kr.inventory.domain.analytics.controller.dto.request.ESStockShortageSearchRequest;
-import kr.inventory.domain.analytics.controller.dto.response.StockShortageSummaryResponse;
-import kr.inventory.domain.analytics.document.stock.StockShortageDocument;
-import kr.inventory.domain.analytics.repository.StockShortageSearchRepositoryCustom;
-import lombok.RequiredArgsConstructor;
 
 @Repository
 @RequiredArgsConstructor
@@ -28,7 +28,7 @@ public class StockShortageSearchRepositoryImpl implements StockShortageSearchRep
 	public List<StockShortageSummaryResponse> getShortageSummary(Long storeId, ESStockShortageSearchRequest request) {
 		try {
 			SearchResponse<StockShortageDocument> response = elasticsearchClient.search(s -> s
-				.index("stock_shortage")
+				.index(ElasticsearchIndex.StockShortage)
 				.size(0) // 집계용이므로 검색 결과는 0
 				.query(q -> q.bool(b -> {
 					// 1. 필수 필터

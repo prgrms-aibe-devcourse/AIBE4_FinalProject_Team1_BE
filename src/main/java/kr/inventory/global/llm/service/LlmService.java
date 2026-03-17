@@ -1,12 +1,13 @@
 package kr.inventory.global.llm.service;
 
-import java.util.List;
 import kr.inventory.global.llm.client.LlmClient;
 import kr.inventory.global.llm.dto.LlmChatRequest;
 import kr.inventory.global.llm.dto.LlmChatResponse;
 import kr.inventory.global.llm.dto.LlmMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
