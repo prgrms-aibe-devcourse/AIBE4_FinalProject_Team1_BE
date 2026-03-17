@@ -1,5 +1,9 @@
 package kr.inventory.ai.stock.tool;
 
+import kr.inventory.ai.common.constant.ToolDescriptionConstants;
+import kr.inventory.ai.common.dto.DateRange;
+import kr.inventory.ai.common.enums.DateRangePreset;
+import kr.inventory.ai.common.resolver.DateRangeResolver;
 import kr.inventory.ai.context.ChatToolContextProvider;
 import kr.inventory.ai.context.dto.ChatToolContext;
 import kr.inventory.ai.stock.service.StockShortageAiQueryService;
@@ -9,37 +13,38 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
-import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 @Component
 @RequiredArgsConstructor
 public class StockShortageAiTools {
+    private static final ZoneId DEFAULT_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     private final StockShortageAiQueryService stockShortageAiQueryService;
     private final ChatToolContextProvider chatToolContextProvider;
+    private final DateRangeResolver dateRangeResolver;
 
     @Tool(
             name = "get_stock_shortage_summary",
             description = """
-            재고 부족 이력을 조회합니다.
-            - If the user mentions relative dates like 'today', convert them to ISO-8601 strings based on the system time.
-            - format example: 2026-03-17T00:00:00+09:00
-            - If no specific date is mentioned, leave 'from' and 'to' as null.
-            """
+                    재고 부족 이력을 조회합니다.
+                    """ + ToolDescriptionConstants.DATE_RANGE_PRESET
     )
     public StockShortageSummaryToolResponse getStockShortageSummary(
-            @ToolParam(description = "Ingredient name keyword") String keyword,
-            @ToolParam(description = "Start time (ISO-8601 format)") OffsetDateTime from,
-            @ToolParam(description = "End time (ISO-8601 format)") OffsetDateTime to
+            @ToolParam(description = "Ingredient name keyword")
+            String keyword,
+            @ToolParam(description = "Date range preset")
+            DateRangePreset period
     ) {
         ChatToolContext context = chatToolContextProvider.getRequired();
+        DateRange range = dateRangeResolver.resolve(period, DEFAULT_ZONE_ID);
 
         return stockShortageAiQueryService.getStockShortageSummary(
                 context.userId(),
                 context.storePublicId(),
                 keyword,
-                from,
-                to
+                range.from(),
+                range.to()
         );
     }
 }
