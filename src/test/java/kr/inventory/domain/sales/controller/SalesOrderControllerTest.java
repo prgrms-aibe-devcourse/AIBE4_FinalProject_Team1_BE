@@ -2,7 +2,7 @@ package kr.inventory.domain.sales.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
-import kr.inventory.domain.analytics.service.SalesIndexingService;
+import kr.inventory.domain.analytics.service.indexing.SalesIndexingService;
 import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.sales.controller.dto.request.SalesOrderCreateRequest;
 import kr.inventory.domain.sales.controller.dto.request.SalesOrderItemRequest;

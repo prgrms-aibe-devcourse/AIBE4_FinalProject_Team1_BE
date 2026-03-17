@@ -1,4 +1,4 @@
-package kr.inventory.domain.analytics.service;
+package kr.inventory.domain.analytics.service.indexing;
 
 import java.util.List;
 import java.util.Map;

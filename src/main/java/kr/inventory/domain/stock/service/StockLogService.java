@@ -3,7 +3,7 @@ package kr.inventory.domain.stock.service;
 import java.util.UUID;
 
 import jakarta.persistence.EntityNotFoundException;
-import kr.inventory.domain.analytics.service.StockLogIndexingService;
+import kr.inventory.domain.analytics.service.indexing.StockLogIndexingService;
 import kr.inventory.domain.stock.controller.dto.request.StockLogSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockLogResponse;
 import kr.inventory.domain.stock.entity.StockLog;

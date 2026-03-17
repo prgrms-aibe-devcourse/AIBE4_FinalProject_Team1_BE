@@ -1,4 +1,4 @@
-package kr.inventory.domain.analytics.service;
+package kr.inventory.domain.analytics.service.indexing;
 
 import kr.inventory.domain.analytics.document.stock.WasteRecordDocument;
 import kr.inventory.domain.analytics.repository.WasteRecordSearchRepository;

@@ -90,7 +90,9 @@ public class BulkIndexingRunner implements ApplicationRunner {
 
 	// 주문
 	private void bulkIndexSalesOrders() {
-		long dbCount = salesOrderRepository.countByStatus(SalesOrderStatus.COMPLETED);
+		long dbCount = salesOrderRepository.countByStatusIn(
+			List.of(SalesOrderStatus.COMPLETED, SalesOrderStatus.REFUNDED)
+		);
 		long esCount = salesOrderSearchRepository.count();
 		if (esCount > 0 && esCount == dbCount) {
 			log.info("[ES] sales_orders DB({})건 = ES({})건 일치, 스킵", dbCount, esCount);
@@ -106,8 +108,8 @@ public class BulkIndexingRunner implements ApplicationRunner {
 		int total = 0;
 
 		while (true) {
-			Page<SalesOrder> pageResult = salesOrderRepository.findByStatus(
-				SalesOrderStatus.COMPLETED,
+			Page<SalesOrder> pageResult = salesOrderRepository.findByStatusIn(
+				List.of(SalesOrderStatus.COMPLETED, SalesOrderStatus.REFUNDED),
 				PageRequest.of(page, BATCH_SIZE)
 			);
 
