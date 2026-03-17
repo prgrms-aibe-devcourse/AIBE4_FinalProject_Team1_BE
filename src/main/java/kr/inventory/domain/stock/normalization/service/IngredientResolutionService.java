@@ -598,20 +598,17 @@ public class IngredientResolutionService {
     public boolean upsertMapping(Store store, Long storeId, String key, Ingredient ingredient) {
         if (key == null || key.isBlank()) return false;
 
-        try {
-            IngredientMapping mapping = IngredientMapping.createNormalizedRawMapping(ingredient, store, key);
-            ingredientMappingRepository.saveAndFlush(mapping);
-            return true;
-        } catch (DataIntegrityViolationException e) {
-            Optional<IngredientMapping> existingMapping = ingredientMappingRepository
-                    .findActiveStoreLevelMapping(storeId, key);
+        Optional<IngredientMapping> existingMapping = ingredientMappingRepository
+                .findActiveStoreLevelMapping(storeId, key);
 
-            if (existingMapping.isPresent()) {
-                existingMapping.get().updateIngredient(ingredient);
-                return false;
-            }
-            throw e;
+        if (existingMapping.isPresent()) {
+            existingMapping.get().updateIngredient(ingredient);
+            return false;
         }
+
+        IngredientMapping mapping = IngredientMapping.createNormalizedRawMapping(ingredient, store, key);
+        ingredientMappingRepository.save(mapping);
+        return true;
     }
 
     private void validateInboundItemScopeOrThrow(StockInboundItem inboundItem, Long storeId, UUID inboundPublicId) {
