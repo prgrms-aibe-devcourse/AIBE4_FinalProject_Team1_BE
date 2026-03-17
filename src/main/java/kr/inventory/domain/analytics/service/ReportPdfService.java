@@ -427,7 +427,7 @@ public class ReportPdfService {
         // 위 구분선
         drawLine(stream, ReportConstants.PDF_MARGIN_LEFT, y,
                 ReportConstants.PDF_MARGIN_LEFT + contentWidth, y, 0.5f);
-        y -= ReportConstants.PDF_TABLE_HEADER_TOP_PAD;  // 3f → 12f
+        y -= ReportConstants.PDF_TABLE_HEADER_TOP_PAD;
 
         // 컬럼 레이블
         setColor(stream, ReportConstants.PDF_COLOR_GRAY);
