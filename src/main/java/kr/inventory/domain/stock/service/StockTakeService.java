@@ -1,6 +1,6 @@
 package kr.inventory.domain.stock.service;
 
-import kr.inventory.domain.analytics.service.StockBatchIndexingService;
+import kr.inventory.domain.analytics.service.indexing.StockBatchIndexingService;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.entity.enums.IngredientStatus;
 import kr.inventory.domain.reference.exception.IngredientErrorCode;
