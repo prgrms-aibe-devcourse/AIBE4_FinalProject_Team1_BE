@@ -3,6 +3,7 @@ package kr.inventory.domain.analytics.repository.impl;
 import co.elastic.clients.elasticsearch._types.Script;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.aggregations.*;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.util.NamedValue;
 import kr.inventory.domain.analytics.constant.SalesAnalyticsConstants;
 import kr.inventory.domain.analytics.controller.dto.response.*;
@@ -23,6 +24,7 @@ import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -315,58 +317,64 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
 
         log.debug("Aggregating refund summary for storeId={}, from={}, to={}", storeId, from, to);
 
-        // 1. COMPLETED 건수 조회
-        NativeQuery completedCountQuery = buildBaseQuery(storeId, from, to)
-                .withMaxResults(0)
-                .build();
-
-        SearchHits<SalesOrderDocument> completedHits =
-                elasticsearchOperations.search(completedCountQuery, SalesOrderDocument.class);
-        long completedOrderCount = completedHits.getTotalHits();
-
-        // 2. REFUNDED 건수 + 금액 조회
-        NativeQuery refundQuery = NativeQuery.builder()
-                .withQuery(q -> q
-                        .bool(b -> b
-                                .filter(f -> f.term(t -> t
-                                        .field(SalesAnalyticsConstants.FIELD_STORE_ID)
-                                        .value(storeId)))
-                                .filter(f -> f.term(t -> t
-                                        .field(SalesAnalyticsConstants.FIELD_STATUS)
-                                        .value(SalesOrderStatus.REFUNDED.name())))
-                                .filter(f -> f.range(r -> r.date(d -> d
-                                        .field(SalesAnalyticsConstants.FIELD_ORDERED_AT)
-                                        .gte(from.format(SalesAnalyticsConstants.ES_DATE_FORMATTER))
-                                        .lte(to.format(SalesAnalyticsConstants.ES_DATE_FORMATTER)))))
+        NativeQuery query = NativeQuery.builder()
+                .withQuery(q -> q.bool(b -> b
+                        .filter(f -> f.term(t -> t
+                                .field(SalesAnalyticsConstants.FIELD_STORE_ID)
+                                .value(storeId)))
+                        .filter(f -> f.range(r -> r.date(d -> d
+                                .field(SalesAnalyticsConstants.FIELD_ORDERED_AT)
+                                .gte(from.format(SalesAnalyticsConstants.ES_DATE_FORMATTER))
+                                .lte(to.format(SalesAnalyticsConstants.ES_DATE_FORMATTER)))))
+                ))
+                .withAggregation(SalesAnalyticsConstants.AGG_BY_STATUS, Aggregation.of(a -> a
+                        .terms(t -> t
+                                .field(SalesAnalyticsConstants.FIELD_STATUS)
+                                .size(2)
                         )
-                )
-                .withAggregation(SalesAnalyticsConstants.AGG_TOTAL_AMOUNT,
-                        Aggregation.of(a -> a.sum(s -> s.field(SalesAnalyticsConstants.FIELD_TOTAL_AMOUNT))))
+                        .aggregations(SalesAnalyticsConstants.AGG_TOTAL_AMOUNT, Aggregation.of(sa -> sa
+                                .sum(s -> s.field(SalesAnalyticsConstants.FIELD_TOTAL_AMOUNT))
+                        ))
+                ))
                 .withMaxResults(0)
                 .build();
 
-        SearchHits<SalesOrderDocument> refundHits =
-                elasticsearchOperations.search(refundQuery, SalesOrderDocument.class);
+        SearchHits<SalesOrderDocument> hits =
+                elasticsearchOperations.search(query, SalesOrderDocument.class);
 
-        long refundCount = refundHits.getTotalHits();
+        // 파싱
+        ElasticsearchAggregations aggs = (ElasticsearchAggregations) hits.getAggregations();
 
-        double totalRefundAmountRaw = 0.0;
-        if (refundHits.hasAggregations()) {
-            ElasticsearchAggregations aggs = (ElasticsearchAggregations) refundHits.getAggregations();
-            totalRefundAmountRaw = Optional.ofNullable(aggs.get(SalesAnalyticsConstants.AGG_TOTAL_AMOUNT))
-                    .map(agg -> agg.aggregation().getAggregate().sum().value())
-                    .orElse(0.0);
+        StringTermsAggregate byStatus = Optional.ofNullable(aggs.get(SalesAnalyticsConstants.AGG_BY_STATUS))
+                .map(agg -> agg.aggregation().getAggregate().sterms())
+                .orElse(null);
+
+        long completedCount = 0L;
+        long refundCount    = 0L;
+        double refundAmount = 0.0;
+
+        if (byStatus != null) {
+            for (StringTermsBucket bucket : byStatus.buckets().array()) {
+                String status = bucket.key().stringValue();
+                if (SalesOrderStatus.COMPLETED.name().equals(status)) {
+                    completedCount = bucket.docCount();
+                } else if (SalesOrderStatus.REFUNDED.name().equals(status)) {
+                    refundCount = bucket.docCount();
+                    refundAmount = Optional.ofNullable(
+                                    bucket.aggregations().get(SalesAnalyticsConstants.AGG_TOTAL_AMOUNT))
+                            .map(agg -> agg.sum().value())
+                            .orElse(0.0);
+                }
+            }
         }
 
-        long totalOrderCount = completedOrderCount + refundCount;
-        double refundRate = totalOrderCount > 0 ? (refundCount * 100.0) / totalOrderCount : 0.0;
+        long totalCount = completedCount + refundCount;
+        double refundRate = totalCount > 0 ? Math.round((refundCount * 100.0 / totalCount) * 10.0) / 10.0 : 0.0;
 
-        log.debug("Refund summary aggregation completed. refundCount={}, totalOrderCount={}",
-                refundCount, totalOrderCount);
         return new RefundSummaryResponse(
                 refundCount,
-                BigDecimal.valueOf(totalRefundAmountRaw).setScale(2, RoundingMode.HALF_UP),
-                Math.round(refundRate * 10.0) / 10.0
+                BigDecimal.valueOf(refundAmount).setScale(2, RoundingMode.HALF_UP),
+                refundRate
         );
     }
 
@@ -379,12 +387,13 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
 
         log.debug("Aggregating menu sales detail for storeId={}, menuName={}", storeId, menuName);
 
-        // 전체 매출 합계 (salesShareRate 계산용)
-        SalesSummaryResponse summary = aggregateSalesSummary(storeId, from, to);
-        BigDecimal totalSalesAmount = summary.totalAmount();
-
-        // 특정 메뉴 nested aggregation (menuName 필터)
+        // 한 번의 쿼리로 전체 매출 + 특정 메뉴 매출 조회
         NativeQuery query = buildBaseQuery(storeId, from, to)
+                // 전체 매출 합계
+                .withAggregation(SalesAnalyticsConstants.AGG_TOTAL_SALES_AMOUNT, Aggregation.of(a -> a
+                        .sum(s -> s.field(SalesAnalyticsConstants.FIELD_TOTAL_AMOUNT))
+                ))
+                // 특정 메뉴 집계
                 .withAggregation(SalesAnalyticsConstants.AGG_BY_MENU, Aggregation.of(a -> a
                         .nested(n -> n.path(SalesAnalyticsConstants.FIELD_ITEMS))
                         .aggregations(SalesAnalyticsConstants.AGG_MENU_FILTER, Aggregation.of(fa -> fa
@@ -412,6 +421,13 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
 
         ElasticsearchAggregations aggs = (ElasticsearchAggregations) hits.getAggregations();
 
+        // 전체 매출 합계 추출
+        double totalSalesAmountRaw = Optional.ofNullable(aggs.get(SalesAnalyticsConstants.AGG_TOTAL_SALES_AMOUNT))
+                .map(agg -> agg.aggregation().getAggregate().sum().value())
+                .orElse(0.0);
+        BigDecimal totalSalesAmount = BigDecimal.valueOf(totalSalesAmountRaw).setScale(2, RoundingMode.HALF_UP);
+
+        // 특정 메뉴 집계 추출
         NestedAggregate byMenu = Optional.ofNullable(aggs.get(SalesAnalyticsConstants.AGG_BY_MENU))
                 .map(agg -> agg.aggregation().getAggregate().nested())
                 .orElse(null);
