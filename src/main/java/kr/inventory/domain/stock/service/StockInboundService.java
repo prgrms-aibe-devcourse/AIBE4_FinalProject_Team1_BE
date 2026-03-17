@@ -1,6 +1,6 @@
 package kr.inventory.domain.stock.service;
 
-import kr.inventory.domain.analytics.service.StockInboundIndexingService;
+import kr.inventory.domain.analytics.service.indexing.StockInboundIndexingService;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.entity.Vendor;
 import kr.inventory.domain.reference.entity.enums.IngredientUnit;

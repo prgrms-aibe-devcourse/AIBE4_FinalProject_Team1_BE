@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,7 +16,7 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long>, S
 
     Optional<SalesOrder> findByOrderPublicIdAndStoreStoreId(UUID orderPublicId, Long storeId);
 
-    Page<SalesOrder> findByStatus(SalesOrderStatus status, Pageable pageable);
-
-    long countByStatus(SalesOrderStatus status);
+    // COMPLETED + REFUNDED 모두 조회 (BulkIndexingRunner용)
+    Page<SalesOrder> findByStatusIn(List<SalesOrderStatus> statuses, Pageable pageable);
+    long countByStatusIn(List<SalesOrderStatus> statuses);
 }

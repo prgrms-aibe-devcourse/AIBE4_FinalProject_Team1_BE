@@ -1,6 +1,6 @@
 package kr.inventory.domain.stock.service;
 
-import kr.inventory.domain.analytics.service.StockShortageIndexingService;
+import kr.inventory.domain.analytics.service.indexing.StockShortageIndexingService;
 import kr.inventory.domain.notification.service.trigger.StockShortageNotificationTriggerService;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.repository.IngredientRepository;
