@@ -129,14 +129,19 @@ public class StockInboundService {
 
         Store store = inbound.getStore();
 
+        // AUTO_SUGGESTED 상태이면서 ingredient가 null인 경우 자동 재료 생성 및 매핑 저장
         for (StockInboundItem item : items) {
             if (item.getResolutionStatus() == ResolutionStatus.AUTO_SUGGESTED && item.getIngredient() == null) {
                 if (item.getNormalizedRawKey() != null && !item.getNormalizedRawKey().isBlank()) {
+                    String originalKey = item.getNormalizedRawKey();
                     Ingredient newIngredient = createAutoSuggestedIngredient(store, item);
                     ingredientRepository.save(newIngredient);
                     item.updateResolution(ResolutionStatus.AUTO_SUGGESTED, newIngredient, null);
 
-                    // 자동 생성된 재료의 정규화된 이름으로 normalized_raw_key 업데이트
+                    // 원본 정규화 키로 매핑 저장
+                    ingredientResolutionService.upsertMapping(store, storeId, originalKey, newIngredient);
+
+                    // 매핑 저장 후 normalizedRawKey를 재료의 정규화된 이름으로 업데이트
                     String ingredientKey = newIngredient.getNormalizedName();
                     if (ingredientKey != null && !ingredientKey.isBlank()) {
                         item.updateNormalizedKeys(ingredientKey.trim().toLowerCase(), item.getNormalizedRawFull());
@@ -145,15 +150,28 @@ public class StockInboundService {
             }
         }
 
+        // CONFIRMED 상태 아이템의 매핑 저장 및 키 업데이트
         items.stream()
                 .filter(item -> item.getResolutionStatus() == ResolutionStatus.CONFIRMED)
                 .filter(item -> item.getNormalizedRawKey() != null && item.getIngredient() != null)
-                .forEach(item -> ingredientResolutionService.upsertMapping(
-                        store,
-                        storeId,
-                        item.getNormalizedRawKey(),
-                        item.getIngredient()
-                ));
+                .forEach(item -> {
+                    // 원본 정규화 키로 매핑 저장
+                    ingredientResolutionService.upsertMapping(
+                            store,
+                            storeId,
+                            item.getNormalizedRawKey(),
+                            item.getIngredient()
+                    );
+
+                    // 매핑 저장 후 normalizedRawKey를 재료의 정규화된 이름으로 업데이트
+                    String ingredientKey = item.getIngredient().getNormalizedName();
+                    if (ingredientKey != null && !ingredientKey.isBlank()) {
+                        item.updateNormalizedKeys(
+                                ingredientKey.trim().toLowerCase(),
+                                item.getNormalizedRawFull()
+                        );
+                    }
+                });
 
         for (StockInboundItem item : items) {
             if (item.getIngredient() == null) {

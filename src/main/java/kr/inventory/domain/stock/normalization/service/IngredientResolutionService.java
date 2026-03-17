@@ -151,7 +151,6 @@ public class IngredientResolutionService {
             if (isUsableIngredient(ingredient, storeId) && isUnitCompatible(inboundItem, ingredient)) {
                 inboundItem.updateResolution(ResolutionStatus.AUTO_SUGGESTED, ingredient, null);
                 applyNormalizedQuantity(inboundItem, ingredient);
-                updateInboundItemKeyToIngredientNormalizedName(inboundItem, ingredient, normalizedFull);
 
                 return ResolutionResult.confirmed(canonicalKey, normalizedFull, ingredient);
             }
@@ -260,7 +259,6 @@ public class IngredientResolutionService {
 
         inboundItem.confirmResolution(ingredient);
         applyNormalizedQuantity(inboundItem, ingredient);
-        updateInboundItemKeyToIngredientNormalizedName(inboundItem, ingredient, inboundItem.getNormalizedRawFull());
 
         String confirmedKey = ingredient.getNormalizedName();
         return new ConfirmResult(
