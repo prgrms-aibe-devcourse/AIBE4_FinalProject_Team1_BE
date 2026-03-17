@@ -17,6 +17,8 @@ public interface StockInboundRepository extends JpaRepository<StockInbound, Long
 
     Optional<StockInbound> findByInboundPublicIdAndStoreStoreId(UUID inboundPublicId, Long storeId);
 
+    Optional<StockInbound> findByInboundPublicIdAndStore_StorePublicId(UUID inboundPublicId, UUID storePublicId);
+
     Page<StockInbound> findByStatus(InboundStatus status, Pageable pageable);
 
     long countByStatus(InboundStatus status);
