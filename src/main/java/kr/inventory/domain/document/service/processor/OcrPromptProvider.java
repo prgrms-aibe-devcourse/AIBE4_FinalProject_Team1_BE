@@ -14,7 +14,7 @@ public class OcrPromptProvider {
 			 - date: YYYY-MM-DD.
 			 - amount: total grand total (number).
 			 - items[]:
-			   - name: product name.
+			   - name: product name. MUST include rawCapacity at the end if it exists (e.g. "깐마늘 2kg").
 			   - quantity: number only.
 			   - costPrice: unit price.
 			   - totalPrice: line total.
