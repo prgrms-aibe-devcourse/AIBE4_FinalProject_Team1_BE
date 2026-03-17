@@ -9,6 +9,7 @@ import kr.inventory.ai.stock.tool.dto.response.InboundListToolResponse;
 import kr.inventory.domain.stock.service.StockInboundQueryService;
 import kr.inventory.domain.stock.service.command.StockInboundDetailResult;
 import kr.inventory.domain.stock.service.command.StockInboundSummary;
+import kr.inventory.domain.store.service.StoreAccessValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,15 +24,17 @@ import java.util.UUID;
 public class StockInboundAiQueryService {
 
     private final StockInboundQueryService stockInboundQueryService;
+    private final StoreAccessValidator storeAccessValidator;
 
     public InboundListToolResponse getInboundList(
             Long userId,
             UUID storePublicId,
             InboundListToolRequest request
     ) {
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
         List<StockInboundSummary> summaries = stockInboundQueryService.getInboundList(
-                userId,
-                storePublicId,
+                storeId,
                 request.normalizedKeyword(),
                 request.resolvedLimit()
         );
@@ -51,9 +54,10 @@ public class StockInboundAiQueryService {
             java.util.UUID storePublicId,
             InboundDetailToolRequest request
     ) {
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
         StockInboundDetailResult detail = stockInboundQueryService.getInboundDetail(
-                userId,
-                storePublicId,
+                storeId,
                 request.inboundPublicId()
         );
 

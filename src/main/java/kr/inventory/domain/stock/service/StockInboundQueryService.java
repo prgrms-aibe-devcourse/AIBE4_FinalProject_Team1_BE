@@ -2,6 +2,8 @@ package kr.inventory.domain.stock.service;
 
 import kr.inventory.domain.stock.entity.StockInbound;
 import kr.inventory.domain.stock.entity.StockInboundItem;
+import kr.inventory.domain.stock.exception.StockErrorCode;
+import kr.inventory.domain.stock.exception.StockException;
 import kr.inventory.domain.stock.repository.StockInboundItemRepository;
 import kr.inventory.domain.stock.repository.StockInboundQueryRepository;
 import kr.inventory.domain.stock.repository.StockInboundRepository;
@@ -24,28 +26,26 @@ public class StockInboundQueryService {
     private final StockInboundItemRepository stockInboundItemRepository;
 
     public List<StockInboundSummary> getInboundList(
-            Long userId,
-            UUID storePublicId,
+            Long storeId,
             String keyword,
             int limit
     ) {
         return stockInboundQueryRepository.findInboundSummaries(
-                storePublicId,
+                storeId,
                 keyword,
                 limit
         );
     }
 
     public StockInboundDetailResult getInboundDetail(
-            Long userId,
-            UUID storePublicId,
+            Long storeId,
             UUID inboundPublicId
     ) {
-        StockInbound inbound = stockInboundRepository.findByInboundPublicIdAndStore_StorePublicId(
+        StockInbound inbound = stockInboundRepository.findByInboundPublicIdAndStore_StoreId(
                         inboundPublicId,
-                        storePublicId
+                        storeId
                 )
-                .orElseThrow(() -> new IllegalArgumentException("입고를 찾을 수 없습니다."));
+                .orElseThrow(() -> new StockException(StockErrorCode.INBOUND_NOT_FOUND));
 
         List<StockInboundItem> inboundItems =
                 stockInboundItemRepository.findByInbound_InboundIdOrderByInboundItemIdAsc(inbound.getInboundId());
