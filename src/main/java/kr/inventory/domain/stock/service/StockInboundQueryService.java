@@ -51,15 +51,7 @@ public class StockInboundQueryService {
                 stockInboundItemRepository.findByInbound_InboundIdOrderByInboundItemIdAsc(inbound.getInboundId());
 
         List<StockInboundDetailResult.StockInboundItemDetail> items = inboundItems.stream()
-                .map(item -> new StockInboundDetailResult.StockInboundItemDetail(
-                        item.getInboundItemPublicId(),
-                        item.getRawProductName(),
-                        item.getIngredient() != null ? item.getIngredient().getName() : null,
-                        item.getQuantity(),
-                        item.getUnitCost(),
-                        item.getExpirationDate(),
-                        item.getResolutionStatus() != null ? item.getResolutionStatus().name() : null
-                ))
+                .map(StockInboundDetailResult.StockInboundItemDetail::toItemDetail)
                 .toList();
 
         return new StockInboundDetailResult(

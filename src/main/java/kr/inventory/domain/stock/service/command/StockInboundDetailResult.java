@@ -1,5 +1,7 @@
 package kr.inventory.domain.stock.service.command;
 
+import kr.inventory.domain.stock.entity.StockInboundItem;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -23,5 +25,16 @@ public record StockInboundDetailResult(
             LocalDate expirationDate,
             String resolutionStatus
     ) {
+        public static StockInboundItemDetail toItemDetail(StockInboundItem item) {
+            return new StockInboundItemDetail(
+                    item.getInboundItemPublicId(),
+                    item.getRawProductName(),
+                    item.getIngredient() != null ? item.getIngredient().getName() : null,
+                    item.getQuantity(),
+                    item.getUnitCost(),
+                    item.getExpirationDate(),
+                    item.getResolutionStatus() != null ? item.getResolutionStatus().name() : null
+            );
+        }
     }
 }
