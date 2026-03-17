@@ -1,9 +1,6 @@
 package kr.inventory.domain.analytics.repository;
 
-import kr.inventory.domain.analytics.controller.dto.response.MenuRankingResponse;
-import kr.inventory.domain.analytics.controller.dto.response.SalesPeakResponse;
-import kr.inventory.domain.analytics.controller.dto.response.SalesSummaryResponse;
-import kr.inventory.domain.analytics.controller.dto.response.SalesTrendResponse;
+import kr.inventory.domain.analytics.controller.dto.response.*;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -38,5 +35,20 @@ public interface SalesOrderSearchRepositoryCustom {
             Long storeId,
             OffsetDateTime from,
             OffsetDateTime to
+    );
+
+    // 환불 요약 집계
+    RefundSummaryResponse aggregateRefundSummary(
+            Long storeId,
+            OffsetDateTime from,
+            OffsetDateTime to
+    );
+
+    // 특정 메뉴 상세 집계
+    MenuSalesDetailResponse aggregateMenuSalesDetail(
+            Long storeId,
+            OffsetDateTime from,
+            OffsetDateTime to,
+            String menuName
     );
 }

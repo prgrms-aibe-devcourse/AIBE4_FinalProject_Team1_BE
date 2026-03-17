@@ -1,10 +1,7 @@
 package kr.inventory.domain.analytics.service;
 
 import kr.inventory.domain.analytics.constant.SalesAnalyticsConstants;
-import kr.inventory.domain.analytics.controller.dto.response.MenuRankingResponse;
-import kr.inventory.domain.analytics.controller.dto.response.SalesPeakResponse;
-import kr.inventory.domain.analytics.controller.dto.response.SalesSummaryResponse;
-import kr.inventory.domain.analytics.controller.dto.response.SalesTrendResponse;
+import kr.inventory.domain.analytics.controller.dto.response.*;
 import kr.inventory.domain.analytics.exception.AnalyticsErrorCode;
 import kr.inventory.domain.analytics.exception.AnalyticsException;
 import kr.inventory.domain.analytics.repository.SalesOrderSearchRepositoryCustom;
@@ -164,6 +161,64 @@ public class SalesAnalyticsService {
                 calculateGrowthRate(current.maxOrderAmount(), previous.maxOrderAmount())
         );
     }
+
+    /**
+     * 환불 요약
+     */
+    @Cacheable(
+            value = "sales:refund-summary",
+            key = "#storePublicId + ':' + #from.toInstant().toEpochMilli() + ':' + #to.toInstant().toEpochMilli()",
+            condition = "#to != null && #to.isBefore(T(java.time.OffsetDateTime).now().withHour(0).withMinute(0).withSecond(0).withNano(0))"
+    )
+    public RefundSummaryResponse getRefundSummary(
+            Long userId,
+            UUID storePublicId,
+            OffsetDateTime from,
+            OffsetDateTime to
+    ) {
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
+        OffsetDateTime validFrom = (from != null) ? from : OffsetDateTime.now().minusDays(SalesAnalyticsConstants.DEFAULT_DAYS_BACK);
+        OffsetDateTime validTo = (to != null) ? to : OffsetDateTime.now();
+        validTo = validateAndAdjustDateRange(validFrom, validTo);
+
+        log.debug("[Analytics] 환불 요약 집계 storeId={}", storeId);
+        return salesOrderSearchRepository.aggregateRefundSummary(storeId, validFrom, validTo);
+    }
+
+    /**
+     * 특정 메뉴 상세 집계
+     */
+    @Cacheable(
+            value = "sales:menu-detail",
+            key = "#storePublicId + ':' + #from.toInstant().toEpochMilli() + ':' + #to.toInstant().toEpochMilli() + ':' + #menuName",
+            condition = "#to != null && #to.isBefore(T(java.time.OffsetDateTime).now().withHour(0).withMinute(0).withSecond(0).withNano(0))"
+    )
+    public MenuSalesDetailResponse getMenuSalesDetail(
+            Long userId,
+            UUID storePublicId,
+            OffsetDateTime from,
+            OffsetDateTime to,
+            String menuName
+    ) {
+        // 1. menuName 검증 (빠른 실패)
+        if (menuName == null || menuName.isBlank()) {
+            throw new AnalyticsException(AnalyticsErrorCode.INVALID_MENU_NAME);
+        }
+        String trimmedMenuName = menuName.trim();
+
+        // 2. 권한 검증
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
+        // 3. 날짜 기본값 + 검증
+        OffsetDateTime validFrom = (from != null) ? from : OffsetDateTime.now().minusDays(SalesAnalyticsConstants.DEFAULT_DAYS_BACK);
+        OffsetDateTime validTo = (to != null) ? to : OffsetDateTime.now();
+        validTo = validateAndAdjustDateRange(validFrom, validTo);
+
+        log.debug("[Analytics] 메뉴 상세 집계 storeId={} menuName={}", storeId, trimmedMenuName);
+        return salesOrderSearchRepository.aggregateMenuSalesDetail(storeId, validFrom, validTo, trimmedMenuName);
+    }
+
 
     private OffsetDateTime[] calculatePreviousPeriod(OffsetDateTime from, OffsetDateTime to, String interval) {
         long daysDiff = Duration.between(from, to).toDays() + 1;

@@ -5,10 +5,7 @@ import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.aggregations.*;
 import co.elastic.clients.util.NamedValue;
 import kr.inventory.domain.analytics.constant.SalesAnalyticsConstants;
-import kr.inventory.domain.analytics.controller.dto.response.MenuRankingResponse;
-import kr.inventory.domain.analytics.controller.dto.response.SalesPeakResponse;
-import kr.inventory.domain.analytics.controller.dto.response.SalesSummaryResponse;
-import kr.inventory.domain.analytics.controller.dto.response.SalesTrendResponse;
+import kr.inventory.domain.analytics.controller.dto.response.*;
 import kr.inventory.domain.analytics.document.sales.SalesOrderDocument;
 import kr.inventory.domain.analytics.repository.SalesOrderSearchRepositoryCustom;
 import kr.inventory.domain.sales.entity.enums.SalesOrderStatus;
@@ -309,6 +306,164 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
         log.debug("Sales summary aggregation completed: {}", response);
         return response;
     }
+
+    // ──────────────────────────────────────────────────────
+    // 5. 환불 요약 집계
+    // ──────────────────────────────────────────────────────
+    @Override
+    public RefundSummaryResponse aggregateRefundSummary(Long storeId, OffsetDateTime from, OffsetDateTime to) {
+
+        log.debug("Aggregating refund summary for storeId={}, from={}, to={}", storeId, from, to);
+
+        // 1. COMPLETED 건수 조회
+        NativeQuery completedCountQuery = buildBaseQuery(storeId, from, to)
+                .withMaxResults(0)
+                .build();
+
+        SearchHits<SalesOrderDocument> completedHits =
+                elasticsearchOperations.search(completedCountQuery, SalesOrderDocument.class);
+        long completedOrderCount = completedHits.getTotalHits();
+
+        // 2. REFUNDED 건수 + 금액 조회
+        NativeQuery refundQuery = NativeQuery.builder()
+                .withQuery(q -> q
+                        .bool(b -> b
+                                .filter(f -> f.term(t -> t
+                                        .field(SalesAnalyticsConstants.FIELD_STORE_ID)
+                                        .value(storeId)))
+                                .filter(f -> f.term(t -> t
+                                        .field(SalesAnalyticsConstants.FIELD_STATUS)
+                                        .value(SalesOrderStatus.REFUNDED.name())))
+                                .filter(f -> f.range(r -> r.date(d -> d
+                                        .field(SalesAnalyticsConstants.FIELD_ORDERED_AT)
+                                        .gte(from.format(SalesAnalyticsConstants.ES_DATE_FORMATTER))
+                                        .lte(to.format(SalesAnalyticsConstants.ES_DATE_FORMATTER)))))
+                        )
+                )
+                .withAggregation(SalesAnalyticsConstants.AGG_TOTAL_AMOUNT,
+                        Aggregation.of(a -> a.sum(s -> s.field(SalesAnalyticsConstants.FIELD_TOTAL_AMOUNT))))
+                .withMaxResults(0)
+                .build();
+
+        SearchHits<SalesOrderDocument> refundHits =
+                elasticsearchOperations.search(refundQuery, SalesOrderDocument.class);
+
+        long refundCount = refundHits.getTotalHits();
+
+        double totalRefundAmountRaw = 0.0;
+        if (refundHits.hasAggregations()) {
+            ElasticsearchAggregations aggs = (ElasticsearchAggregations) refundHits.getAggregations();
+            totalRefundAmountRaw = Optional.ofNullable(aggs.get(SalesAnalyticsConstants.AGG_TOTAL_AMOUNT))
+                    .map(agg -> agg.aggregation().getAggregate().sum().value())
+                    .orElse(0.0);
+        }
+
+        long totalOrderCount = completedOrderCount + refundCount;
+        double refundRate = totalOrderCount > 0 ? (refundCount * 100.0) / totalOrderCount : 0.0;
+
+        log.debug("Refund summary aggregation completed. refundCount={}, totalOrderCount={}",
+                refundCount, totalOrderCount);
+        return new RefundSummaryResponse(
+                refundCount,
+                BigDecimal.valueOf(totalRefundAmountRaw).setScale(2, RoundingMode.HALF_UP),
+                Math.round(refundRate * 10.0) / 10.0
+        );
+    }
+
+    // ──────────────────────────────────────────────────────
+    // 6. 특정 메뉴 상세 집계
+    // ──────────────────────────────────────────────────────
+    @Override
+    public MenuSalesDetailResponse aggregateMenuSalesDetail(
+            Long storeId, OffsetDateTime from, OffsetDateTime to, String menuName) {
+
+        log.debug("Aggregating menu sales detail for storeId={}, menuName={}", storeId, menuName);
+
+        // 전체 매출 합계 (salesShareRate 계산용)
+        SalesSummaryResponse summary = aggregateSalesSummary(storeId, from, to);
+        BigDecimal totalSalesAmount = summary.totalAmount();
+
+        // 특정 메뉴 nested aggregation (menuName 필터)
+        NativeQuery query = buildBaseQuery(storeId, from, to)
+                .withAggregation(SalesAnalyticsConstants.AGG_BY_MENU, Aggregation.of(a -> a
+                        .nested(n -> n.path(SalesAnalyticsConstants.FIELD_ITEMS))
+                        .aggregations(SalesAnalyticsConstants.AGG_MENU_FILTER, Aggregation.of(fa -> fa
+                                .filter(f -> f.term(t -> t
+                                        .field(SalesAnalyticsConstants.FIELD_ITEMS_MENU_NAME)
+                                        .value(menuName)))
+                                .aggregations(SalesAnalyticsConstants.AGG_TOTAL_QUANTITY, Aggregation.of(qa -> qa
+                                        .sum(s -> s.field(SalesAnalyticsConstants.FIELD_ITEMS_QUANTITY))
+                                ))
+                                .aggregations(SalesAnalyticsConstants.AGG_TOTAL_AMOUNT, Aggregation.of(sa -> sa
+                                        .sum(s -> s.field(SalesAnalyticsConstants.FIELD_ITEMS_SUBTOTAL))
+                                ))
+                        ))
+                ))
+                .withMaxResults(0)
+                .build();
+
+        SearchHits<SalesOrderDocument> hits =
+                elasticsearchOperations.search(query, SalesOrderDocument.class);
+
+        if (!hits.hasAggregations()) {
+            log.debug("No aggregations found for menuName={}", menuName);
+            return new MenuSalesDetailResponse(menuName, 0L, BigDecimal.ZERO, BigDecimal.ZERO, 0.0);
+        }
+
+        ElasticsearchAggregations aggs = (ElasticsearchAggregations) hits.getAggregations();
+
+        NestedAggregate byMenu = Optional.ofNullable(aggs.get(SalesAnalyticsConstants.AGG_BY_MENU))
+                .map(agg -> agg.aggregation().getAggregate().nested())
+                .orElse(null);
+
+        if (byMenu == null) {
+            return new MenuSalesDetailResponse(menuName, 0L, BigDecimal.ZERO, BigDecimal.ZERO, 0.0);
+        }
+
+        // filter aggregation 결과 추출
+        FilterAggregate menuFilter = Optional.ofNullable(
+                        byMenu.aggregations().get(SalesAnalyticsConstants.AGG_MENU_FILTER))
+                .map(agg -> agg.filter())
+                .orElse(null);
+
+        if (menuFilter == null || menuFilter.docCount() == 0) {
+            log.debug("No data found for menuName={}", menuName);
+            return new MenuSalesDetailResponse(menuName, 0L, BigDecimal.ZERO, BigDecimal.ZERO, 0.0);
+        }
+
+        double qty = Optional.ofNullable(
+                        menuFilter.aggregations().get(SalesAnalyticsConstants.AGG_TOTAL_QUANTITY))
+                .map(agg -> agg.sum().value())
+                .orElse(0.0);
+
+        double amount = Optional.ofNullable(
+                        menuFilter.aggregations().get(SalesAnalyticsConstants.AGG_TOTAL_AMOUNT))
+                .map(agg -> agg.sum().value())
+                .orElse(0.0);
+
+        BigDecimal totalAmount = BigDecimal.valueOf(amount).setScale(2, RoundingMode.HALF_UP);
+        long totalQuantity = (long) qty;
+
+        // 평균 판매단가
+        BigDecimal avgSellingPrice = totalQuantity > 0
+                ? totalAmount.divide(BigDecimal.valueOf(totalQuantity), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
+        // 전체 매출 대비 비율
+        double shareRate = 0.0;
+        if (totalSalesAmount != null && totalSalesAmount.compareTo(BigDecimal.ZERO) > 0) {
+            shareRate = totalAmount
+                    .divide(totalSalesAmount, 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100))
+                    .doubleValue();
+            shareRate = Math.round(shareRate * 10.0) / 10.0;
+        }
+
+        log.debug("Menu sales detail aggregation completed. menuName={} qty={} amount={}",
+                menuName, totalQuantity, totalAmount);
+        return new MenuSalesDetailResponse(menuName, totalQuantity, totalAmount, avgSellingPrice, shareRate);
+    }
+
 
     // ──────────────────────────────────────────────────────
     // Private Helper Methods
