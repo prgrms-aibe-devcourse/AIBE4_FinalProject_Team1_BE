@@ -127,9 +127,10 @@ public class SalesOrderService {
         salesOrderItemRepository.saveAll(items);
         savedOrder.updateTotalAmount(totalAmount);
 
+        // 10. 재고 차감
         stockManagerFacade.processOrderStockDeduction(savedOrder, items);
 
-        // 11. COMPLETED 상태 설정
+        // 11. 결제완료 + 재고 차감 완료
         savedOrder.updateCompletedAt(OffsetDateTime.now(ZoneOffset.UTC));
 
         try {
@@ -184,9 +185,7 @@ public class SalesOrderService {
         return PageResponse.from(responsePage);
     }
 
-    /**
-     * 환불 처리 (관리자용)
-     */
+    // 환불 처리 (관리자용)
     @Transactional
     public SalesOrderResponse refundOrder(UUID orderPublicId, Long userId, UUID storePublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);

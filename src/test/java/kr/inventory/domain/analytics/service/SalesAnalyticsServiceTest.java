@@ -1,8 +1,6 @@
 package kr.inventory.domain.analytics.service;
 
-import kr.inventory.domain.analytics.controller.dto.response.SalesPeakResponse;
-import kr.inventory.domain.analytics.controller.dto.response.SalesSummaryResponse;
-import kr.inventory.domain.analytics.controller.dto.response.SalesTrendResponse;
+import kr.inventory.domain.analytics.controller.dto.response.*;
 import kr.inventory.domain.analytics.exception.AnalyticsErrorCode;
 import kr.inventory.domain.analytics.exception.AnalyticsException;
 import kr.inventory.domain.analytics.repository.SalesOrderSearchRepositoryCustom;
@@ -24,6 +22,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -273,5 +272,226 @@ class SalesAnalyticsServiceTest {
                 .isInstanceOf(AnalyticsException.class)
                 .extracting("errorModel")
                 .isEqualTo(AnalyticsErrorCode.DATE_RANGE_TOO_LONG);
+    }
+
+    @Test
+    @DisplayName("환불 요약 조회 시 repository 결과를 그대로 반환한다")
+    void givenValidRange_whenGetRefundSummary_thenReturnRepositoryResult() {
+        Long userId = 100L;
+        Long storeId = 1L;
+        UUID storePublicId = UUID.randomUUID();
+
+        OffsetDateTime from = OffsetDateTime.now(ZoneOffset.UTC).minusDays(7);
+        OffsetDateTime to = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
+
+        RefundSummaryResponse expected = new RefundSummaryResponse(
+                5L,
+                new BigDecimal("25000.00"),
+                4.8
+        );
+
+        given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
+        given(salesOrderSearchRepository.aggregateRefundSummary(storeId, from, to)).willReturn(expected);
+
+        RefundSummaryResponse actual = salesAnalyticsService.getRefundSummary(userId, storePublicId, from, to);
+
+        assertThat(actual).isEqualTo(expected);
+        verify(salesOrderSearchRepository).aggregateRefundSummary(storeId, from, to);
+    }
+
+    @Test
+    @DisplayName("환불 요약 조회 시 from이 미래면 FUTURE_DATE_NOT_ALLOWED 예외가 발생한다")
+    void givenFutureFrom_whenGetRefundSummary_thenThrowFutureDateNotAllowed() {
+        Long userId = 100L;
+        Long storeId = 1L;
+        UUID storePublicId = UUID.randomUUID();
+
+        OffsetDateTime from = OffsetDateTime.now(ZoneOffset.UTC).plusDays(1);
+        OffsetDateTime to = OffsetDateTime.now(ZoneOffset.UTC).plusDays(2);
+
+        given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
+
+        assertThatThrownBy(() -> salesAnalyticsService.getRefundSummary(userId, storePublicId, from, to))
+                .isInstanceOf(AnalyticsException.class)
+                .extracting("errorModel")
+                .isEqualTo(AnalyticsErrorCode.FUTURE_DATE_NOT_ALLOWED);
+    }
+
+    @Test
+    @DisplayName("환불 요약 조회 시 from > to 이면 INVALID_DATE_RANGE 예외가 발생한다")
+    void givenFromAfterTo_whenGetRefundSummary_thenThrowInvalidDateRange() {
+        Long userId = 100L;
+        Long storeId = 1L;
+        UUID storePublicId = UUID.randomUUID();
+
+        OffsetDateTime from = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
+        OffsetDateTime to = OffsetDateTime.now(ZoneOffset.UTC).minusDays(3);
+
+        given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
+
+        assertThatThrownBy(() -> salesAnalyticsService.getRefundSummary(userId, storePublicId, from, to))
+                .isInstanceOf(AnalyticsException.class)
+                .extracting("errorModel")
+                .isEqualTo(AnalyticsErrorCode.INVALID_DATE_RANGE);
+    }
+
+    @Test
+    @DisplayName("환불 요약 조회 시 조회 기간이 1년 초과면 DATE_RANGE_TOO_LONG 예외가 발생한다")
+    void givenTooLongRange_whenGetRefundSummary_thenThrowDateRangeTooLong() {
+        Long userId = 100L;
+        Long storeId = 1L;
+        UUID storePublicId = UUID.randomUUID();
+
+        OffsetDateTime from = OffsetDateTime.now(ZoneOffset.UTC).minusDays(366);
+        OffsetDateTime to = OffsetDateTime.now(ZoneOffset.UTC);
+
+        given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
+
+        assertThatThrownBy(() -> salesAnalyticsService.getRefundSummary(userId, storePublicId, from, to))
+                .isInstanceOf(AnalyticsException.class)
+                .extracting("errorModel")
+                .isEqualTo(AnalyticsErrorCode.DATE_RANGE_TOO_LONG);
+    }
+
+    @Test
+    @DisplayName("환불 요약 조회 시 from/to가 null이면 기본값(최근 7일)으로 조회한다")
+    void givenNullDates_whenGetRefundSummary_thenUseDefaultRange() {
+        Long userId = 100L;
+        Long storeId = 1L;
+        UUID storePublicId = UUID.randomUUID();
+
+        RefundSummaryResponse expected = new RefundSummaryResponse(0L, BigDecimal.ZERO, 0.0);
+
+        given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
+        given(salesOrderSearchRepository.aggregateRefundSummary(
+                eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
+                .willReturn(expected);
+
+        RefundSummaryResponse actual = salesAnalyticsService.getRefundSummary(userId, storePublicId, null, null);
+
+        assertThat(actual).isEqualTo(expected);
+        verify(salesOrderSearchRepository).aggregateRefundSummary(
+                eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class));
+    }
+
+    @Test
+    @DisplayName("메뉴 상세 조회 시 repository 결과를 그대로 반환한다")
+    void givenValidMenuName_whenGetMenuSalesDetail_thenReturnRepositoryResult() {
+        Long userId = 100L;
+        Long storeId = 1L;
+        UUID storePublicId = UUID.randomUUID();
+        String menuName = "아메리카노";
+
+        OffsetDateTime from = OffsetDateTime.now(ZoneOffset.UTC).minusDays(7);
+        OffsetDateTime to = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
+
+        MenuSalesDetailResponse expected = new MenuSalesDetailResponse(
+                menuName,
+                120L,
+                new BigDecimal("480000.00"),
+                new BigDecimal("4000.00"),
+                25.0
+        );
+
+        given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
+        given(salesOrderSearchRepository.aggregateMenuSalesDetail(storeId, from, to, menuName)).willReturn(expected);
+
+        MenuSalesDetailResponse actual = salesAnalyticsService.getMenuSalesDetail(
+                userId, storePublicId, from, to, menuName);
+
+        assertThat(actual).isEqualTo(expected);
+        verify(salesOrderSearchRepository).aggregateMenuSalesDetail(storeId, from, to, menuName);
+    }
+
+    @Test
+    @DisplayName("메뉴 상세 조회 시 menuName이 null이면 INVALID_MENU_NAME 예외가 발생한다")
+    void givenNullMenuName_whenGetMenuSalesDetail_thenThrowInvalidMenuName() {
+        Long userId = 100L;
+        UUID storePublicId = UUID.randomUUID();
+
+        OffsetDateTime from = OffsetDateTime.now(ZoneOffset.UTC).minusDays(7);
+        OffsetDateTime to = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
+
+        assertThatThrownBy(() -> salesAnalyticsService.getMenuSalesDetail(
+                userId, storePublicId, from, to, null))
+                .isInstanceOf(AnalyticsException.class)
+                .extracting("errorModel")
+                .isEqualTo(AnalyticsErrorCode.INVALID_MENU_NAME);
+    }
+
+    @Test
+    @DisplayName("메뉴 상세 조회 시 menuName이 빈 문자열이면 INVALID_MENU_NAME 예외가 발생한다")
+    void givenBlankMenuName_whenGetMenuSalesDetail_thenThrowInvalidMenuName() {
+        Long userId = 100L;
+        UUID storePublicId = UUID.randomUUID();
+
+        OffsetDateTime from = OffsetDateTime.now(ZoneOffset.UTC).minusDays(7);
+        OffsetDateTime to = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
+
+        assertThatThrownBy(() -> salesAnalyticsService.getMenuSalesDetail(
+                userId, storePublicId, from, to, "   "))
+                .isInstanceOf(AnalyticsException.class)
+                .extracting("errorModel")
+                .isEqualTo(AnalyticsErrorCode.INVALID_MENU_NAME);
+    }
+
+    @Test
+    @DisplayName("메뉴 상세 조회 시 from이 미래면 FUTURE_DATE_NOT_ALLOWED 예외가 발생한다")
+    void givenFutureFrom_whenGetMenuSalesDetail_thenThrowFutureDateNotAllowed() {
+        Long userId = 100L;
+        Long storeId = 1L;
+        UUID storePublicId = UUID.randomUUID();
+
+        OffsetDateTime from = OffsetDateTime.now(ZoneOffset.UTC).plusDays(1);
+        OffsetDateTime to = OffsetDateTime.now(ZoneOffset.UTC).plusDays(2);
+
+        given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
+
+        assertThatThrownBy(() -> salesAnalyticsService.getMenuSalesDetail(
+                userId, storePublicId, from, to, "아메리카노"))
+                .isInstanceOf(AnalyticsException.class)
+                .extracting("errorModel")
+                .isEqualTo(AnalyticsErrorCode.FUTURE_DATE_NOT_ALLOWED);
+    }
+
+    @Test
+    @DisplayName("메뉴 상세 조회 시 from > to 이면 INVALID_DATE_RANGE 예외가 발생한다")
+    void givenFromAfterTo_whenGetMenuSalesDetail_thenThrowInvalidDateRange() {
+        Long userId = 100L;
+        Long storeId = 1L;
+        UUID storePublicId = UUID.randomUUID();
+
+        OffsetDateTime from = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
+        OffsetDateTime to = OffsetDateTime.now(ZoneOffset.UTC).minusDays(3);
+
+        given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
+
+        assertThatThrownBy(() -> salesAnalyticsService.getMenuSalesDetail(
+                userId, storePublicId, from, to, "아메리카노"))
+                .isInstanceOf(AnalyticsException.class)
+                .extracting("errorModel")
+                .isEqualTo(AnalyticsErrorCode.INVALID_DATE_RANGE);
+    }
+
+    @Test
+    @DisplayName("메뉴 상세 조회 시 from/to가 null이면 기본값(최근 7일)으로 조회한다")
+    void givenNullDates_whenGetMenuSalesDetail_thenUseDefaultRange() {
+        Long userId = 100L;
+        Long storeId = 1L;
+        UUID storePublicId = UUID.randomUUID();
+        String menuName = "아메리카노";
+
+        MenuSalesDetailResponse expected = new MenuSalesDetailResponse(
+                menuName, 0L, BigDecimal.ZERO, BigDecimal.ZERO, 0.0);
+
+        given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
+        given(salesOrderSearchRepository.aggregateMenuSalesDetail(
+                eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), eq(menuName)))
+                .willReturn(expected);
+
+        MenuSalesDetailResponse actual = salesAnalyticsService.getMenuSalesDetail(
+                userId, storePublicId, null, null, menuName);
+
+        assertThat(actual).isEqualTo(expected);
     }
 }
