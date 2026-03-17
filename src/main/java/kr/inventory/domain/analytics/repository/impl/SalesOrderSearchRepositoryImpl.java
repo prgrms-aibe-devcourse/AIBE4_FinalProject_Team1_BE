@@ -1,5 +1,6 @@
 package kr.inventory.domain.analytics.repository.impl;
 
+import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.Script;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.aggregations.*;
@@ -326,6 +327,12 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
                                 .field(SalesAnalyticsConstants.FIELD_ORDERED_AT)
                                 .gte(from.format(SalesAnalyticsConstants.ES_DATE_FORMATTER))
                                 .lte(to.format(SalesAnalyticsConstants.ES_DATE_FORMATTER)))))
+                        .filter(f -> f.terms(t -> t
+                                .field(SalesAnalyticsConstants.FIELD_STATUS)
+                                .terms(tv -> tv.value(List.of(
+                                        FieldValue.of(SalesOrderStatus.COMPLETED.name()),
+                                        FieldValue.of(SalesOrderStatus.REFUNDED.name())
+                                )))))
                 ))
                 .withAggregation(SalesAnalyticsConstants.AGG_BY_STATUS, Aggregation.of(a -> a
                         .terms(t -> t
@@ -354,17 +361,20 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
         double refundAmount = 0.0;
 
         if (byStatus != null) {
-            for (StringTermsBucket bucket : byStatus.buckets().array()) {
-                String status = bucket.key().stringValue();
-                if (SalesOrderStatus.COMPLETED.name().equals(status)) {
-                    completedCount = bucket.docCount();
-                } else if (SalesOrderStatus.REFUNDED.name().equals(status)) {
-                    refundCount = bucket.docCount();
-                    refundAmount = Optional.ofNullable(
-                                    bucket.aggregations().get(SalesAnalyticsConstants.AGG_TOTAL_AMOUNT))
-                            .map(agg -> agg.sum().value())
-                            .orElse(0.0);
-                }
+            Map<String, StringTermsBucket> buckets = byStatus.buckets().keyed();
+
+            StringTermsBucket completedBucket = buckets.get(SalesOrderStatus.COMPLETED.name());
+            StringTermsBucket refundedBucket  = buckets.get(SalesOrderStatus.REFUNDED.name());
+
+            if (completedBucket != null) {
+                completedCount = completedBucket.docCount();
+            }
+            if (refundedBucket != null) {
+                refundCount = refundedBucket.docCount();
+                refundAmount = Optional.ofNullable(
+                                refundedBucket.aggregations().get(SalesAnalyticsConstants.AGG_TOTAL_AMOUNT))
+                        .map(agg -> agg.sum().value())
+                        .orElse(0.0);
             }
         }
 
