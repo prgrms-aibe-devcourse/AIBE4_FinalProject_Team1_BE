@@ -47,6 +47,7 @@ public class StockShortageAiTools {;
         );
     }
 
+    // 해당 tool의 사용 유무 고민
     @Tool(
             name = "get_shortage_related_order",
             description = """
