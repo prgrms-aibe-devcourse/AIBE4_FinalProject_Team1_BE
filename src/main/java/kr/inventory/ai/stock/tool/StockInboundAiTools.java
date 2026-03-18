@@ -1,5 +1,9 @@
 package kr.inventory.ai.stock.tool;
 
+import kr.inventory.ai.common.constant.ToolDescriptionConstants;
+import kr.inventory.ai.common.dto.DateRange;
+import kr.inventory.ai.common.enums.DateRangePreset;
+import kr.inventory.ai.common.resolver.DateRangeResolver;
 import kr.inventory.ai.context.ChatToolContextProvider;
 import kr.inventory.ai.context.dto.ChatToolContext;
 import kr.inventory.ai.stock.service.StockInboundAiQueryService;
@@ -9,6 +13,7 @@ import kr.inventory.ai.stock.tool.dto.response.InboundDetailToolResponse;
 import kr.inventory.ai.stock.tool.dto.response.InboundListToolResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -16,18 +21,36 @@ import org.springframework.stereotype.Component;
 public class StockInboundAiTools {
     private final StockInboundAiQueryService stockInboundAiQueryService;
     private final ChatToolContextProvider chatToolContextProvider;
+    private final DateRangeResolver dateRangeResolver;
 
     @Tool(
             name = "get_inbound_list",
             description = """
                     현재 로그인한 사용자의 매장에서 최근 입고 목록을 조회합니다.
                     keyword로 거래처명 또는 품목명을 검색할 수 있습니다.
+                    period로 조회 기간을 지정할 수 있습니다.
                     결과에는 inboundPublicId, 입고일, 거래처명, 품목 수 등의 요약 정보가 포함됩니다.
                     최근 입고 내역 확인이나 입고 검색이 필요할 때 사용합니다.
                     """
+                    + ToolDescriptionConstants.DATE_RANGE_PRESET
     )
-    public InboundListToolResponse getInboundList(InboundListToolRequest request) {
+    public InboundListToolResponse getInboundList(
+            @ToolParam(description = "Vendor name or item name keyword")
+            String keyword,
+            @ToolParam(description = "Date range preset")
+            DateRangePreset period,
+            @ToolParam(description = "Maximum number of results")
+            Integer limit
+    ) {
         ChatToolContext context = chatToolContextProvider.getRequired();
+        DateRange range = dateRangeResolver.resolve(period);
+
+        InboundListToolRequest request = new InboundListToolRequest(
+                keyword,
+                limit,
+                range.from(),
+                range.to()
+        );
 
         return stockInboundAiQueryService.getInboundList(
                 context.userId(),

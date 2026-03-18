@@ -70,12 +70,14 @@ public class StockLogAiTools {
             @ToolParam(description = "Reference type (SALE: 판매, WASTE: 폐기, STOCK_TAKING: 재고 실사(조정), INBOUND: 입고, OTHER: 그 외)")
             String referenceType,
             @ToolParam(description = "Date range preset")
-            DateRangePreset period,
+            String period,
             @ToolParam(description = "Maximum number of logs to return")
             Integer limit
     ) {
         ChatToolContext context = chatToolContextProvider.getRequired();
-        DateRange range = dateRangeResolver.resolve(period);
+
+        DateRangePreset preset = DateRangePreset.from(period);
+        DateRange range = dateRangeResolver.resolve(preset);
 
         SearchStockLogsToolRequest request = new SearchStockLogsToolRequest(
                 keyword,
