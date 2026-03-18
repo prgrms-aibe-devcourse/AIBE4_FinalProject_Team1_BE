@@ -1,10 +1,15 @@
 package kr.inventory.domain.analytics.repository.impl;
 
-import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.Script;
 import co.elastic.clients.elasticsearch._types.SortOrder;
-import co.elastic.clients.elasticsearch._types.aggregations.*;
-import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
+import co.elastic.clients.elasticsearch._types.aggregations.CalendarInterval;
+import co.elastic.clients.elasticsearch._types.aggregations.DateHistogramAggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.DateHistogramBucket;
+import co.elastic.clients.elasticsearch._types.aggregations.FilterAggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.NestedAggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.StringTermsAggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
 import co.elastic.clients.util.NamedValue;
 import kr.inventory.domain.analytics.constant.SalesAnalyticsConstants;
 import kr.inventory.domain.analytics.controller.dto.response.*;
@@ -24,8 +29,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
+import java.util.Locale;
 import java.util.Optional;
 
 @Slf4j
@@ -35,16 +41,12 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
 
     private final ElasticsearchOperations elasticsearchOperations;
 
-    // ──────────────────────────────────────────────────────
-    // 1. 일/주/월 매출 추이
-    // ──────────────────────────────────────────────────────
     @Override
     public List<SalesTrendResponse> aggregateSalesTrend(Long storeId, OffsetDateTime from, OffsetDateTime to, String calendarInterval) {
 
         log.debug("Aggregating sales trend for storeId={}, from={}, to={}, interval={}",
                 storeId, from, to, calendarInterval);
 
-        // CalendarInterval 검증 및 변환
         CalendarInterval parsedInterval;
         try {
             parsedInterval = CalendarInterval.valueOf(calendarInterval);
@@ -101,21 +103,16 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
         return result;
     }
 
-    // ──────────────────────────────────────────────────────
-    // 2. 요일×시간대 피크
-    // ──────────────────────────────────────────────────────
     @Override
     public List<SalesPeakResponse> aggregateSalesPeak(Long storeId, OffsetDateTime from, OffsetDateTime to) {
 
         log.debug("Aggregating sales peak for storeId={}, from={}, to={}", storeId, from, to);
 
-        // Painless script로 요일 추출 (1=Monday, 7=Sunday)
         Script dayScript = Script.of(s -> s
                 .source(SalesAnalyticsConstants.SCRIPT_DAY_OF_WEEK)
                 .lang("painless")
         );
 
-        // Painless script로 시간 추출 (0-23)
         Script hourScript = Script.of(s -> s
                 .source(SalesAnalyticsConstants.SCRIPT_HOUR_OF_DAY)
                 .lang("painless")
@@ -131,8 +128,7 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
                 .withMaxResults(0)
                 .build();
 
-        SearchHits<SalesOrderDocument> hits =
-                elasticsearchOperations.search(query, SalesOrderDocument.class);
+        SearchHits<SalesOrderDocument> hits = elasticsearchOperations.search(query, SalesOrderDocument.class);
 
         List<SalesPeakResponse> result = new ArrayList<>();
 
@@ -148,7 +144,7 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
                     int day = Integer.parseInt(dayBucket.key().stringValue());
 
                     StringTermsAggregate byHour = Optional.ofNullable(
-                            dayBucket.aggregations().get(SalesAnalyticsConstants.AGG_BY_HOUR))
+                                    dayBucket.aggregations().get(SalesAnalyticsConstants.AGG_BY_HOUR))
                             .map(agg -> agg.sterms())
                             .orElse(null);
 
@@ -168,15 +164,22 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
         return result;
     }
 
-    // ──────────────────────────────────────────────────────
-    // 3. 메뉴 TOP N
-    // ──────────────────────────────────────────────────────
     @Override
     public List<MenuRankingResponse> aggregateMenuRanking(
-            Long storeId, OffsetDateTime from, OffsetDateTime to, int topN) {
+            Long storeId,
+            OffsetDateTime from,
+            OffsetDateTime to,
+            int topN,
+            String rankBy
+    ) {
 
-        log.debug("Aggregating menu ranking for storeId={}, from={}, to={}, topN={}",
-                storeId, from, to, topN);
+        log.debug("Aggregating menu ranking for storeId={}, from={}, to={}, topN={}, rankBy={}",
+                storeId, from, to, topN, rankBy);
+
+        String normalizedRankBy = normalizeRankBy(rankBy);
+        String orderAggName = "amount".equals(normalizedRankBy)
+                ? SalesAnalyticsConstants.AGG_TOTAL_AMOUNT
+                : SalesAnalyticsConstants.AGG_TOTAL_QUANTITY;
 
         NativeQuery query = buildBaseQuery(storeId, from, to)
                 .withAggregation(SalesAnalyticsConstants.AGG_BY_MENU, Aggregation.of(a -> a
@@ -185,7 +188,7 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
                                 .terms(t -> t
                                         .field(SalesAnalyticsConstants.FIELD_ITEMS_MENU_NAME)
                                         .size(topN)
-                                        .order(NamedValue.of(SalesAnalyticsConstants.AGG_TOTAL_QUANTITY, SortOrder.Desc))
+                                        .order(NamedValue.of(orderAggName, SortOrder.Desc))
                                 ).aggregations(SalesAnalyticsConstants.AGG_TOTAL_QUANTITY, Aggregation.of(qa -> qa
                                         .sum(s -> s.field(SalesAnalyticsConstants.FIELD_ITEMS_QUANTITY))
                                 )).aggregations(SalesAnalyticsConstants.AGG_TOTAL_AMOUNT, Aggregation.of(sa -> sa
@@ -199,7 +202,7 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
         SearchHits<SalesOrderDocument> hits =
                 elasticsearchOperations.search(query, SalesOrderDocument.class);
 
-        List<MenuRankingResponse> result = new ArrayList<>();
+        List<MenuRankingResponse> rawResult = new ArrayList<>();
 
         if (hits.hasAggregations()) {
             ElasticsearchAggregations aggs = (ElasticsearchAggregations) hits.getAggregations();
@@ -210,25 +213,24 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
 
             if (byMenu != null) {
                 StringTermsAggregate menuName = Optional.ofNullable(
-                        byMenu.aggregations().get(SalesAnalyticsConstants.AGG_MENU_NAME))
+                                byMenu.aggregations().get(SalesAnalyticsConstants.AGG_MENU_NAME))
                         .map(agg -> agg.sterms())
                         .orElse(null);
 
                 if (menuName != null) {
-                    int rank = 1;
                     for (StringTermsBucket bucket : menuName.buckets().array()) {
                         double qty = Optional.ofNullable(
-                                bucket.aggregations().get(SalesAnalyticsConstants.AGG_TOTAL_QUANTITY))
+                                        bucket.aggregations().get(SalesAnalyticsConstants.AGG_TOTAL_QUANTITY))
                                 .map(agg -> agg.sum().value())
                                 .orElse(0.0);
 
                         double amount = Optional.ofNullable(
-                                bucket.aggregations().get(SalesAnalyticsConstants.AGG_TOTAL_AMOUNT))
+                                        bucket.aggregations().get(SalesAnalyticsConstants.AGG_TOTAL_AMOUNT))
                                 .map(agg -> agg.sum().value())
                                 .orElse(0.0);
 
-                        result.add(new MenuRankingResponse(
-                                rank++,
+                        rawResult.add(new MenuRankingResponse(
+                                0,
                                 bucket.key().stringValue(),
                                 (long) qty,
                                 BigDecimal.valueOf(amount).setScale(2, RoundingMode.HALF_UP)
@@ -240,13 +242,27 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
             }
         }
 
+        Comparator<MenuRankingResponse> comparator = "amount".equals(normalizedRankBy)
+                ? Comparator.comparing(MenuRankingResponse::totalAmount, Comparator.nullsLast(BigDecimal::compareTo)).reversed()
+                        .thenComparing(MenuRankingResponse::menuName, Comparator.nullsLast(String::compareToIgnoreCase))
+                : Comparator.comparingLong(MenuRankingResponse::totalQuantity).reversed()
+                        .thenComparing(MenuRankingResponse::menuName, Comparator.nullsLast(String::compareToIgnoreCase));
+
+        List<MenuRankingResponse> result = new ArrayList<>();
+        int rank = 1;
+        for (MenuRankingResponse item : rawResult.stream().sorted(comparator).limit(topN).toList()) {
+            result.add(new MenuRankingResponse(
+                    rank++,
+                    item.menuName(),
+                    item.totalQuantity(),
+                    item.totalAmount()
+            ));
+        }
+
         log.debug("Menu ranking aggregation completed. Result count: {}", result.size());
         return result;
     }
 
-    // ──────────────────────────────────────────────────────
-    // 4. 매출 요약 (객단가 등)
-    // ──────────────────────────────────────────────────────
     @Override
     public SalesSummaryResponse aggregateSalesSummary(Long storeId, OffsetDateTime from, OffsetDateTime to) {
 
@@ -264,10 +280,8 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
                 .withMaxResults(0)
                 .build();
 
-        SearchHits<SalesOrderDocument> hits =
-                elasticsearchOperations.search(query, SalesOrderDocument.class);
+        SearchHits<SalesOrderDocument> hits = elasticsearchOperations.search(query, SalesOrderDocument.class);
 
-        // 데이터가 없는 경우 빈 응답 반환
         if (!hits.hasAggregations() || hits.getTotalHits() == 0) {
             log.debug("No sales data found for the given period");
             return new SalesSummaryResponse(0L, BigDecimal.ZERO, BigDecimal.ZERO,
@@ -292,7 +306,6 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
                 .map(agg -> agg.aggregation().getAggregate().min().value())
                 .orElse(0.0);
 
-        // NaN/Infinity 처리
         avg = Double.isNaN(avg) ? 0.0 : avg;
         max = (Double.isInfinite(max) || max == Double.NEGATIVE_INFINITY) ? 0.0 : max;
         min = (Double.isInfinite(min) || min == Double.POSITIVE_INFINITY) ? 0.0 : min;
@@ -318,73 +331,58 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
 
         log.debug("Aggregating refund summary for storeId={}, from={}, to={}", storeId, from, to);
 
-        NativeQuery query = NativeQuery.builder()
-                .withQuery(q -> q.bool(b -> b
-                        .filter(f -> f.term(t -> t
-                                .field(SalesAnalyticsConstants.FIELD_STORE_ID)
-                                .value(storeId)))
-                        .filter(f -> f.range(r -> r.date(d -> d
-                                .field(SalesAnalyticsConstants.FIELD_ORDERED_AT)
-                                .gte(from.format(SalesAnalyticsConstants.ES_DATE_FORMATTER))
-                                .lte(to.format(SalesAnalyticsConstants.ES_DATE_FORMATTER)))))
-                        .filter(f -> f.terms(t -> t
-                                .field(SalesAnalyticsConstants.FIELD_STATUS)
-                                .terms(tv -> tv.value(List.of(
-                                        FieldValue.of(SalesOrderStatus.COMPLETED.name()),
-                                        FieldValue.of(SalesOrderStatus.REFUNDED.name())
-                                )))))
-                ))
-                .withAggregation(SalesAnalyticsConstants.AGG_BY_STATUS, Aggregation.of(a -> a
-                        .terms(t -> t
-                                .field(SalesAnalyticsConstants.FIELD_STATUS)
-                                .size(2)
-                        )
-                        .aggregations(SalesAnalyticsConstants.AGG_TOTAL_AMOUNT, Aggregation.of(sa -> sa
-                                .sum(s -> s.field(SalesAnalyticsConstants.FIELD_TOTAL_AMOUNT))
-                        ))
-                ))
+        // 1. COMPLETED 건수 조회
+        NativeQuery completedCountQuery = buildBaseQuery(storeId, from, to)
                 .withMaxResults(0)
                 .build();
 
-        SearchHits<SalesOrderDocument> hits =
-                elasticsearchOperations.search(query, SalesOrderDocument.class);
+        SearchHits<SalesOrderDocument> completedHits =
+                elasticsearchOperations.search(completedCountQuery, SalesOrderDocument.class);
+        long completedOrderCount = completedHits.getTotalHits();
 
-        // 파싱
-        ElasticsearchAggregations aggs = (ElasticsearchAggregations) hits.getAggregations();
+        // 2. REFUNDED 건수 + 금액 조회
+        NativeQuery refundQuery = NativeQuery.builder()
+                .withQuery(q -> q
+                        .bool(b -> b
+                                .filter(f -> f.term(t -> t
+                                        .field(SalesAnalyticsConstants.FIELD_STORE_ID)
+                                        .value(storeId)))
+                                .filter(f -> f.term(t -> t
+                                        .field(SalesAnalyticsConstants.FIELD_STATUS)
+                                        .value(SalesOrderStatus.REFUNDED.name())))
+                                .filter(f -> f.range(r -> r.date(d -> d
+                                        .field(SalesAnalyticsConstants.FIELD_ORDERED_AT)
+                                        .gte(from.format(SalesAnalyticsConstants.ES_DATE_FORMATTER))
+                                        .lte(to.format(SalesAnalyticsConstants.ES_DATE_FORMATTER)))))
+                        )
+                )
+                .withAggregation(SalesAnalyticsConstants.AGG_TOTAL_AMOUNT,
+                        Aggregation.of(a -> a.sum(s -> s.field(SalesAnalyticsConstants.FIELD_TOTAL_AMOUNT))))
+                .withMaxResults(0)
+                .build();
 
-        StringTermsAggregate byStatus = Optional.ofNullable(aggs.get(SalesAnalyticsConstants.AGG_BY_STATUS))
-                .map(agg -> agg.aggregation().getAggregate().sterms())
-                .orElse(null);
+        SearchHits<SalesOrderDocument> refundHits =
+                elasticsearchOperations.search(refundQuery, SalesOrderDocument.class);
 
-        long completedCount = 0L;
-        long refundCount    = 0L;
-        double refundAmount = 0.0;
+        long refundCount = refundHits.getTotalHits();
 
-        if (byStatus != null) {
-            Map<String, StringTermsBucket> buckets = byStatus.buckets().keyed();
-
-            StringTermsBucket completedBucket = buckets.get(SalesOrderStatus.COMPLETED.name());
-            StringTermsBucket refundedBucket  = buckets.get(SalesOrderStatus.REFUNDED.name());
-
-            if (completedBucket != null) {
-                completedCount = completedBucket.docCount();
-            }
-            if (refundedBucket != null) {
-                refundCount = refundedBucket.docCount();
-                refundAmount = Optional.ofNullable(
-                                refundedBucket.aggregations().get(SalesAnalyticsConstants.AGG_TOTAL_AMOUNT))
-                        .map(agg -> agg.sum().value())
-                        .orElse(0.0);
-            }
+        double totalRefundAmountRaw = 0.0;
+        if (refundHits.hasAggregations()) {
+            ElasticsearchAggregations aggs = (ElasticsearchAggregations) refundHits.getAggregations();
+            totalRefundAmountRaw = Optional.ofNullable(aggs.get(SalesAnalyticsConstants.AGG_TOTAL_AMOUNT))
+                    .map(agg -> agg.aggregation().getAggregate().sum().value())
+                    .orElse(0.0);
         }
 
-        long totalCount = completedCount + refundCount;
-        double refundRate = totalCount > 0 ? Math.round((refundCount * 100.0 / totalCount) * 10.0) / 10.0 : 0.0;
+        long totalOrderCount = completedOrderCount + refundCount;
+        double refundRate = totalOrderCount > 0 ? (refundCount * 100.0) / totalOrderCount : 0.0;
 
+        log.debug("Refund summary aggregation completed. refundCount={}, totalOrderCount={}",
+                refundCount, totalOrderCount);
         return new RefundSummaryResponse(
                 refundCount,
-                BigDecimal.valueOf(refundAmount).setScale(2, RoundingMode.HALF_UP),
-                refundRate
+                BigDecimal.valueOf(totalRefundAmountRaw).setScale(2, RoundingMode.HALF_UP),
+                Math.round(refundRate * 10.0) / 10.0
         );
     }
 
@@ -397,13 +395,12 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
 
         log.debug("Aggregating menu sales detail for storeId={}, menuName={}", storeId, menuName);
 
-        // 한 번의 쿼리로 전체 매출 + 특정 메뉴 매출 조회
+        // 전체 매출 합계 (salesShareRate 계산용)
+        SalesSummaryResponse summary = aggregateSalesSummary(storeId, from, to);
+        BigDecimal totalSalesAmount = summary.totalAmount();
+
+        // 특정 메뉴 nested aggregation (menuName 필터)
         NativeQuery query = buildBaseQuery(storeId, from, to)
-                // 전체 매출 합계
-                .withAggregation(SalesAnalyticsConstants.AGG_TOTAL_SALES_AMOUNT, Aggregation.of(a -> a
-                        .sum(s -> s.field(SalesAnalyticsConstants.FIELD_TOTAL_AMOUNT))
-                ))
-                // 특정 메뉴 집계
                 .withAggregation(SalesAnalyticsConstants.AGG_BY_MENU, Aggregation.of(a -> a
                         .nested(n -> n.path(SalesAnalyticsConstants.FIELD_ITEMS))
                         .aggregations(SalesAnalyticsConstants.AGG_MENU_FILTER, Aggregation.of(fa -> fa
@@ -421,8 +418,7 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
                 .withMaxResults(0)
                 .build();
 
-        SearchHits<SalesOrderDocument> hits =
-                elasticsearchOperations.search(query, SalesOrderDocument.class);
+        SearchHits<SalesOrderDocument> hits = elasticsearchOperations.search(query, SalesOrderDocument.class);
 
         if (!hits.hasAggregations()) {
             log.debug("No aggregations found for menuName={}", menuName);
@@ -431,13 +427,6 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
 
         ElasticsearchAggregations aggs = (ElasticsearchAggregations) hits.getAggregations();
 
-        // 전체 매출 합계 추출
-        double totalSalesAmountRaw = Optional.ofNullable(aggs.get(SalesAnalyticsConstants.AGG_TOTAL_SALES_AMOUNT))
-                .map(agg -> agg.aggregation().getAggregate().sum().value())
-                .orElse(0.0);
-        BigDecimal totalSalesAmount = BigDecimal.valueOf(totalSalesAmountRaw).setScale(2, RoundingMode.HALF_UP);
-
-        // 특정 메뉴 집계 추출
         NestedAggregate byMenu = Optional.ofNullable(aggs.get(SalesAnalyticsConstants.AGG_BY_MENU))
                 .map(agg -> agg.aggregation().getAggregate().nested())
                 .orElse(null);
@@ -491,33 +480,33 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
     }
 
 
-    // ──────────────────────────────────────────────────────
-    // Private Helper Methods
-    // ──────────────────────────────────────────────────────
-
-    /**
-     * 공통 쿼리 빌더 생성
-     * - storeId 필터
-     * - COMPLETED 상태 필터
-     * - completedAt 기간 필터
-     */
-    private NativeQueryBuilder buildBaseQuery(
-            Long storeId, OffsetDateTime from, OffsetDateTime to) {
-
+    private NativeQueryBuilder buildBaseQuery(Long storeId, OffsetDateTime from, OffsetDateTime to) {
         return NativeQuery.builder()
-            .withQuery(q -> q
-                    .bool(b -> b
-                            .filter(f -> f.term(t -> t
-                                    .field(SalesAnalyticsConstants.FIELD_STORE_ID)
-                                    .value(storeId)))
-                            .filter(f -> f.term(t -> t
-                                    .field(SalesAnalyticsConstants.FIELD_STATUS)
-                                    .value(SalesOrderStatus.COMPLETED.name())))
-                            .filter(f -> f.range(r -> r.date(d -> d
-                                    .field(SalesAnalyticsConstants.FIELD_ORDERED_AT)
-                                    .gte(from.format(SalesAnalyticsConstants.ES_DATE_FORMATTER))
-                                    .lte(to.format(SalesAnalyticsConstants.ES_DATE_FORMATTER)))))
-                    )
-            );
+                .withQuery(q -> q
+                        .bool(b -> b
+                                .filter(f -> f.term(t -> t
+                                        .field(SalesAnalyticsConstants.FIELD_STORE_ID)
+                                        .value(storeId)))
+                                .filter(f -> f.term(t -> t
+                                        .field(SalesAnalyticsConstants.FIELD_STATUS)
+                                        .value(SalesOrderStatus.COMPLETED.name())))
+                                .filter(f -> f.range(r -> r.date(d -> d
+                                        .field(SalesAnalyticsConstants.FIELD_ORDERED_AT)
+                                        .gte(from.format(SalesAnalyticsConstants.ES_DATE_FORMATTER))
+                                        .lte(to.format(SalesAnalyticsConstants.ES_DATE_FORMATTER)))))
+                        )
+                );
+    }
+
+    private String normalizeRankBy(String rankBy) {
+        if (rankBy == null || rankBy.trim().isEmpty()) {
+            return "quantity";
+        }
+
+        String normalized = rankBy.trim().toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "quantity", "amount" -> normalized;
+            default -> throw new IllegalArgumentException("rankBy must be either quantity or amount.");
+        };
     }
 }

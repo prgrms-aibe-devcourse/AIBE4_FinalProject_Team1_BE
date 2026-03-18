@@ -18,6 +18,7 @@ import kr.inventory.domain.chat.service.command.AcceptedUserMessageResult;
 import kr.inventory.domain.chat.service.command.CompletedChatResult;
 import kr.inventory.domain.chat.service.command.FailedChatResult;
 import kr.inventory.domain.chat.service.command.QueuedChatDispatchTarget;
+import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import kr.inventory.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -35,11 +36,12 @@ public class ChatPersistenceService {
     private final StoreAccessValidator storeAccessValidator;
 
     public ChatThreadCreateResponse createThread(Long userId, String title, UUID storePublicId) {
-        storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
         User userReference = entityManager.getReference(User.class, userId);
+        Store storeReference = entityManager.getReference(Store.class, storeId);
 
-        ChatThread thread = ChatThread.create(userReference, title, storePublicId);
+        ChatThread thread = ChatThread.create(userReference, storeReference, title, storePublicId);
         chatThreadRepository.saveAndFlush(thread);
 
         return ChatThreadCreateResponse.from(thread);

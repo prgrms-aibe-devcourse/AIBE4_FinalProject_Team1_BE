@@ -125,4 +125,14 @@ public class StoreMemberRepositoryImpl  implements StoreMemberRepositoryCustom  
                 .fetchOne();
         return count != null ? count : 0;
     }
+
+    @Override
+    public List<StoreMember> findAllActiveWithUserAndStore() {
+        return queryFactory
+                .selectFrom(storeMember)
+                .join(storeMember.user, user).fetchJoin()
+                .join(storeMember.store, store).fetchJoin()
+                .where(storeMember.status.eq(StoreMemberStatus.ACTIVE))
+                .fetch();
+    }
 }

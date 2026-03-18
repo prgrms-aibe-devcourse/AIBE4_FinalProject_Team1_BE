@@ -7,23 +7,21 @@ import kr.inventory.ai.common.resolver.DateRangeResolver;
 import kr.inventory.ai.context.ChatToolContextProvider;
 import kr.inventory.ai.context.dto.ChatToolContext;
 import kr.inventory.ai.stock.service.StockShortageAiQueryService;
+import kr.inventory.ai.stock.tool.dto.response.ShortageRelatedOrderToolResponse;
 import kr.inventory.ai.stock.tool.dto.response.StockShortageSummaryToolResponse;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
-import java.time.ZoneId;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
-public class StockShortageAiTools {
-	private static final ZoneId DEFAULT_ZONE_ID = ZoneId.of("Asia/Seoul");
-
-	private final StockShortageAiQueryService stockShortageAiQueryService;
-	private final ChatToolContextProvider chatToolContextProvider;
-	private final DateRangeResolver dateRangeResolver;
+public class StockShortageAiTools {;
+    private final StockShortageAiQueryService stockShortageAiQueryService;
+    private final ChatToolContextProvider chatToolContextProvider;
+    private final DateRangeResolver dateRangeResolver;
 
 	@Tool(
 		name = "get_stock_shortage_summary",
@@ -41,7 +39,7 @@ public class StockShortageAiTools {
 		String status // 추가된 파라미터
 	) {
 		ChatToolContext context = chatToolContextProvider.getRequired();
-		DateRange range = dateRangeResolver.resolve(period, DEFAULT_ZONE_ID);
+		DateRange range = dateRangeResolver.resolve(period);
 
 		return stockShortageAiQueryService.getStockShortageSummary(
 			context.userId(),
@@ -52,4 +50,25 @@ public class StockShortageAiTools {
 			range.to()
 		);
 	}
+
+    // 해당 tool의 사용 유무 고민
+    @Tool(
+            name = "get_shortage_related_order",
+            description = """
+                    특정 재고 부족 건과 연결된 주문 요약 정보를 조회합니다.
+                    shortage public id를 입력하면 부족 정보와 관련 주문의 핵심 정보를 반환합니다.
+                    """
+    )
+    public ShortageRelatedOrderToolResponse getShortageRelatedOrder(
+            @ToolParam(description = "Stock shortage public id")
+            UUID shortagePublicId
+    ) {
+        ChatToolContext context = chatToolContextProvider.getRequired();
+
+        return stockShortageAiQueryService.getShortageRelatedOrder(
+                context.userId(),
+                context.storePublicId(),
+                shortagePublicId
+        );
+    }
 }
