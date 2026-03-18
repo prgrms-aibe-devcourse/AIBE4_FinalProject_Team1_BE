@@ -33,6 +33,8 @@ public class StockInboundAiQueryService {
         List<StockInboundSummary> summaries = stockInboundQueryService.getInboundList(
                 storeId,
                 request.normalizedKeyword(),
+                request.from(),
+                request.to(),
                 request.resolvedLimit()
         );
 

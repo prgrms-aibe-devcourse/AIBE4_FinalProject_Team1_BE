@@ -23,14 +23,15 @@ public class StockInboundAiTools {
     private final ChatToolContextProvider chatToolContextProvider;
     private final DateRangeResolver dateRangeResolver;
 
+    // TODO 매핑을 하게되면 사용자에게 inboundPublicId를 보이도록 하지 않을 예정
     @Tool(
             name = "get_inbound_list",
             description = """
-                    현재 로그인한 사용자의 매장에서 최근 입고 목록을 조회합니다.
+                    현재 로그인한 사용자의 매장에서 입고 목록을 조회합니다.
                     keyword로 거래처명 또는 품목명을 검색할 수 있습니다.
                     period로 조회 기간을 지정할 수 있습니다.
-                    결과에는 inboundPublicId, 입고일, 거래처명, 품목 수 등의 요약 정보가 포함됩니다.
-                    최근 입고 내역 확인이나 입고 검색이 필요할 때 사용합니다.
+                    결과에는 inboundPublicId, 입고일, 거래처명, 품목 수 확장자의 요약 정보가 포함됩니다.
+                    입고 내역 확인이나 입고 검색이 필요할 때 사용합니다.
                     """
                     + ToolDescriptionConstants.DATE_RANGE_PRESET
     )
@@ -38,12 +39,14 @@ public class StockInboundAiTools {
             @ToolParam(description = "Vendor name or item name keyword")
             String keyword,
             @ToolParam(description = "Date range preset")
-            DateRangePreset period,
+            String period,
             @ToolParam(description = "Maximum number of results")
             Integer limit
     ) {
         ChatToolContext context = chatToolContextProvider.getRequired();
-        DateRange range = dateRangeResolver.resolve(period);
+
+        DateRangePreset preset = DateRangePreset.from(period);
+        DateRange range = dateRangeResolver.resolve(preset);
 
         InboundListToolRequest request = new InboundListToolRequest(
                 keyword,
@@ -59,6 +62,7 @@ public class StockInboundAiTools {
         );
     }
 
+    // TODO 추후 매핑 필요
     @Tool(
             name = "get_inbound_detail",
             description = """

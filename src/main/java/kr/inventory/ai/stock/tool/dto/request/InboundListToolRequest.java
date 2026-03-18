@@ -10,9 +10,9 @@ public record InboundListToolRequest(
 ) {
     public int resolvedLimit(){
         if(limit == null || limit <=0){
-            return 10;
+            return 30;
         }
-        return Math.min(limit,20);
+        return Math.min(limit,30);
     }
 
     public String normalizedKeyword() {
