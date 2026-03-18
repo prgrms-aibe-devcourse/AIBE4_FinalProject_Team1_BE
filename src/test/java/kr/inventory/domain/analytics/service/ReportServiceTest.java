@@ -87,7 +87,7 @@ class ReportServiceTest {
             given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
             given(salesOrderSearchRepository.aggregateSalesSummary(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
                     .willReturn(salesSummary);
-            given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyInt()))
+            given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyInt(), eq("amount")))
                     .willReturn(Collections.emptyList());
             given(reportSearchRepository.aggregateRefundSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyLong()))
                     .willReturn(new RefundSection(5L, new BigDecimal("50000.00"), 5.0));
@@ -212,7 +212,7 @@ class ReportServiceTest {
             given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
             given(salesOrderSearchRepository.aggregateSalesSummary(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
                     .willReturn(salesSummary);
-            given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyInt()))
+            given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyInt(), eq("amount")))
                     .willReturn(menuRanking);
             given(reportSearchRepository.aggregateRefundSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyLong()))
                     .willReturn(new RefundSection(5L, new BigDecimal("50000.00"), 5.0));
@@ -227,7 +227,7 @@ class ReportServiceTest {
 
             // then
             assertThat(result).isEqualTo(expectedPdf);
-            verify(salesOrderSearchRepository).aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), eq(5));
+            verify(salesOrderSearchRepository).aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), eq(5), eq("amount"));
         }
     }
 
@@ -262,7 +262,7 @@ class ReportServiceTest {
             given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
             given(salesOrderSearchRepository.aggregateSalesSummary(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
                     .willReturn(salesSummary);
-            given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyInt()))
+            given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyInt(), eq("amount")))
                     .willReturn(Collections.emptyList());
             given(reportSearchRepository.aggregateRefundSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyLong()))
                     .willReturn(new RefundSection(10L, new BigDecimal("100000.00"), 5.0));
@@ -382,7 +382,7 @@ class ReportServiceTest {
             given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
             given(salesOrderSearchRepository.aggregateSalesSummary(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
                     .willReturn(salesSummary);
-            given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyInt()))
+            given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyInt(), eq("amount")))
                     .willReturn(menuRanking);
             given(reportSearchRepository.aggregateRefundSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyLong()))
                     .willReturn(new RefundSection(5L, new BigDecimal("50000.00"), 5.0));
@@ -459,7 +459,7 @@ class ReportServiceTest {
             given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
             given(salesOrderSearchRepository.aggregateSalesSummary(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
                     .willReturn(salesSummary);
-            given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyInt()))
+            given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyInt(), eq("amount")))
                     .willReturn(Collections.emptyList());
             given(reportSearchRepository.aggregateRefundSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyLong()))
                     .willReturn(new RefundSection(10L, new BigDecimal("100000.00"), 5.0));
