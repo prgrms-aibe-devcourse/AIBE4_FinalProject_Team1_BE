@@ -2,6 +2,7 @@ package kr.inventory.global.llm.client.springai;
 
 import kr.inventory.ai.sales.tool.SalesAiTools;
 import kr.inventory.ai.stock.tool.StockAiTools;
+import kr.inventory.ai.stock.tool.StockInboundAiTools;
 import kr.inventory.ai.stock.tool.StockShortageAiTools;
 import kr.inventory.global.llm.client.LlmClient;
 import kr.inventory.global.llm.dto.LlmChatRequest;
@@ -25,9 +26,11 @@ import java.util.List;
 public class SpringAiLlmClient implements LlmClient {
 
     private final ChatClient inventoryChatClient;
-    private final StockAiTools stockAiTools;
     private final SalesAiTools salesAiTools;
+    private final StockAiTools stockAiTools;
     private final StockShortageAiTools stockShortageAiTools;
+    private final StockInboundAiTools stockInboundAiTools;
+
 
     @Override
     public LlmChatResponse chat(LlmChatRequest request) {
@@ -57,7 +60,7 @@ public class SpringAiLlmClient implements LlmClient {
 
         String content = inventoryChatClient
                 .prompt(new Prompt(promptMessages))
-                .tools(stockAiTools, salesAiTools, stockShortageAiTools)
+                .tools(salesAiTools, stockAiTools, stockShortageAiTools, stockInboundAiTools)
                 .call()
                 .content();
 
