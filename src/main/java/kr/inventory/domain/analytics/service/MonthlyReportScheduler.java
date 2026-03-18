@@ -19,7 +19,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MonthlyReportScheduler {
 
-     private final StoreRepository storeRepository;
      private final StoreMemberRepository storeMemberRepository;
      private final NotificationPublishService notificationPublishService;
 
@@ -33,20 +32,23 @@ public class MonthlyReportScheduler {
         log.info("[MonthlyReportScheduler] {} 월간 리포트 스케줄러 시작", lastMonth);
 
         // 전체 매장을 순회하며 ACTIVE 멤버에게 MONTHLY_OPS_REPORT_READY 알림 발송
-        storeRepository.findAll().forEach(store -> {
-            List<StoreMember> activeMembers = storeMemberRepository
-                    .findByStoreStoreIdAndStatus(store.getStoreId(), StoreMemberStatus.ACTIVE);
-
-            activeMembers.forEach(member ->
+        storeMemberRepository.findAllActiveWithUserAndStore()
+            .forEach(member -> {
+                try {
                     notificationPublishService.publish(
                             NotificationPublishCommand.monthlyReportReady(
                                     member.getUser().getUserId(),
-                                    store.getStorePublicId(),
+                                    member.getStore().getStorePublicId(),
                                     lastMonth.toString()
                             )
-                    )
-            );
-        });
+                    );
+                } catch (Exception e) {
+                    log.error("[MonthlyReportScheduler] 알림 발송 실패 - userId: {}, storeId: {}",
+                            member.getUser().getUserId(),
+                            member.getStore().getStorePublicId(),
+                            e);
+                }
+            });
 
         log.info("[MonthlyReportScheduler] {} 월간 리포트 스케줄러 완료", lastMonth);
     }
