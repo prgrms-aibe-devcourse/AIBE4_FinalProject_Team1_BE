@@ -50,7 +50,7 @@ public class ChatThreadRepositoryImpl implements ChatThreadRepositoryCustom {
                 )
                 .where(
                         chatThread.user.eq(user),
-                        chatThread.store.storePublicId.eq(storePublicId),
+                        chatThread.storePublicId.eq(storePublicId),
                         chatThread.status.eq(ChatThreadStatus.ACTIVE)
                 )
                 .orderBy(chatThread.lastMessageAt.desc(), chatThread.threadId.desc())

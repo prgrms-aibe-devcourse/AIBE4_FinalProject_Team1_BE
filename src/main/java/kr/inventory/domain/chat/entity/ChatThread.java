@@ -46,8 +46,8 @@ public class ChatThread extends AuditableEntity {
         ChatThread thread = new ChatThread();
         thread.user = user;
         thread.store = store;
-        thread.title = title;
         thread.storePublicId = storePublicId;
+        thread.title = title;
         thread.status = ChatThreadStatus.ACTIVE;
         return thread;
     }

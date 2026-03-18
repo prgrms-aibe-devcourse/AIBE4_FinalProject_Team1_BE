@@ -42,6 +42,7 @@ public class NotificationPublishService {
                 Notification.create(
                         user,
                         store,
+                        storePublicId,
                         command.type(),
                         command.title(),
                         command.message(),

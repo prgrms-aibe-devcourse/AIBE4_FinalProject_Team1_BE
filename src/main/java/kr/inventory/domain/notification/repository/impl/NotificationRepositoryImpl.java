@@ -32,7 +32,7 @@ public class NotificationRepositoryImpl implements NotificationRepositoryCustom 
                 .where(
                         notification.user.userId.eq(userId),
                         notification.deleted.isFalse(),
-                        notification.store.storePublicId.eq(storePublicId)
+                        notification.storePublicId.eq(storePublicId)
                 )
                 .orderBy(notification.createdAt.desc(), notification.notificationId.desc())
                 .offset(pageable.getOffset())
@@ -45,7 +45,7 @@ public class NotificationRepositoryImpl implements NotificationRepositoryCustom 
                 .where(
                         notification.user.userId.eq(userId),
                         notification.deleted.isFalse(),
-                        notification.store.storePublicId.eq(storePublicId)
+                        notification.storePublicId.eq(storePublicId)
                 )
                 .fetchOne();
 
@@ -63,7 +63,7 @@ public class NotificationRepositoryImpl implements NotificationRepositoryCustom 
                         notification.user.userId.eq(userId),
                         notification.deleted.isFalse(),
                         notification.read.isFalse(),
-                        notification.store.storePublicId.eq(storePublicId)
+                        notification.storePublicId.eq(storePublicId)
                 )
                 .fetchOne();
 
@@ -98,7 +98,7 @@ public class NotificationRepositoryImpl implements NotificationRepositoryCustom 
                         notification.user.userId.eq(userId),
                         notification.deleted.isFalse(),
                         notification.read.isFalse(),
-                        notification.store.storePublicId.eq(storePublicId)
+                        notification.storePublicId.eq(storePublicId)
                 )
                 .execute();
 

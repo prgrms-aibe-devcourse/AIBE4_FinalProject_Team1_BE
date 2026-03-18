@@ -14,6 +14,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "notifications")
@@ -32,6 +33,9 @@ public class Notification extends AuditableEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
+
+    @Column(nullable = false)
+    private UUID storePublicId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
@@ -63,6 +67,7 @@ public class Notification extends AuditableEntity {
     public static Notification create(
             User user,
             Store store,
+            UUID storePublicId,
             NotificationType type,
             String title,
             String message,
@@ -72,6 +77,7 @@ public class Notification extends AuditableEntity {
         Notification notification = new Notification();
         notification.user = user;
         notification.store = store;
+        notification.storePublicId = storePublicId;
         notification.type = type;
         notification.title = title;
         notification.message = message;
