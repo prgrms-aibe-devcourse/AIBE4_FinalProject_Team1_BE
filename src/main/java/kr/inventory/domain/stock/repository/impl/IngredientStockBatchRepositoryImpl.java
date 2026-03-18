@@ -1,14 +1,16 @@
 package kr.inventory.domain.stock.repository.impl;
 
+import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.LockModeType;
-import kr.inventory.domain.stock.controller.dto.request.StockSearchRequest;
 import kr.inventory.ai.stock.tool.dto.response.LowStockIngredientResponse;
+import kr.inventory.domain.stock.controller.dto.request.StockSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockSummaryResponse;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;
 import kr.inventory.domain.stock.entity.QIngredientStockBatch;
@@ -29,6 +31,8 @@ import java.util.stream.Collectors;
 
 import static kr.inventory.domain.reference.entity.QIngredient.ingredient;
 import static kr.inventory.domain.stock.entity.QIngredientStockBatch.ingredientStockBatch;
+import static kr.inventory.domain.stock.entity.QStockInbound.stockInbound;
+import static kr.inventory.domain.stock.entity.QStockInboundItem.stockInboundItem;
 
 @RequiredArgsConstructor
 public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchRepositoryCustom {
@@ -287,5 +291,37 @@ public class IngredientStockBatchRepositoryImpl implements IngredientStockBatchR
                         ingredientStockBatch.remainingQuantity.sum().loe(ingredient.lowStockThreshold)
                 )
                 .fetch();
+    }
+
+    @Override
+    public List<IngredientStockBatch> findOpenBatchesByIngredient(
+            Long storeId,
+            Long ingredientId
+    ) {
+        return queryFactory
+                .selectFrom(ingredientStockBatch)
+                .leftJoin(ingredientStockBatch.inboundItem, stockInboundItem).fetchJoin()
+                .leftJoin(stockInboundItem.inbound, stockInbound).fetchJoin()
+                .join(ingredientStockBatch.ingredient).fetchJoin()
+                .where(
+                        ingredientStockBatch.store.storeId.eq(storeId),
+                        ingredientStockBatch.ingredient.ingredientId.eq(ingredientId),
+                        ingredientStockBatch.status.eq(StockBatchStatus.OPEN),
+                        ingredientStockBatch.remainingQuantity.gt(BigDecimal.ZERO)
+                )
+                .orderBy(
+                        expirationDateNullsLastAsc(),
+                        ingredientStockBatch.expirationDate.asc(),
+                        ingredientStockBatch.createdAt.asc()
+                )
+                .fetch();
+    }
+
+    private OrderSpecifier<Integer> expirationDateNullsLastAsc() {
+        return Expressions.numberTemplate(
+                Integer.class,
+                "case when {0} is null then 1 else 0 end",
+                ingredientStockBatch.expirationDate
+        ).asc();
     }
 }

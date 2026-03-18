@@ -134,6 +134,20 @@ public class IngredientRepositoryImpl implements IngredientRepositoryCustom {
         return new PageImpl<>(content, pageable, total == null ? 0L : total);
     }
 
+    @Override
+    public Optional<Ingredient> findOneByKeyword(Long storeId, String keyword) {
+        Ingredient result = queryFactory
+                .selectFrom(ingredient)
+                .where(
+                        ingredient.store.storeId.eq(storeId),
+                        nameContains(keyword)
+                )
+                .orderBy(ingredient.createdAt.asc())
+                .fetchFirst();
+
+        return Optional.ofNullable(result);
+    }
+
     private BooleanExpression nameContains(String name) {
         if (name == null || name.isBlank()) {
             return null;

@@ -4,8 +4,11 @@ import kr.inventory.ai.context.ChatToolContextProvider;
 import kr.inventory.ai.context.dto.ChatToolContext;
 import kr.inventory.ai.stock.service.CurrentStockAiQueryService;
 import kr.inventory.ai.stock.service.StockAiQueryService;
+import kr.inventory.ai.stock.service.StockBatchAiQueryService;
 import kr.inventory.ai.stock.tool.dto.request.CurrentStockOverviewToolRequest;
+import kr.inventory.ai.stock.tool.dto.request.GetStockBatchesByIngredientToolRequest;
 import kr.inventory.ai.stock.tool.dto.response.CurrentStockOverviewToolResponse;
+import kr.inventory.ai.stock.tool.dto.response.GetStockBatchesByIngredientToolResponse;
 import kr.inventory.ai.stock.tool.dto.response.LowStockIngredientResponse;
 import kr.inventory.ai.stock.tool.enums.StockOverviewSortBy;
 import kr.inventory.ai.stock.tool.enums.StockOverviewStatusFilter;
@@ -22,6 +25,7 @@ public class StockAiTools {
 
     private final StockAiQueryService stockAiQueryService;
     private final CurrentStockAiQueryService currentStockAiQueryService;
+    private final StockBatchAiQueryService stockBatchAiQueryService;
     private final ChatToolContextProvider chatToolContextProvider;
 
     @Tool(
@@ -80,6 +84,46 @@ public class StockAiTools {
         );
 
         return currentStockAiQueryService.getCurrentStockOverview(
+                context.userId(),
+                context.storePublicId(),
+                request
+        );
+    }
+
+    @Tool(
+            name = "get_stock_batches_by_ingredient",
+            description = """
+                    특정 재료의 배치별 재고를 조회합니다.
+
+                    사용 목적:
+                    - 어떤 배치가 먼저 소진되어야 하는지 확인
+                    - 유통기한이 빠른 배치 확인
+                    - 배치별 남은 수량 확인
+
+                    입력:
+                    - keyword: 재료명 키워드
+
+                    반환:
+                    - 재료 정보
+                    - 배치 ID
+                    - 남은 수량
+                    - 입고일
+                    - 유통기한
+                    - 유통기한까지 남은 날짜
+                    - 배치 상태
+
+                    유통기한이 빠른 순으로 정렬해서 반환합니다.
+                    """
+    )
+    public GetStockBatchesByIngredientToolResponse getStockBatchesByIngredient(
+            @ToolParam(description = "Ingredient name keyword") String keyword
+    ) {
+        ChatToolContext context = chatToolContextProvider.getRequired();
+
+        GetStockBatchesByIngredientToolRequest request =
+                new GetStockBatchesByIngredientToolRequest(keyword);
+
+        return stockBatchAiQueryService.getStockBatchesByIngredient(
                 context.userId(),
                 context.storePublicId(),
                 request

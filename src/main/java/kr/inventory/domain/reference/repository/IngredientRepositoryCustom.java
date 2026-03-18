@@ -18,5 +18,7 @@ public interface IngredientRepositoryCustom {
 
     Page<Ingredient> searchByStoreIdAndName(Long storeId, String name, IngredientStatus excludedStatus, Pageable pageable);
 
+    Optional<Ingredient> findOneByKeyword(Long storeId, String keyword);
+
 	record IngredientCandidate(Ingredient ingredient, Double score) {}
 }
