@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 
@@ -37,47 +38,45 @@ public class DateRangeResolver {
 
     private DateRange rangeOfDay(LocalDate date, ZoneId zoneId) {
         OffsetDateTime from = date.atStartOfDay(zoneId).toOffsetDateTime();
-        OffsetDateTime to = date.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
+        OffsetDateTime to = date.atTime(LocalTime.MAX).atZone(zoneId).toOffsetDateTime();
         return new DateRange(from, to);
     }
 
     private DateRange rangeOfThisWeek(LocalDate today, ZoneId zoneId) {
         LocalDate start = today.with(DayOfWeek.MONDAY);
-        LocalDate endExclusive = today.plusDays(1);
 
         return new DateRange(
                 start.atStartOfDay(zoneId).toOffsetDateTime(),
-                endExclusive.atStartOfDay(zoneId).toOffsetDateTime()
+                today.atTime(LocalTime.MAX).atZone(zoneId).toOffsetDateTime()
         );
     }
 
     private DateRange rangeOfThisMonth(LocalDate today, ZoneId zoneId) {
         LocalDate start = today.withDayOfMonth(1);
-        LocalDate endExclusive = today.plusDays(1);
 
         return new DateRange(
                 start.atStartOfDay(zoneId).toOffsetDateTime(),
-                endExclusive.atStartOfDay(zoneId).toOffsetDateTime()
+                today.atTime(LocalTime.MAX).atZone(zoneId).toOffsetDateTime()
         );
     }
 
     private DateRange rangeFromDaysAgo(LocalDate today, int daysAgo, ZoneId zoneId) {
         LocalDate start = today.minusDays(daysAgo);
-        LocalDate endExclusive = today.plusDays(1);
 
         return new DateRange(
                 start.atStartOfDay(zoneId).toOffsetDateTime(),
-                endExclusive.atStartOfDay(zoneId).toOffsetDateTime()
+                today.atTime(LocalTime.MAX).atZone(zoneId).toOffsetDateTime()
         );
     }
 
     private DateRange rangeOfLastMonth(LocalDate today, ZoneId zoneId) {
         LocalDate firstDayThisMonth = today.withDayOfMonth(1);
         LocalDate firstDayLastMonth = firstDayThisMonth.minusMonths(1);
+        LocalDate lastDayLastMonth = firstDayThisMonth.minusDays(1);
 
         return new DateRange(
                 firstDayLastMonth.atStartOfDay(zoneId).toOffsetDateTime(),
-                firstDayThisMonth.atStartOfDay(zoneId).toOffsetDateTime()
+                lastDayLastMonth.atTime(LocalTime.MAX).atZone(zoneId).toOffsetDateTime()
         );
     }
 }

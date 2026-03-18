@@ -15,7 +15,11 @@ import kr.inventory.domain.auth.security.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
@@ -56,7 +60,7 @@ public class SalesAnalyticsController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "메뉴 TOP N 조회", description = "판매량 기준 상위 메뉴를 조회합니다.")
+    @Operation(summary = "메뉴 TOP N 조회", description = "판매량 또는 매출액 기준 상위 메뉴를 조회합니다.")
     @GetMapping("/menu-ranking")
     public ResponseEntity<List<MenuRankingResponse>> getMenuRanking(
             @AuthenticationPrincipal CustomUserDetails principal,
@@ -65,7 +69,7 @@ public class SalesAnalyticsController {
     ) {
         List<MenuRankingResponse> response = salesAnalyticsService.getMenuRanking(
                 principal.getUserId(), storePublicId,
-                request.from(), request.to(), request.topN());
+                request.from(), request.to(), request.topN(), request.rankBy());
 
         return ResponseEntity.ok(response);
     }
@@ -84,4 +88,3 @@ public class SalesAnalyticsController {
         return ResponseEntity.ok(response);
     }
 }
-

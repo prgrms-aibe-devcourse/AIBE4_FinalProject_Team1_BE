@@ -3,6 +3,7 @@ package kr.inventory.domain.chat.entity;
 import jakarta.persistence.*;
 import kr.inventory.domain.chat.entity.enums.ChatThreadStatus;
 import kr.inventory.domain.common.AuditableEntity;
+import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.user.entity.User;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -25,6 +26,10 @@ public class ChatThread extends AuditableEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "store_id", nullable = false)
+    private Store store;
+
     @Column(nullable = false)
     private UUID storePublicId;
 
@@ -37,11 +42,12 @@ public class ChatThread extends AuditableEntity {
 
     private OffsetDateTime lastMessageAt;
 
-    public static ChatThread create(User user, String title, UUID storePublicId) {
+    public static ChatThread create(User user, Store store, String title, UUID storePublicId) {
         ChatThread thread = new ChatThread();
         thread.user = user;
-        thread.title = title;
+        thread.store = store;
         thread.storePublicId = storePublicId;
+        thread.title = title;
         thread.status = ChatThreadStatus.ACTIVE;
         return thread;
     }

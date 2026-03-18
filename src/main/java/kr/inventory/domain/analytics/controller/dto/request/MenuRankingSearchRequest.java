@@ -7,5 +7,7 @@ import java.time.OffsetDateTime;
 public record MenuRankingSearchRequest(
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to,
-        Integer topN
-) {}
+        Integer topN,
+        String rankBy
+) {
+}

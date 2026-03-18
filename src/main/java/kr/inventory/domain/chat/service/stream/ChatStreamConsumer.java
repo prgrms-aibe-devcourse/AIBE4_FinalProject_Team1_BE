@@ -348,20 +348,21 @@ public class ChatStreamConsumer {
     }
 
     private void acknowledgeAndDelete(String recordId) {
-        redisTemplate.execute((RedisCallback<Object>) connection -> {
-            connection.execute(
-                    WebSocketConstants.CMD_XACK,
-                    b(chatStreamProperties.getKey()),
-                    b(chatStreamProperties.getConsumerGroup()),
-                    b(recordId)
+        try {
+            // Acknowledge the message
+            redisTemplate.opsForStream().acknowledge(
+                    chatStreamProperties.getKey(),
+                    chatStreamProperties.getConsumerGroup(),
+                    recordId
             );
-            connection.execute(
-                    WebSocketConstants.CMD_XDEL,
-                    b(chatStreamProperties.getKey()),
-                    b(recordId)
+            // Delete the message from the stream
+            redisTemplate.opsForStream().delete(
+                    chatStreamProperties.getKey(),
+                    recordId
             );
-            return null;
-        });
+        } catch (Exception e) {
+            log.warn("Failed to acknowledge and delete stream record: {}", recordId, e);
+        }
     }
 
     private Map<String, String> asStringMap(Object rawValue) {

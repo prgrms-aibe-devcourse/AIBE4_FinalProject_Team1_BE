@@ -120,7 +120,7 @@ public class ReportService {
         SalesSummaryResponse summary = salesOrderSearchRepository.aggregateSalesSummary(
                 storeId, fromDt, toDt);
         List<MenuRankingResponse> menuRanking = salesOrderSearchRepository.aggregateMenuRanking(
-                storeId, fromDt, toDt, ReportConstants.REPORT_TOP_N_MENU);
+                storeId, fromDt, toDt, ReportConstants.REPORT_TOP_N_MENU, "amount");
 
         SalesSection salesSection = new SalesSection(
                 summary.totalOrderCount(),
