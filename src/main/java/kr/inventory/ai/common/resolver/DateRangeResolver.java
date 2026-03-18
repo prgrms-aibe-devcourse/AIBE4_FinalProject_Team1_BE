@@ -12,6 +12,11 @@ import java.time.ZoneId;
 
 @Component
 public class DateRangeResolver {
+    private static final ZoneId DEFAULT_ZONE_ID = ZoneId.of("Asia/Seoul");
+
+    public DateRange resolve(DateRangePreset preset) {
+        return resolve(preset, DEFAULT_ZONE_ID);
+    }
 
     public DateRange resolve(DateRangePreset preset, ZoneId zoneId) {
         if (preset == null) {
