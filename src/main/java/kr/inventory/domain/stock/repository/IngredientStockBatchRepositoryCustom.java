@@ -31,4 +31,9 @@ public interface IngredientStockBatchRepositoryCustom {
     List<IngredientStockTotalDto> calculateTotalQuantities(Long storeId, Collection<Long> ingredientIds);
 
     List<LowStockIngredientResponse> findLowStockIngredients(Long storeId);
+
+    List<IngredientStockBatch> findOpenBatchesByIngredient(
+            Long storeId,
+            Long ingredientId
+    );
 }
