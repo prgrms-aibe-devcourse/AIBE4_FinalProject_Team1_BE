@@ -16,6 +16,7 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @Slf4j
@@ -26,12 +27,9 @@ public class SalesAnalyticsService {
     private final StoreAccessValidator storeAccessValidator;
     private final SalesOrderSearchRepositoryCustom salesOrderSearchRepository;
 
-    /**
-     * 일/주/월 매출 추이
-     */
     @Cacheable(
             value = "sales:trend",
-            key = "#storePublicId + ':' + #from.toInstant().toEpochMilli() + ':' + #to.toInstant().toEpochMilli() + ':' + #interval",
+            key = "#storePublicId + ':' + (#from == null ? 'null' : #from.toInstant().toEpochMilli()) + ':' + (#to == null ? 'null' : #to.toInstant().toEpochMilli()) + ':' + #interval",
             condition = "#to != null && #to.isBefore(T(java.time.OffsetDateTime).now().withHour(0).withMinute(0).withSecond(0).withNano(0))"
     )
     public List<SalesTrendResponse> getSalesTrend(
@@ -43,24 +41,19 @@ public class SalesAnalyticsService {
     ) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
-        // 기본값 설정
         OffsetDateTime validFrom = (from != null) ? from : OffsetDateTime.now().minusDays(SalesAnalyticsConstants.DEFAULT_DAYS_BACK);
         OffsetDateTime validTo = (to != null) ? to : OffsetDateTime.now();
         String validInterval = normalizeInterval(interval);
 
-        // Validation & Adjustment
         validTo = validateAndAdjustDateRange(validFrom, validTo);
 
         log.debug("[Analytics] 매출 추이 집계 storeId={} interval={}", storeId, validInterval);
         return salesOrderSearchRepository.aggregateSalesTrend(storeId, validFrom, validTo, validInterval);
     }
 
-    /**
-     * 요일×시간대 피크
-     */
     @Cacheable(
             value = "sales:peak",
-            key = "#storePublicId + ':' + #from.toInstant().toEpochMilli() + ':' + #to.toInstant().toEpochMilli()",
+            key = "#storePublicId + ':' + (#from == null ? 'null' : #from.toInstant().toEpochMilli()) + ':' + (#to == null ? 'null' : #to.toInstant().toEpochMilli())",
             condition = "#to != null && #to.isBefore(T(java.time.OffsetDateTime).now().withHour(0).withMinute(0).withSecond(0).withNano(0))"
     )
     public List<SalesPeakResponse> getSalesPeak(
@@ -71,23 +64,18 @@ public class SalesAnalyticsService {
     ) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
-        // 기본값 설정
         OffsetDateTime validFrom = (from != null) ? from : OffsetDateTime.now().minusDays(SalesAnalyticsConstants.DEFAULT_DAYS_BACK);
         OffsetDateTime validTo = (to != null) ? to : OffsetDateTime.now();
 
-        // Validation & Adjustment
         validTo = validateAndAdjustDateRange(validFrom, validTo);
 
         log.debug("[Analytics] 피크 집계 storeId={}", storeId);
         return salesOrderSearchRepository.aggregateSalesPeak(storeId, validFrom, validTo);
     }
 
-    /**
-     * 메뉴 TOP N
-     */
     @Cacheable(
             value = "sales:menu-ranking",
-            key = "#storePublicId + ':' + #from.toInstant().toEpochMilli() + ':' + #to.toInstant().toEpochMilli() + ':' + #topN",
+            key = "#storePublicId + ':' + (#from == null ? 'null' : #from.toInstant().toEpochMilli()) + ':' + (#to == null ? 'null' : #to.toInstant().toEpochMilli()) + ':' + #topN + ':' + (#rankBy == null ? 'quantity' : #rankBy)",
             condition = "#to != null && #to.isBefore(T(java.time.OffsetDateTime).now().withHour(0).withMinute(0).withSecond(0).withNano(0))"
     )
     public List<MenuRankingResponse> getMenuRanking(
@@ -95,29 +83,36 @@ public class SalesAnalyticsService {
             UUID storePublicId,
             OffsetDateTime from,
             OffsetDateTime to,
-            Integer topN
+            Integer topN,
+            String rankBy
     ) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
-        // 기본값 설정
         OffsetDateTime validFrom = (from != null) ? from : OffsetDateTime.now().minusDays(SalesAnalyticsConstants.DEFAULT_DAYS_BACK);
         OffsetDateTime validTo = (to != null) ? to : OffsetDateTime.now();
         int validTopN = (topN != null) ? topN : SalesAnalyticsConstants.DEFAULT_TOP_N;
+        String validRankBy = normalizeRankBy(rankBy);
 
-        // Validation & Adjustment
         validTo = validateAndAdjustDateRange(validFrom, validTo);
         validateTopN(validTopN);
 
-        log.debug("[Analytics] 메뉴 랭킹 집계 storeId={} topN={}", storeId, validTopN);
-        return salesOrderSearchRepository.aggregateMenuRanking(storeId, validFrom, validTo, validTopN);
+        log.debug("[Analytics] 메뉴 랭킹 집계 storeId={} topN={} rankBy={}", storeId, validTopN, validRankBy);
+        return salesOrderSearchRepository.aggregateMenuRanking(storeId, validFrom, validTo, validTopN, validRankBy);
     }
 
-    /**
-     * 매출 요약 (객단가 등)
-     */
+    public List<MenuRankingResponse> getMenuRanking(
+            Long userId,
+            UUID storePublicId,
+            OffsetDateTime from,
+            OffsetDateTime to,
+            Integer topN
+    ) {
+        return getMenuRanking(userId, storePublicId, from, to, topN, "quantity");
+    }
+
     @Cacheable(
             value = "sales:summary",
-            key = "#storePublicId + ':' + #from.toInstant().toEpochMilli() + ':' + #to.toInstant().toEpochMilli() + ':' + #interval",
+            key = "#storePublicId + ':' + (#from == null ? 'null' : #from.toInstant().toEpochMilli()) + ':' + (#to == null ? 'null' : #to.toInstant().toEpochMilli()) + ':' + #interval",
             condition = "#to != null && #to.isBefore(T(java.time.OffsetDateTime).now().withHour(0).withMinute(0).withSecond(0).withNano(0))"
     )
     public SalesSummaryResponse getSalesSummary(
@@ -129,26 +124,15 @@ public class SalesAnalyticsService {
     ) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
-        // 기본값 설정
         OffsetDateTime validFrom = (from != null) ? from : OffsetDateTime.now().minusDays(SalesAnalyticsConstants.DEFAULT_DAYS_BACK);
         OffsetDateTime validTo = (to != null) ? to : OffsetDateTime.now();
         String validInterval = normalizeInterval(interval);
 
-        // Validation & Adjustment
-        validTo = validateAndAdjustDateRange(validFrom, validTo);
+        SalesSummaryResponse current = getSalesSummarySnapshot(userId, storePublicId, validFrom, validTo);
+        OffsetDateTime adjustedTo = validateAndAdjustDateRange(validFrom, validTo);
+        OffsetDateTime[] previousPeriod = calculatePreviousPeriod(validFrom, adjustedTo, validInterval);
+        SalesSummaryResponse previous = getSalesSummarySnapshot(userId, storePublicId, previousPeriod[0], previousPeriod[1]);
 
-        log.debug("[Analytics] 매출 요약 집계 storeId={}", storeId);
-        
-        // 1. 현재 기간 데이터
-        SalesSummaryResponse current = salesOrderSearchRepository.aggregateSalesSummary(storeId, validFrom, validTo);
-
-        // 2. 이전 기간 계산
-        OffsetDateTime[] previousPeriod = calculatePreviousPeriod(validFrom, validTo, validInterval);
-        
-        // 3. 이전 기간 데이터
-        SalesSummaryResponse previous = salesOrderSearchRepository.aggregateSalesSummary(storeId, previousPeriod[0], previousPeriod[1]);
-
-        // 4. 성장률 계산 및 반환
         return new SalesSummaryResponse(
                 current.totalOrderCount(),
                 current.totalAmount(),
@@ -220,6 +204,22 @@ public class SalesAnalyticsService {
     }
 
 
+    public SalesSummaryResponse getSalesSummarySnapshot(
+            Long userId,
+            UUID storePublicId,
+            OffsetDateTime from,
+            OffsetDateTime to
+    ) {
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
+        OffsetDateTime validFrom = (from != null) ? from : OffsetDateTime.now().minusDays(SalesAnalyticsConstants.DEFAULT_DAYS_BACK);
+        OffsetDateTime validTo = (to != null) ? to : OffsetDateTime.now();
+        OffsetDateTime adjustedTo = validateAndAdjustDateRange(validFrom, validTo);
+
+        log.debug("[Analytics] 매출 스냅샷 집계 storeId={}", storeId);
+        return salesOrderSearchRepository.aggregateSalesSummary(storeId, validFrom, adjustedTo);
+    }
+
     private OffsetDateTime[] calculatePreviousPeriod(OffsetDateTime from, OffsetDateTime to, String interval) {
         long daysDiff = Duration.between(from, to).toDays() + 1;
 
@@ -231,7 +231,9 @@ public class SalesAnalyticsService {
     }
 
     private Double calculateGrowthRate(long current, long previous) {
-        if (previous == 0) return current > 0 ? 100.0 : 0.0;
+        if (previous == 0) {
+            return current > 0 ? 100.0 : 0.0;
+        }
         return ((double) (current - previous) / previous) * 100.0;
     }
 
@@ -245,16 +247,12 @@ public class SalesAnalyticsService {
                 .doubleValue();
     }
 
-    /**
-     * interval 정규화 (소문자 → 대문자 첫글자)
-     * day → Day, week → Week, month → Month
-     */
     private String normalizeInterval(String interval) {
         if (interval == null) {
             return "Day";
         }
 
-        return switch (interval.toLowerCase()) {
+        return switch (interval.toLowerCase(Locale.ROOT)) {
             case "day" -> "Day";
             case "week" -> "Week";
             case "month" -> "Month";
@@ -262,29 +260,31 @@ public class SalesAnalyticsService {
         };
     }
 
-    /**
-     * 날짜 범위 검증 및 조정
-     * - from이 to보다 이후면 에러
-     * - 미래 날짜(to)는 현재 시각으로 클램핑 (오늘 이후의 범위를 요청해도 오늘까지로 제한)
-     * - 단, 시작일(from) 자체가 미래면 에러
-     */
+    private String normalizeRankBy(String rankBy) {
+        if (rankBy == null || rankBy.trim().isEmpty()) {
+            return "quantity";
+        }
+
+        String normalized = rankBy.trim().toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "quantity", "amount" -> normalized;
+            default -> throw new IllegalArgumentException("rankBy must be either quantity or amount.");
+        };
+    }
+
     private OffsetDateTime validateAndAdjustDateRange(OffsetDateTime from, OffsetDateTime to) {
         OffsetDateTime now = OffsetDateTime.now();
 
-        // 1. 미래 날짜 방지: 시작일 자체가 미래면 에러
         if (from.isAfter(now)) {
             throw new AnalyticsException(AnalyticsErrorCode.FUTURE_DATE_NOT_ALLOWED);
         }
 
-        // 2. 종료일이 미래면 현재 시각으로 조정 (클램핑)
         OffsetDateTime adjustedTo = to.isAfter(now) ? now : to;
 
-        // 3. from > to 검증
         if (from.isAfter(adjustedTo)) {
             throw new AnalyticsException(AnalyticsErrorCode.INVALID_DATE_RANGE);
         }
 
-        // 4. 최대 기간 검증 (1년)
         long daysBetween = Duration.between(from, adjustedTo).toDays();
         if (daysBetween > SalesAnalyticsConstants.MAX_QUERY_DAYS) {
             throw new AnalyticsException(AnalyticsErrorCode.DATE_RANGE_TOO_LONG);
@@ -293,9 +293,6 @@ public class SalesAnalyticsService {
         return adjustedTo;
     }
 
-    /**
-     * topN 검증 (1 ~ 100)
-     */
     private void validateTopN(int topN) {
         if (topN < SalesAnalyticsConstants.MIN_TOP_N || topN > SalesAnalyticsConstants.MAX_TOP_N) {
             throw new AnalyticsException(AnalyticsErrorCode.INVALID_TOP_N);

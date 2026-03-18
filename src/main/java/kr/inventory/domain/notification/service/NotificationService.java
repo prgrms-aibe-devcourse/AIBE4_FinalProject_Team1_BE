@@ -6,6 +6,7 @@ import kr.inventory.domain.notification.entity.Notification;
 import kr.inventory.domain.notification.exception.NotificationErrorCode;
 import kr.inventory.domain.notification.exception.NotificationException;
 import kr.inventory.domain.notification.repository.NotificationRepository;
+import kr.inventory.domain.store.service.StoreAccessValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,6 +16,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +25,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final NotificationSseHub notificationSseHub;
+    private final StoreAccessValidator storeAccessValidator;
     private final Clock clock;
 
     public SseEmitter connectStream(Long userId) {
@@ -40,19 +43,22 @@ public class NotificationService {
         );
     }
 
-    public Page<NotificationResponse> list(Long userId, Pageable pageable) {
+    public Page<NotificationResponse> list(Long userId, UUID storePublicId, Pageable pageable) {
+        storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+
         if (pageable.getPageNumber() < NotificationConstants.MIN_PAGE
                 || pageable.getPageSize() < NotificationConstants.MIN_SIZE
                 || pageable.getPageSize() > NotificationConstants.MAX_SIZE) {
             throw new NotificationException(NotificationErrorCode.INVALID_REQUEST);
         }
 
-        return notificationRepository.findActivePageByUserId(userId, pageable)
+        return notificationRepository.findActivePageByUserId(userId, storePublicId, pageable)
                 .map(NotificationResponse::from);
     }
 
-    public long unreadCount(Long userId) {
-        return notificationRepository.countUnreadActiveByUserId(userId);
+    public long unreadCount(Long userId, UUID storePublicId) {
+        storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+        return notificationRepository.countUnreadActiveByUserId(userId, storePublicId);
     }
 
     @Transactional
@@ -63,8 +69,9 @@ public class NotificationService {
     }
 
     @Transactional
-    public int readAll(Long userId) {
-        return notificationRepository.markAllRead(userId, OffsetDateTime.now(clock));
+    public int readAll(Long userId, UUID storePublicId) {
+        storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+        return notificationRepository.markAllRead(userId, storePublicId, OffsetDateTime.now(clock));
     }
 
     @Transactional

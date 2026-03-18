@@ -26,9 +26,10 @@ public class ChatQueryService {
     private final StoreAccessValidator storeAccessValidator;
 
     @Transactional(readOnly = true)
-    public List<ChatThreadSummaryResponse> getMyThreads(Long userId) {
+    public List<ChatThreadSummaryResponse> getMyThreads(Long userId, java.util.UUID storePublicId) {
+        storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
         User userReference = entityManager.getReference(User.class, userId);
-        return chatThreadRepository.findSummariesByUser(userReference);
+        return chatThreadRepository.findSummariesByUser(userReference, storePublicId);
     }
 
     @Transactional(readOnly = true)

@@ -14,6 +14,7 @@ import org.springframework.stereotype.Repository;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
@@ -23,14 +24,15 @@ public class NotificationRepositoryImpl implements NotificationRepositoryCustom 
     private final EntityManager entityManager;
 
     @Override
-    public Page<Notification> findActivePageByUserId(Long userId, Pageable pageable) {
+    public Page<Notification> findActivePageByUserId(Long userId, UUID storePublicId, Pageable pageable) {
         QNotification notification = QNotification.notification;
 
         List<Notification> content = queryFactory
                 .selectFrom(notification)
                 .where(
                         notification.user.userId.eq(userId),
-                        notification.deleted.isFalse()
+                        notification.deleted.isFalse(),
+                        notification.storePublicId.eq(storePublicId)
                 )
                 .orderBy(notification.createdAt.desc(), notification.notificationId.desc())
                 .offset(pageable.getOffset())
@@ -42,7 +44,8 @@ public class NotificationRepositoryImpl implements NotificationRepositoryCustom 
                 .from(notification)
                 .where(
                         notification.user.userId.eq(userId),
-                        notification.deleted.isFalse()
+                        notification.deleted.isFalse(),
+                        notification.storePublicId.eq(storePublicId)
                 )
                 .fetchOne();
 
@@ -50,7 +53,7 @@ public class NotificationRepositoryImpl implements NotificationRepositoryCustom 
     }
 
     @Override
-    public long countUnreadActiveByUserId(Long userId) {
+    public long countUnreadActiveByUserId(Long userId, UUID storePublicId) {
         QNotification notification = QNotification.notification;
 
         Long count = queryFactory
@@ -59,7 +62,8 @@ public class NotificationRepositoryImpl implements NotificationRepositoryCustom 
                 .where(
                         notification.user.userId.eq(userId),
                         notification.deleted.isFalse(),
-                        notification.read.isFalse()
+                        notification.read.isFalse(),
+                        notification.storePublicId.eq(storePublicId)
                 )
                 .fetchOne();
 
@@ -83,7 +87,7 @@ public class NotificationRepositoryImpl implements NotificationRepositoryCustom 
     }
 
     @Override
-    public int markAllRead(Long userId, OffsetDateTime now) {
+    public int markAllRead(Long userId, UUID storePublicId, OffsetDateTime now) {
         QNotification notification = QNotification.notification;
 
         long updated = queryFactory
@@ -93,7 +97,8 @@ public class NotificationRepositoryImpl implements NotificationRepositoryCustom 
                 .where(
                         notification.user.userId.eq(userId),
                         notification.deleted.isFalse(),
-                        notification.read.isFalse()
+                        notification.read.isFalse(),
+                        notification.storePublicId.eq(storePublicId)
                 )
                 .execute();
 
