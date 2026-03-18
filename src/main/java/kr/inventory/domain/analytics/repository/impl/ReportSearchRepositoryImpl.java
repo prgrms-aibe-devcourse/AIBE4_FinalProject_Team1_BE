@@ -264,11 +264,16 @@ public class ReportSearchRepositoryImpl implements ReportSearchRepositoryCustom 
                     .map(agg -> agg.topHits().hits().hits())
                     .orElse(Collections.emptyList());
 
-            String name = hits.isEmpty() ? ReportConstants.DEFAULT_UNKNOWN_INGREDIENT
-                    : hits.get(0).source().to(WasteRecordDocument.class).productDisplayName();
-
-            String unit = hits.isEmpty() ? ""
-                    : hits.get(0).source().to(WasteRecordDocument.class).unit();
+            String name;
+            String unit;
+            if (hits.isEmpty()) {
+                name = ReportConstants.DEFAULT_UNKNOWN_INGREDIENT;
+                unit = "";
+            } else {
+                WasteRecordDocument doc = hits.get(0).source().to(WasteRecordDocument.class);
+                name = doc.productDisplayName();
+                unit = Optional.ofNullable(doc.unit()).orElse("");
+            }
 
             result.add(new WasteSection.IngredientEntry(
                     name,
