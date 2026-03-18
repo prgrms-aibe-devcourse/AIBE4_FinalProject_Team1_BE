@@ -36,11 +36,15 @@ public class StockAnalyticService {
 		allIds.addAll(wasteMap.keySet());
 
 		return allIds.stream()
-			.map(id -> StockAnalyticResponse.of(
-				id,
-				stockMap.getOrDefault(id, StockAnalyticResponse.StockPart.empty()),
-				wasteMap.getOrDefault(id, StockAnalyticResponse.WastePart.empty())
-			))
+			.map(id -> {
+				StockAnalyticResponse.StockPart stock = stockMap.getOrDefault(id,
+					StockAnalyticResponse.StockPart.empty());
+				StockAnalyticResponse.WastePart waste = wasteMap.getOrDefault(id,
+					StockAnalyticResponse.WastePart.empty());
+
+				// DTO의 정적 팩토리 메서드 호출 (unit은 Response 내부에서 처리하거나 파라미터로 전달)
+				return StockAnalyticResponse.of(id, stock, waste);
+			})
 			.toList();
 	}
 

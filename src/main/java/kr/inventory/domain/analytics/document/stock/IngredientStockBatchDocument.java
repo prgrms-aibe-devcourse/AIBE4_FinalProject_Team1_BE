@@ -28,6 +28,9 @@ public record IngredientStockBatchDocument(
 	@Field(type = FieldType.Long)
 	Long ingredientId,
 
+	@Field(type = FieldType.Keyword)
+	String unit,
+
 	@Field(type = FieldType.Text) // 검색용
 	String productDisplayName,
 
@@ -55,6 +58,7 @@ public record IngredientStockBatchDocument(
 			String.valueOf(batch.getBatchId()),
 			batch.getStore().getStoreId(),
 			batch.getIngredientId(),
+			batch.getUnit().name(),
 			batch.getProductDisplayName(),
 			batch.getRemainingQuantity(),
 			lowStockThreshold,

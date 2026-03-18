@@ -28,6 +28,7 @@ import kr.inventory.domain.analytics.document.stock.WasteRecordDocument;
 import kr.inventory.domain.analytics.exception.AnalyticsErrorCode;
 import kr.inventory.domain.analytics.exception.AnalyticsException;
 import kr.inventory.domain.analytics.repository.StockBatchSearchRepositoryCustom;
+import kr.inventory.domain.reference.entity.enums.IngredientUnit;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -126,15 +127,23 @@ public class StockBatchSearchRepositoryImpl implements StockBatchSearchRepositor
 					double threshold = bucket.aggregations().get("avg_threshold").avg().value();
 
 					var hits = bucket.aggregations().get("top_hit").topHits().hits().hits();
-					String name = hits.isEmpty() ? "알 수 없는 식재료" :
-						hits.get(0).source().to(IngredientStockBatchDocument.class).productDisplayName();
+
+					// 1. 도큐먼트 추출 (안전한 null 처리를 포함)
+					IngredientStockBatchDocument doc = hits.isEmpty() ? null :
+						hits.get(0).source().to(IngredientStockBatchDocument.class);
+
+					String name = (doc != null) ? doc.productDisplayName() : "알 수 없는 식재료";
+					// 2. 추가한 unit 필드 활용 (문자열 -> Enum 변환)
+					IngredientUnit unit = (doc != null && doc.unit() != null) ?
+						IngredientUnit.valueOf(doc.unit()) : IngredientUnit.EA;
 
 					return new StockAnalyticResponse.StockPart(
 						name,
 						BigDecimal.valueOf(qty),
 						convertEpochToDate(minExp),
 						qty < threshold,
-						bucket.docCount()
+						bucket.docCount(),
+						unit
 					);
 				}
 			));
@@ -151,16 +160,22 @@ public class StockBatchSearchRepositoryImpl implements StockBatchSearchRepositor
 				bucket -> {
 					double qty = bucket.aggregations().get("sum_qty").sum().value();
 					double amount = bucket.aggregations().get("sum_amount").sum().value();
-
 					var hits = bucket.aggregations().get("top_hit").topHits().hits().hits();
-					String name = hits.isEmpty() ? "알 수 없는 식재료" :
-						hits.get(0).source().to(WasteRecordDocument.class).productDisplayName();
+
+					WasteRecordDocument doc = hits.isEmpty() ? null :
+						hits.get(0).source().to(WasteRecordDocument.class);
+
+					String name = (doc != null) ? doc.productDisplayName() : "알 수 없는 식재료";
+
+					IngredientUnit unit = (doc != null && doc.unit() != null) ?
+						IngredientUnit.valueOf(doc.unit()) : IngredientUnit.EA;
 
 					return new StockAnalyticResponse.WastePart(
 						name,
 						BigDecimal.valueOf(qty),
 						BigDecimal.valueOf(amount),
-						bucket.docCount()
+						bucket.docCount(),
+						unit
 					);
 				}
 			));
