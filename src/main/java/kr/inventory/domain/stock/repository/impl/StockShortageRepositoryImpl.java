@@ -1,5 +1,6 @@
 package kr.inventory.domain.stock.repository.impl;
 
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -7,17 +8,17 @@ import kr.inventory.domain.stock.controller.dto.request.StockShortageSearchReque
 import kr.inventory.domain.stock.entity.StockShortage;
 import kr.inventory.domain.stock.entity.enums.ShortageStatus;
 import kr.inventory.domain.stock.repository.StockShortageRepositoryCustom;
+import kr.inventory.domain.stock.service.command.ShortageRelatedOrderQueryResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.support.PageableExecutionUtils;
 
 import java.time.OffsetDateTime;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
+import static kr.inventory.domain.reference.entity.QIngredient.ingredient;
+import static kr.inventory.domain.sales.entity.QSalesOrder.salesOrder;
 import static kr.inventory.domain.stock.entity.QStockShortage.stockShortage;
 
 @RequiredArgsConstructor
@@ -108,5 +109,46 @@ public class StockShortageRepositoryImpl implements StockShortageRepositoryCusto
                 )
                 .orderBy(stockShortage.ingredientId.asc(), stockShortage.createdAt.asc())
                 .fetch();
+    }
+
+    @Override
+    public Optional<ShortageRelatedOrderQueryResult> findShortageRelatedOrder(
+            Long storeId,
+            Long stockShortageId
+    ) {
+        ShortageRelatedOrderQueryResult result = queryFactory
+                .select(Projections.constructor(
+                        ShortageRelatedOrderQueryResult.class,
+                        stockShortage.stockShortagePublicId,
+                        stockShortage.status.stringValue(),
+                        stockShortage.createdAt,
+                        stockShortage.closedAt,
+                        ingredient.ingredientPublicId,
+                        ingredient.name,
+                        stockShortage.requiredAmount,
+                        stockShortage.shortageAmount,
+                        salesOrder.orderPublicId,
+                        salesOrder.orderedAt,
+                        salesOrder.completedAt,
+                        salesOrder.status.stringValue(),
+                        salesOrder.type.stringValue(),
+                        salesOrder.totalAmount
+                ))
+                .from(stockShortage)
+                .join(ingredient).on(
+                        ingredient.ingredientId.eq(stockShortage.ingredientId),
+                        ingredient.store.storeId.eq(storeId)
+                )
+                .join(salesOrder).on(
+                        salesOrder.salesOrderId.eq(stockShortage.salesOrderId),
+                        salesOrder.store.storeId.eq(storeId)
+                )
+                .where(
+                        stockShortage.stockShortageId.eq(stockShortageId),
+                        stockShortage.storeId.eq(storeId)
+                )
+                .fetchOne();
+
+        return Optional.ofNullable(result);
     }
 }
