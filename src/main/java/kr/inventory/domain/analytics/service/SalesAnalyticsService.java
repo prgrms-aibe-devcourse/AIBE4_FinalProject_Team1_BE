@@ -256,6 +256,7 @@ public class SalesAnalyticsService {
             case "day" -> "Day";
             case "week" -> "Week";
             case "month" -> "Month";
+            case "hour"  -> "Hour";
             default -> throw new AnalyticsException(AnalyticsErrorCode.INVALID_INTERVAL);
         };
     }

@@ -57,12 +57,16 @@ public class SalesOrderSearchRepositoryImpl implements SalesOrderSearchRepositor
         }
         final CalendarInterval interval = parsedInterval;
 
+        String dateFormat = "Hour".equals(calendarInterval)
+                ? "yyyy-MM-dd'T'HH:mm"  // hour용: "2026-03-18T09:00"
+                : SalesAnalyticsConstants.DATE_FORMAT_YYYY_MM_DD;
+
         NativeQuery query = buildBaseQuery(storeId, from, to)
                 .withAggregation(SalesAnalyticsConstants.AGG_BY_DATE, Aggregation.of(a -> a
                         .dateHistogram(dh -> dh
                                 .field(SalesAnalyticsConstants.FIELD_ORDERED_AT)
                                 .calendarInterval(interval)
-                                .format(SalesAnalyticsConstants.DATE_FORMAT_YYYY_MM_DD)
+                                .format(dateFormat)
                                 .timeZone(SalesAnalyticsConstants.TIMEZONE_KST)
                         ).aggregations(SalesAnalyticsConstants.AGG_TOTAL_AMOUNT, Aggregation.of(sa -> sa
                                 .sum(s -> s.field(SalesAnalyticsConstants.FIELD_TOTAL_AMOUNT))
