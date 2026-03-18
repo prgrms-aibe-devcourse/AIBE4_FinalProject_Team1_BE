@@ -1,8 +1,8 @@
 package kr.inventory.domain.analytics.controller.dto.request;
 
-import java.time.OffsetDateTime;
-
 import org.springframework.format.annotation.DateTimeFormat;
+
+import java.time.OffsetDateTime;
 
 public record ESStockLogSearchRequest(
 	String keyword,
@@ -11,12 +11,5 @@ public record ESStockLogSearchRequest(
 	@DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
 	OffsetDateTime startDate,
 	@DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-	OffsetDateTime endDate,
-	int page,
-	int size
-) {
-	public ESStockLogSearchRequest {
-		if (size == 0)
-			size = 20;
-	}
-}
+	OffsetDateTime endDate
+) {}
