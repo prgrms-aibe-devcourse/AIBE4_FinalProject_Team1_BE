@@ -30,6 +30,9 @@ public record WasteRecordDocument(
 	@Field(type = FieldType.Scaled_Float, scalingFactor = 1000)
 	BigDecimal wasteQuantity,
 
+	@Field(type = FieldType.Keyword)
+	String unit,
+
 	@Field(type = FieldType.Scaled_Float, scalingFactor = 100)
 	BigDecimal wasteAmount,
 
@@ -48,6 +51,7 @@ public record WasteRecordDocument(
 			wasteRecord.getIngredient().getIngredientId(),
 			wasteRecord.getStockBatch().getProductDisplayName(),
 			wasteRecord.getWasteQuantity(),
+			wasteRecord.getStockBatch().getUnit().name(),
 			wasteRecord.getWasteAmount(),
 			wasteRecord.getWasteReason().name(),
 			wasteRecord.getWasteDate()

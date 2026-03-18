@@ -24,11 +24,11 @@ public class StockLogSearchRepositoryImpl implements StockLogSearchRepositoryCus
 	private final ElasticsearchClient elasticsearchClient;
 
 	@Override
-	public Page<StockLogAnalyticResponse> searchStockLogs(Long storeId, ESStockLogSearchRequest request) {
+	public List<StockLogAnalyticResponse> searchStockLogs(Long storeId, ESStockLogSearchRequest request) {
 		try {
 			SearchResponse<StockLogDocument> response = elasticsearchClient.search(s -> s
 				.index("stock_logs")
-				.from(request.page() * request.size())
+				.from(0)
 				.size(request.size())
 				.sort(sort -> sort.field(f -> f.field("createdAt").order(SortOrder.Desc)))
 				.query(q -> q.bool(b -> {
@@ -62,19 +62,13 @@ public class StockLogSearchRepositoryImpl implements StockLogSearchRepositoryCus
 					return b;
 				})), StockLogDocument.class);
 
-			List<StockLogAnalyticResponse> content = response.hits().hits().stream()
+			return response.hits().hits().stream()
 				.map(hit -> {
 					StockLogDocument doc = hit.source();
 					return doc != null ? StockLogAnalyticResponse.from(doc) : null;
 				})
 				.filter(java.util.Objects::nonNull) // 혹시 모를 null 방어
 				.toList();
-
-			// 전체 개수 파악
-			long total = response.hits().total() != null ? response.hits().total().value() : 0;
-
-			// 스프링 데이터 페이징 객체 반환
-			return new PageImpl<>(content, PageRequest.of(request.page(), request.size()), total);
 
 		} catch (IOException e) {
 			throw new RuntimeException("Stock log search failed", e);

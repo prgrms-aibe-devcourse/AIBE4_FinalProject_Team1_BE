@@ -1,5 +1,6 @@
 package kr.inventory.domain.stock.controller.dto.response;
 
+import kr.inventory.domain.reference.entity.enums.IngredientUnit;
 import kr.inventory.domain.stock.entity.WasteRecord;
 import kr.inventory.domain.stock.entity.enums.WasteReason;
 
@@ -11,7 +12,8 @@ public record WasteResponse(
 	UUID wastePublicId,
 	String ingredientName,
 	BigDecimal quantity,
-	WasteReason reason,
+	IngredientUnit unit,
+	WasteReason wasteReason,
 	BigDecimal amount,
 	OffsetDateTime wasteAt,
 	String recordedBy
@@ -21,6 +23,7 @@ public record WasteResponse(
 			record.getWastePublicId(),
 			record.getStockBatch().getProductDisplayName(),
 			record.getWasteQuantity(),
+			record.getStockBatch().getUnit(),
 			record.getWasteReason(),
 			record.getWasteAmount(),
 			record.getWasteDate(),
