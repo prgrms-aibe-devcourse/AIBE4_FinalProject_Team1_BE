@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,11 +29,15 @@ public class StockInboundQueryService {
     public List<StockInboundSummary> getInboundList(
             Long storeId,
             String keyword,
+            OffsetDateTime from,
+            OffsetDateTime to,
             int limit
     ) {
         return stockInboundQueryRepository.findInboundSummaries(
                 storeId,
                 keyword,
+                from,
+                to,
                 limit
         );
     }

@@ -87,12 +87,12 @@ class ReportServiceTest {
             given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
             given(salesOrderSearchRepository.aggregateSalesSummary(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
                     .willReturn(salesSummary);
-            given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyInt()))
+            given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyInt(), eq("amount")))
                     .willReturn(Collections.emptyList());
             given(reportSearchRepository.aggregateRefundSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyLong()))
                     .willReturn(new RefundSection(5L, new BigDecimal("50000.00"), 5.0));
             given(reportSearchRepository.aggregateWasteSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
-                    .willReturn(new WasteSection(new BigDecimal("30000.00"), new BigDecimal("50.000"), Collections.emptyList(), Collections.emptyList()));
+                    .willReturn(new WasteSection(new BigDecimal("30000.00"), 5L, Collections.emptyList(), Collections.emptyList()));
             given(reportSearchRepository.aggregateStockInboundSection(eq(storeId), eq(from), eq(to)))
                     .willReturn(new StockInboundSection(10L, Collections.emptyList()));
             given(reportPdfService.generate(any(), eq(from), eq(to))).willReturn(expectedPdf);
@@ -212,12 +212,12 @@ class ReportServiceTest {
             given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
             given(salesOrderSearchRepository.aggregateSalesSummary(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
                     .willReturn(salesSummary);
-            given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyInt()))
+            given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyInt(), eq("amount")))
                     .willReturn(menuRanking);
             given(reportSearchRepository.aggregateRefundSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyLong()))
                     .willReturn(new RefundSection(5L, new BigDecimal("50000.00"), 5.0));
             given(reportSearchRepository.aggregateWasteSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
-                    .willReturn(new WasteSection(new BigDecimal("30000.00"), new BigDecimal("50.000"), Collections.emptyList(), Collections.emptyList()));
+                    .willReturn(new WasteSection(new BigDecimal("30000.00"), 5L, Collections.emptyList(), Collections.emptyList()));
             given(reportSearchRepository.aggregateStockInboundSection(eq(storeId), eq(from), eq(to)))
                     .willReturn(new StockInboundSection(10L, Collections.emptyList()));
             given(reportPdfService.generate(any(), eq(from), eq(to))).willReturn(expectedPdf);
@@ -227,7 +227,7 @@ class ReportServiceTest {
 
             // then
             assertThat(result).isEqualTo(expectedPdf);
-            verify(salesOrderSearchRepository).aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), eq(5));
+            verify(salesOrderSearchRepository).aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), eq(5), eq("amount"));
         }
     }
 
@@ -262,12 +262,12 @@ class ReportServiceTest {
             given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
             given(salesOrderSearchRepository.aggregateSalesSummary(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
                     .willReturn(salesSummary);
-            given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyInt()))
+            given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyInt(), eq("amount")))
                     .willReturn(Collections.emptyList());
             given(reportSearchRepository.aggregateRefundSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyLong()))
                     .willReturn(new RefundSection(10L, new BigDecimal("100000.00"), 5.0));
             given(reportSearchRepository.aggregateWasteSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
-                    .willReturn(new WasteSection(new BigDecimal("60000.00"), new BigDecimal("100.000"), Collections.emptyList(), Collections.emptyList()));
+                    .willReturn(new WasteSection(new BigDecimal("60000.00"), 10L, Collections.emptyList(), Collections.emptyList()));
             given(reportSearchRepository.aggregateStockInboundSection(eq(storeId), eq(from), eq(to)))
                     .willReturn(new StockInboundSection(20L, Collections.emptyList()));
             given(reportPdfService.generate(any(), eq(from), eq(to))).willReturn(expectedPdf);
@@ -382,12 +382,12 @@ class ReportServiceTest {
             given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
             given(salesOrderSearchRepository.aggregateSalesSummary(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
                     .willReturn(salesSummary);
-            given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyInt()))
+            given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyInt(), eq("amount")))
                     .willReturn(menuRanking);
             given(reportSearchRepository.aggregateRefundSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyLong()))
                     .willReturn(new RefundSection(5L, new BigDecimal("50000.00"), 5.0));
             given(reportSearchRepository.aggregateWasteSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
-                    .willReturn(new WasteSection(new BigDecimal("30000.00"), new BigDecimal("50.000"),
+                    .willReturn(new WasteSection(new BigDecimal("30000.00"), 5L,
                         Collections.emptyList(), Collections.emptyList()));
             given(reportSearchRepository.aggregateStockInboundSection(eq(storeId), eq(from), eq(to)))
                     .willReturn(new StockInboundSection(10L, Collections.emptyList()));
@@ -459,12 +459,12 @@ class ReportServiceTest {
             given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
             given(salesOrderSearchRepository.aggregateSalesSummary(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
                     .willReturn(salesSummary);
-            given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyInt()))
+            given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyInt(), eq("amount")))
                     .willReturn(Collections.emptyList());
             given(reportSearchRepository.aggregateRefundSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyLong()))
                     .willReturn(new RefundSection(10L, new BigDecimal("100000.00"), 5.0));
             given(reportSearchRepository.aggregateWasteSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
-                    .willReturn(new WasteSection(new BigDecimal("60000.00"), new BigDecimal("100.000"),
+                    .willReturn(new WasteSection(new BigDecimal("60000.00"), 10L,
                         Collections.emptyList(), Collections.emptyList()));
             given(reportSearchRepository.aggregateStockInboundSection(eq(storeId), eq(from), eq(to)))
                     .willReturn(new StockInboundSection(20L, Collections.emptyList()));

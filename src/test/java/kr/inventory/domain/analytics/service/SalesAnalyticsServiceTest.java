@@ -199,11 +199,11 @@ class SalesAnalyticsServiceTest {
         OffsetDateTime to = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
 
         given(storeAccessValidator.validateAndGetStoreId(userId, storePublicId)).willReturn(storeId);
-        given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), eq(from), eq(to), eq(10))).willReturn(List.of());
+        given(salesOrderSearchRepository.aggregateMenuRanking(eq(storeId), eq(from), eq(to), eq(10), eq("quantity"))).willReturn(List.of());
 
         salesAnalyticsService.getMenuRanking(userId, storePublicId, from, to, null);
 
-        verify(salesOrderSearchRepository).aggregateMenuRanking(storeId, from, to, 10);
+        verify(salesOrderSearchRepository).aggregateMenuRanking(storeId, from, to, 10, "quantity");
     }
 
     @Test
