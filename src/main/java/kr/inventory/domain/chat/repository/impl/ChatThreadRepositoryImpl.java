@@ -5,6 +5,7 @@ import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import kr.inventory.domain.chat.controller.dto.response.ChatThreadSummaryResponse;
 import kr.inventory.domain.chat.entity.ChatThread;
 import kr.inventory.domain.chat.entity.QChatMessage;
@@ -22,7 +23,7 @@ public class ChatThreadRepositoryImpl implements ChatThreadRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public List<ChatThreadSummaryResponse> findSummariesByUser(User user) {
+    public List<ChatThreadSummaryResponse> findSummariesByUser(User user,UUID storePublicId) {
         QChatThread chatThread = QChatThread.chatThread;
         QChatMessage chatMessage = QChatMessage.chatMessage;
         QChatMessage lastMessage = new QChatMessage("lastMessage");
@@ -49,6 +50,7 @@ public class ChatThreadRepositoryImpl implements ChatThreadRepositoryCustom {
                 )
                 .where(
                         chatThread.user.eq(user),
+                        chatThread.store.storePublicId.eq(storePublicId),
                         chatThread.status.eq(ChatThreadStatus.ACTIVE)
                 )
                 .orderBy(chatThread.lastMessageAt.desc(), chatThread.threadId.desc())

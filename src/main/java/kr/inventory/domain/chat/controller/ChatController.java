@@ -47,11 +47,12 @@ public class ChatController {
     }
 
     @Operation(summary = "내 채팅 스레드 목록 조회")
-    @GetMapping("/threads")
+    @GetMapping("/{storePublicId}/threads")
     public ResponseEntity<List<ChatThreadSummaryResponse>> myThreads(
+            @PathVariable UUID storePublicId,
             @AuthenticationPrincipal CustomUserDetails principal
     ) {
-        List<ChatThreadSummaryResponse> response = chatQueryService.getMyThreads(principal.getUserId());
+        List<ChatThreadSummaryResponse> response = chatQueryService.getMyThreads(principal.getUserId(), storePublicId);
         return ResponseEntity.ok(response);
     }
 
