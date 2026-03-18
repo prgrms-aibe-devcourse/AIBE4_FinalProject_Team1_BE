@@ -92,6 +92,30 @@ public record NotificationPublishCommand(
         );
     }
 
+    public static NotificationPublishCommand monthlyReportReady(
+            Long userId,
+            UUID storePublicId,
+            String yearMonth
+    ) {
+        String title = "월간 리포트";
+        String message = yearMonth.replace("-", "년 ") + "월 운영 리포트가 준비됐습니다. 확인해보세요!";
+        String deepLink = "/reports/monthly/" + yearMonth;
+
+        ObjectNode metadata = JsonNodeFactory.instance.objectNode();
+        metadata.put("storePublicId", storePublicId.toString());
+        metadata.put("yearMonth", yearMonth);
+        metadata.put("displayPolicy", NotificationDisplayPolicy.TOAST_AND_INBOX.name());
+
+        return new NotificationPublishCommand(
+                userId,
+                NotificationType.MONTHLY_OPS_REPORT_READY,
+                title,
+                message,
+                deepLink,
+                metadata
+        );
+    }
+
     public static NotificationPublishCommand stockBelowThreshold(
             Long userId,
             UUID storePublicId,
@@ -125,7 +149,7 @@ public record NotificationPublishCommand(
     public static NotificationPublishCommand stockBelowThresholdGrouped(
             Long userId,
             UUID storePublicId,
-            java.util.List<String> ingredientNames
+            List<String> ingredientNames
     ) {
         java.util.List<String> distinctNames = ingredientNames.stream()
                 .filter(name -> name != null && !name.isBlank())
@@ -154,7 +178,7 @@ public record NotificationPublishCommand(
         );
     }
 
-    private static String buildGroupedThresholdMessage(java.util.List<String> ingredientNames) {
+    private static String buildGroupedThresholdMessage(List<String> ingredientNames) {
         if (ingredientNames.isEmpty()) {
             return "임계치 아래로 내려간 재료가 있습니다.";
         }
