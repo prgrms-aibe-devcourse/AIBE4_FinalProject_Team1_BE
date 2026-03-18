@@ -27,19 +27,21 @@ public class StockShortageAiQueryService {
     private final StoreAccessValidator storeAccessValidator;
     private final StockShortageRepository stockShortageRepository;
 
-    public StockShortageSummaryToolResponse getStockShortageSummary(
-            Long userId,
-            UUID storePublicId,
-            String keyword,
-            OffsetDateTime from,
-            OffsetDateTime to
-    ) {
-        ESStockShortageSearchRequest analyticRequest =
-                new ESStockShortageSearchRequest(
-                        normalizeKeyword(keyword),
-                        from,
-                        to
-                );
+	public StockShortageSummaryToolResponse getStockShortageSummary(
+		Long userId,
+		UUID storePublicId,
+		String keyword,
+		String status,
+		OffsetDateTime from,
+		OffsetDateTime to
+	) {
+		ESStockShortageSearchRequest analyticRequest =
+			new ESStockShortageSearchRequest(
+				normalizeKeyword(keyword),
+				from,
+				to,
+				status
+			);
 
         List<StockShortageSummaryResponse> results =
                 stockShortageAnalyticService.getStockShortageSummary(userId, storePublicId, analyticRequest);
