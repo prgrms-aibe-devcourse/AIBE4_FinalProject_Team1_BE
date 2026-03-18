@@ -34,12 +34,14 @@ public class StockShortageAiTools {;
 		@ToolParam(description = "Ingredient name keyword")
 		String keyword,
 		@ToolParam(description = "Date range preset")
-		DateRangePreset period,
+        String period,
 		@ToolParam(description = "StockShortage status (ex: PENDING, CLOSED)")
 		String status
 	) {
 		ChatToolContext context = chatToolContextProvider.getRequired();
-		DateRange range = dateRangeResolver.resolve(period);
+
+        DateRangePreset preset = DateRangePreset.from(period);
+        DateRange range = dateRangeResolver.resolve(preset);
 
 		return stockShortageAiQueryService.getStockShortageSummary(
 			context.userId(),
