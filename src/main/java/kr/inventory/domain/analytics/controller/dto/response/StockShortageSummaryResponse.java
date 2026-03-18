@@ -8,14 +8,16 @@ public record StockShortageSummaryResponse(
 	Long ingredientId,
 	String ingredientName,
 	BigDecimal totalShortageAmount,
+	String status,
 	Long affectedOrderCount,
 	OffsetDateTime lastOccurrenceTime,
 	List<Long> relatedOrderIds) {
 
 	public static StockShortageSummaryResponse of(Long ingredientId, String ingredientName,
-		BigDecimal totalShortageAmount, Long affectedOrderCount, OffsetDateTime lastOccurrenceTime,
+		BigDecimal totalShortageAmount, String status, Long affectedOrderCount, OffsetDateTime lastOccurrenceTime,
 		List<Long> relatedOrderIds) {
-		return new StockShortageSummaryResponse(ingredientId, ingredientName, totalShortageAmount, affectedOrderCount,
+		return new StockShortageSummaryResponse(ingredientId, ingredientName, totalShortageAmount, status,
+			affectedOrderCount,
 			lastOccurrenceTime, relatedOrderIds);
 	}
 }

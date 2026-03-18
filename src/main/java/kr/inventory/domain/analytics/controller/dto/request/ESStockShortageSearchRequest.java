@@ -11,7 +11,8 @@ public record ESStockShortageSearchRequest(
 	OffsetDateTime from,
 
 	@DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-	OffsetDateTime to
+	OffsetDateTime to,
 
+	String status
 ) {
 }

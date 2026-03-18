@@ -1,5 +1,6 @@
 package kr.inventory.domain.analytics.service;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -20,9 +21,9 @@ public class StockLogAnalyticService {
 	private StockLogSearchRepositoryCustom stockLogSearchRepository;
 	private StoreAccessValidator storeAccessValidator;
 
-	public Page<StockLogAnalyticResponse> getStockLogHistory(Long userId, UUID storePublicId,
+	public List<StockLogAnalyticResponse> getStockLogHistory(Long userId, UUID storePublicId,
 		ESStockLogSearchRequest request) {
-		Long storeId =  storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 		log.info("매장 {}의 재고 이력 조회 시작: {}", storeId, request.keyword());
 
 		return stockLogSearchRepository.searchStockLogs(storeId, request);
