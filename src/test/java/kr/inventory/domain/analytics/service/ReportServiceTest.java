@@ -92,7 +92,7 @@ class ReportServiceTest {
             given(reportSearchRepository.aggregateRefundSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyLong()))
                     .willReturn(new RefundSection(5L, new BigDecimal("50000.00"), 5.0));
             given(reportSearchRepository.aggregateWasteSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
-                    .willReturn(new WasteSection(new BigDecimal("30000.00"), new BigDecimal("50.000"), Collections.emptyList(), Collections.emptyList()));
+                    .willReturn(new WasteSection(new BigDecimal("30000.00"), 5L, Collections.emptyList(), Collections.emptyList()));
             given(reportSearchRepository.aggregateStockInboundSection(eq(storeId), eq(from), eq(to)))
                     .willReturn(new StockInboundSection(10L, Collections.emptyList()));
             given(reportPdfService.generate(any(), eq(from), eq(to))).willReturn(expectedPdf);
@@ -217,7 +217,7 @@ class ReportServiceTest {
             given(reportSearchRepository.aggregateRefundSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyLong()))
                     .willReturn(new RefundSection(5L, new BigDecimal("50000.00"), 5.0));
             given(reportSearchRepository.aggregateWasteSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
-                    .willReturn(new WasteSection(new BigDecimal("30000.00"), new BigDecimal("50.000"), Collections.emptyList(), Collections.emptyList()));
+                    .willReturn(new WasteSection(new BigDecimal("30000.00"), 5L, Collections.emptyList(), Collections.emptyList()));
             given(reportSearchRepository.aggregateStockInboundSection(eq(storeId), eq(from), eq(to)))
                     .willReturn(new StockInboundSection(10L, Collections.emptyList()));
             given(reportPdfService.generate(any(), eq(from), eq(to))).willReturn(expectedPdf);
@@ -267,7 +267,7 @@ class ReportServiceTest {
             given(reportSearchRepository.aggregateRefundSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyLong()))
                     .willReturn(new RefundSection(10L, new BigDecimal("100000.00"), 5.0));
             given(reportSearchRepository.aggregateWasteSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
-                    .willReturn(new WasteSection(new BigDecimal("60000.00"), new BigDecimal("100.000"), Collections.emptyList(), Collections.emptyList()));
+                    .willReturn(new WasteSection(new BigDecimal("60000.00"), 10L, Collections.emptyList(), Collections.emptyList()));
             given(reportSearchRepository.aggregateStockInboundSection(eq(storeId), eq(from), eq(to)))
                     .willReturn(new StockInboundSection(20L, Collections.emptyList()));
             given(reportPdfService.generate(any(), eq(from), eq(to))).willReturn(expectedPdf);
@@ -387,7 +387,7 @@ class ReportServiceTest {
             given(reportSearchRepository.aggregateRefundSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyLong()))
                     .willReturn(new RefundSection(5L, new BigDecimal("50000.00"), 5.0));
             given(reportSearchRepository.aggregateWasteSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
-                    .willReturn(new WasteSection(new BigDecimal("30000.00"), new BigDecimal("50.000"),
+                    .willReturn(new WasteSection(new BigDecimal("30000.00"), 5L,
                         Collections.emptyList(), Collections.emptyList()));
             given(reportSearchRepository.aggregateStockInboundSection(eq(storeId), eq(from), eq(to)))
                     .willReturn(new StockInboundSection(10L, Collections.emptyList()));
@@ -464,7 +464,7 @@ class ReportServiceTest {
             given(reportSearchRepository.aggregateRefundSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class), anyLong()))
                     .willReturn(new RefundSection(10L, new BigDecimal("100000.00"), 5.0));
             given(reportSearchRepository.aggregateWasteSection(eq(storeId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
-                    .willReturn(new WasteSection(new BigDecimal("60000.00"), new BigDecimal("100.000"),
+                    .willReturn(new WasteSection(new BigDecimal("60000.00"), 10L,
                         Collections.emptyList(), Collections.emptyList()));
             given(reportSearchRepository.aggregateStockInboundSection(eq(storeId), eq(from), eq(to)))
                     .willReturn(new StockInboundSection(20L, Collections.emptyList()));
