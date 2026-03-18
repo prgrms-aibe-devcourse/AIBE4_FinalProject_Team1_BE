@@ -13,13 +13,9 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
-import java.time.ZoneId;
-
 @Component
 @RequiredArgsConstructor
-public class StockShortageAiTools {
-    private static final ZoneId DEFAULT_ZONE_ID = ZoneId.of("Asia/Seoul");
-
+public class StockShortageAiTools {;
     private final StockShortageAiQueryService stockShortageAiQueryService;
     private final ChatToolContextProvider chatToolContextProvider;
     private final DateRangeResolver dateRangeResolver;
@@ -37,7 +33,7 @@ public class StockShortageAiTools {
             DateRangePreset period
     ) {
         ChatToolContext context = chatToolContextProvider.getRequired();
-        DateRange range = dateRangeResolver.resolve(period, DEFAULT_ZONE_ID);
+        DateRange range = dateRangeResolver.resolve(period);
 
         return stockShortageAiQueryService.getStockShortageSummary(
                 context.userId(),
