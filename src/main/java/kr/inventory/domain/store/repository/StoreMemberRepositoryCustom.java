@@ -25,4 +25,6 @@ public interface StoreMemberRepositoryCustom {
     long unsetAllDefaultsByUserId(Long userId);
 
     long countActiveByUserId(Long userId);
+
+    List<StoreMember> findAllActiveWithUserAndStore();
 }
