@@ -36,7 +36,7 @@ public class StockShortageAiTools {;
 		@ToolParam(description = "Date range preset")
 		DateRangePreset period,
 		@ToolParam(description = "StockShortage status (ex: PENDING, CLOSED)")
-		String status // 추가된 파라미터
+		String status
 	) {
 		ChatToolContext context = chatToolContextProvider.getRequired();
 		DateRange range = dateRangeResolver.resolve(period);
