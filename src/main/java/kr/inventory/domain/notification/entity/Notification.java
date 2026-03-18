@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import jakarta.persistence.*;
 import kr.inventory.domain.common.AuditableEntity;
 import kr.inventory.domain.notification.entity.enums.NotificationType;
+import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.user.entity.User;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -27,6 +28,10 @@ public class Notification extends AuditableEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "store_id", nullable = false)
+    private Store store;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
@@ -57,6 +62,7 @@ public class Notification extends AuditableEntity {
 
     public static Notification create(
             User user,
+            Store store,
             NotificationType type,
             String title,
             String message,
@@ -65,6 +71,7 @@ public class Notification extends AuditableEntity {
     ) {
         Notification notification = new Notification();
         notification.user = user;
+        notification.store = store;
         notification.type = type;
         notification.title = title;
         notification.message = message;

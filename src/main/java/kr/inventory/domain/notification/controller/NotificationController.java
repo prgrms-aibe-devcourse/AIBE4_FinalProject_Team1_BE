@@ -39,21 +39,23 @@ public class NotificationController {
     }
 
     @Operation(summary = "내 알림 목록 조회")
-    @GetMapping
+    @GetMapping("/{storePublicId}")
     public ResponseEntity<PageResponse<NotificationResponse>> list(
+            @PathVariable java.util.UUID storePublicId,
             @AuthenticationPrincipal CustomUserDetails principal,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        Page<NotificationResponse> result = notificationService.list(principal.getUserId(), pageable);
+        Page<NotificationResponse> result = notificationService.list(principal.getUserId(), storePublicId, pageable);
         return ResponseEntity.ok(PageResponse.from(result));
     }
 
     @Operation(summary = "안 읽은 알림 개수 조회")
-    @GetMapping("/unread-count")
+    @GetMapping("/{storePublicId}/unread-count")
     public ResponseEntity<Long> unreadCount(
+            @PathVariable java.util.UUID storePublicId,
             @AuthenticationPrincipal CustomUserDetails principal
     ) {
-        return ResponseEntity.ok(notificationService.unreadCount(principal.getUserId()));
+        return ResponseEntity.ok(notificationService.unreadCount(principal.getUserId(), storePublicId));
     }
 
     @Operation(summary = "알림 개별 읽음 처리")
@@ -67,11 +69,12 @@ public class NotificationController {
     }
 
     @Operation(summary = "알림 전체 읽음 처리")
-    @PatchMapping("/read-all")
+    @PatchMapping("/{storePublicId}/read-all")
     public ResponseEntity<NotificationActionResponse> readAll(
+            @PathVariable java.util.UUID storePublicId,
             @AuthenticationPrincipal CustomUserDetails principal
     ) {
-        int affectedCount = notificationService.readAll(principal.getUserId());
+        int affectedCount = notificationService.readAll(principal.getUserId(), storePublicId);
         return ResponseEntity.ok(NotificationActionResponse.readAll(affectedCount));
     }
 
