@@ -25,18 +25,10 @@ public record SearchStockLogsToolRequest(
         return StringUtils.hasText(referenceType) ? referenceType.trim() : null;
     }
 
-    public OffsetDateTime resolvedFrom() {
-        return from;
-    }
-
-    public OffsetDateTime resolvedTo() {
-        return to;
-    }
-
     public int resolvedLimit() {
         if (limit == null || limit <= 0) {
-            return 50; // 기본값
+            return 10;
         }
-        return Math.min(limit, 100);
+        return Math.min(limit, 20);
     }
 }

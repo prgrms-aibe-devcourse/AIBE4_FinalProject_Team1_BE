@@ -28,7 +28,8 @@ public class StockLogAiQueryService {
                 request.normalizedTransactionType(),
                 request.normalizedReferenceType(),
                 request.from(),
-                request.to()
+                request.to(),
+                request.resolvedLimit()
         );
 
         List<StockLogAnalyticResponse> results =

@@ -11,5 +11,13 @@ public record ESStockLogSearchRequest(
 	@DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
 	OffsetDateTime startDate,
 	@DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-	OffsetDateTime endDate
-) {}
+	OffsetDateTime endDate,
+    Integer limit
+) {
+    public int resolvedLimit() {
+        if (limit == null || limit <= 0) {
+            return 50;
+        }
+        return Math.min(limit, 100);
+    }
+}

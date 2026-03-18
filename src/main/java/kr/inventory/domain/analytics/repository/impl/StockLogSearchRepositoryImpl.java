@@ -25,6 +25,7 @@ public class StockLogSearchRepositoryImpl implements StockLogSearchRepositoryCus
 			SearchResponse<StockLogDocument> response = elasticsearchClient.search(s -> s
 				.index("stock_logs")
 				.from(0)
+                    .size(request.resolvedLimit())
 				.sort(sort -> sort.field(f -> f.field("createdAt").order(SortOrder.Desc)))
 				.query(q -> q.bool(b -> {
 					b.filter(f -> f.term(t -> t.field("storeId").value(storeId)));
