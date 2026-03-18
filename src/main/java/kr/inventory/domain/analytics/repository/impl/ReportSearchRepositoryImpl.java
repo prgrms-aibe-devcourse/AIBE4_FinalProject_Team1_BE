@@ -161,7 +161,7 @@ public class ReportSearchRepositoryImpl implements ReportSearchRepositoryCustom 
             log.debug("[Report] 폐기 집계 완료 storeId={} totalWasteCount={}", storeId, totalWasteCount);
             return new WasteSection(
                     BigDecimal.valueOf(totalAmountRaw).setScale(2, RoundingMode.HALF_UP),
-                    BigDecimal.valueOf(totalQtyRaw).setScale(3, RoundingMode.HALF_UP),
+                    totalWasteCount,
                     reasonBreakdown,
                     top5Ingredients
             );
@@ -264,12 +264,21 @@ public class ReportSearchRepositoryImpl implements ReportSearchRepositoryCustom 
                     .map(agg -> agg.topHits().hits().hits())
                     .orElse(Collections.emptyList());
 
-            String name = hits.isEmpty() ? ReportConstants.DEFAULT_UNKNOWN_INGREDIENT
-                    : hits.get(0).source().to(WasteRecordDocument.class).productDisplayName();
+            String name;
+            String unit;
+            if (hits.isEmpty()) {
+                name = ReportConstants.DEFAULT_UNKNOWN_INGREDIENT;
+                unit = "";
+            } else {
+                WasteRecordDocument doc = hits.get(0).source().to(WasteRecordDocument.class);
+                name = doc.productDisplayName();
+                unit = Optional.ofNullable(doc.unit()).orElse("");
+            }
 
             result.add(new WasteSection.IngredientEntry(
                     name,
                     BigDecimal.valueOf(qty).setScale(3, RoundingMode.HALF_UP),
+                    unit,
                     BigDecimal.valueOf(amount).setScale(2, RoundingMode.HALF_UP)
             ));
         }

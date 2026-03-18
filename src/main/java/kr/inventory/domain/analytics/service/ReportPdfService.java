@@ -113,31 +113,15 @@ public class ReportPdfService {
             float startY) throws IOException {
 
         float cursorY = renderSectionHeader(stream, boldFont, "매출 현황", startY);
-        float contentWidth = ReportConstants.PDF_PAGE_WIDTH - ReportConstants.PDF_MARGIN_LEFT - ReportConstants.PDF_MARGIN_RIGHT;
 
         // KPI 3개 가로 배열
-        float kpiWidth = contentWidth / 3;
-        float[] kpiX = {
-                ReportConstants.PDF_MARGIN_LEFT,
-                ReportConstants.PDF_MARGIN_LEFT + kpiWidth,
-                ReportConstants.PDF_MARGIN_LEFT + kpiWidth * 2
-        };
-        String[] kpiLabels = {"총 매출금액", "총 주문건수", "평균 객단가"};
-        String[] kpiValues = {
-                formatCurrency(data.sales().totalAmount()),
-                data.sales().totalOrderCount() + "건",
-                formatCurrency(data.sales().averageOrderAmount())
-        };
-
-        for (int i = 0; i < 3; i++) {
-            drawFilledRect(stream, kpiX[i], cursorY - ReportConstants.PDF_KPI_ROW_HEIGHT,
-                    kpiWidth - 4f, ReportConstants.PDF_KPI_ROW_HEIGHT, ReportConstants.PDF_COLOR_LIGHT_BG);
-            setColor(stream, ReportConstants.PDF_COLOR_GRAY);
-            writeText(stream, regularFont, ReportConstants.PDF_FONT_LABEL, kpiX[i] + 8f, cursorY - 14f, kpiLabels[i]);
-            setColor(stream, ReportConstants.PDF_COLOR_DARK);
-            writeText(stream, boldFont, ReportConstants.PDF_FONT_VALUE, kpiX[i] + 8f, cursorY - 34f, kpiValues[i]);
-        }
-        cursorY -= ReportConstants.PDF_KPI_ROW_HEIGHT + 16f;
+        cursorY = renderKpiBoxes(stream, boldFont, regularFont, cursorY,
+                new String[]{"총 매출금액", "총 주문건수", "평균 객단가"},
+                new String[]{
+                        formatCurrency(data.sales().totalAmount()),
+                        data.sales().totalOrderCount() + "건",
+                        formatCurrency(data.sales().averageOrderAmount())
+                });
 
         // 메뉴 TOP5 테이블
         setColor(stream, ReportConstants.PDF_COLOR_DARK);
@@ -192,31 +176,15 @@ public class ReportPdfService {
             float startY) throws IOException {
 
         float cursorY = renderSectionHeader(stream, boldFont, "환불 현황", startY);
-        float contentWidth = ReportConstants.PDF_PAGE_WIDTH - ReportConstants.PDF_MARGIN_LEFT - ReportConstants.PDF_MARGIN_RIGHT;
 
-        float kpiWidth = contentWidth / 3;
-        float[] kpiX = {
-                ReportConstants.PDF_MARGIN_LEFT,
-                ReportConstants.PDF_MARGIN_LEFT + kpiWidth,
-                ReportConstants.PDF_MARGIN_LEFT + kpiWidth * 2
-        };
-        String[] labels = {"환불 건수", "환불 금액", "환불율"};
-        String[] values = {
-                data.refund().refundCount() + "건",
-                formatCurrency(data.refund().totalRefundAmount()),
-                data.refund().refundRate() + "%"
-        };
-
-        for (int i = 0; i < 3; i++) {
-            drawFilledRect(stream, kpiX[i], cursorY - ReportConstants.PDF_KPI_ROW_HEIGHT,
-                    kpiWidth - 4f, ReportConstants.PDF_KPI_ROW_HEIGHT, ReportConstants.PDF_COLOR_LIGHT_BG);
-            setColor(stream, ReportConstants.PDF_COLOR_GRAY);
-            writeText(stream, regularFont, ReportConstants.PDF_FONT_LABEL, kpiX[i] + 8f, cursorY - 14f, labels[i]);
-            setColor(stream, ReportConstants.PDF_COLOR_DARK);
-            writeText(stream, boldFont, ReportConstants.PDF_FONT_VALUE, kpiX[i] + 8f, cursorY - 34f, values[i]);
-        }
-
-        return cursorY - ReportConstants.PDF_KPI_ROW_HEIGHT - 16f;
+        // KPI 3개 가로 배열
+        return renderKpiBoxes(stream, boldFont, regularFont, cursorY,
+                new String[]{"환불 건수", "환불 금액", "환불율"},
+                new String[]{
+                        data.refund().refundCount() + "건",
+                        formatCurrency(data.refund().totalRefundAmount()),
+                        data.refund().refundRate() + "%"
+                });
     }
 
     private float renderWasteSection(
@@ -227,26 +195,14 @@ public class ReportPdfService {
             float startY) throws IOException {
 
         float cursorY = renderSectionHeader(stream, boldFont, "폐기 현황", startY);
-        float contentWidth = ReportConstants.PDF_PAGE_WIDTH - ReportConstants.PDF_MARGIN_LEFT - ReportConstants.PDF_MARGIN_RIGHT;
 
-        // KPI 2개
-        float kpiWidth = contentWidth / 2;
-        float[] kpiX = {ReportConstants.PDF_MARGIN_LEFT, ReportConstants.PDF_MARGIN_LEFT + kpiWidth};
-        String[] kpiLabels = {"총 폐기금액", "총 폐기수량"};
-        String[] kpiValues = {
-                formatCurrency(data.waste().totalWasteAmount()),
-                data.waste().totalWasteQuantity().toPlainString()
-        };
-
-        for (int i = 0; i < 2; i++) {
-            drawFilledRect(stream, kpiX[i], cursorY - ReportConstants.PDF_KPI_ROW_HEIGHT,
-                    kpiWidth - 4f, ReportConstants.PDF_KPI_ROW_HEIGHT, ReportConstants.PDF_COLOR_LIGHT_BG);
-            setColor(stream, ReportConstants.PDF_COLOR_GRAY);
-            writeText(stream, regularFont, ReportConstants.PDF_FONT_LABEL, kpiX[i] + 8f, cursorY - 14f, kpiLabels[i]);
-            setColor(stream, ReportConstants.PDF_COLOR_DARK);
-            writeText(stream, boldFont, ReportConstants.PDF_FONT_VALUE, kpiX[i] + 8f, cursorY - 34f, kpiValues[i]);
-        }
-        cursorY -= ReportConstants.PDF_KPI_ROW_HEIGHT + 16f;
+        // KPI 2개 가로 배열
+        cursorY = renderKpiBoxes(stream, boldFont, regularFont, cursorY,
+                new String[]{"총 폐기금액", "총 폐기건수"},
+                new String[]{
+                        formatCurrency(data.waste().totalWasteAmount()),
+                        data.waste().totalWasteCount() + "건"
+                });
 
         // 사유별 분석 테이블
         setColor(stream, ReportConstants.PDF_COLOR_DARK);
@@ -320,7 +276,7 @@ public class ReportPdfService {
                 writeText(stream, regularFont, ReportConstants.PDF_BODY_FONT_SIZE,
                         ReportConstants.PDF_MARGIN_LEFT + ReportConstants.PDF_TABLE_COL_NAME, cursorY, entry.ingredientName());
                 writeText(stream, regularFont, ReportConstants.PDF_BODY_FONT_SIZE,
-                        ReportConstants.PDF_MARGIN_LEFT + ReportConstants.PDF_TABLE_COL_QUANTITY, cursorY, entry.wasteQuantity().toPlainString());
+                        ReportConstants.PDF_MARGIN_LEFT + ReportConstants.PDF_TABLE_COL_QUANTITY, cursorY, entry.wasteQuantity().stripTrailingZeros().toPlainString() + entry.unit().toLowerCase());
                 writeText(stream, boldFont, ReportConstants.PDF_BODY_FONT_SIZE,
                         ReportConstants.PDF_MARGIN_LEFT + ReportConstants.PDF_TABLE_COL_AMOUNT, cursorY, formatCurrency(entry.wasteAmount()));
                 cursorY -= ReportConstants.PDF_LINE_HEIGHT;
@@ -394,6 +350,33 @@ public class ReportPdfService {
     // ──────────────────────────────────────────────────────
     // Helper Methods
     // ──────────────────────────────────────────────────────
+
+    /**
+     * KPI 박스들을 가로로 배열하여 렌더링
+     */
+    private float renderKpiBoxes(
+            PDPageContentStream stream,
+            PDType0Font boldFont,
+            PDType0Font regularFont,
+            float startY,
+            String[] labels,
+            String[] values) throws IOException {
+
+        float contentWidth = ReportConstants.PDF_PAGE_WIDTH - ReportConstants.PDF_MARGIN_LEFT - ReportConstants.PDF_MARGIN_RIGHT;
+        float kpiWidth = contentWidth / labels.length;
+
+        for (int i = 0; i < labels.length; i++) {
+            float x = ReportConstants.PDF_MARGIN_LEFT + (kpiWidth * i);
+            drawFilledRect(stream, x, startY - ReportConstants.PDF_KPI_ROW_HEIGHT,
+                    kpiWidth - 4f, ReportConstants.PDF_KPI_ROW_HEIGHT, ReportConstants.PDF_COLOR_LIGHT_BG);
+            setColor(stream, ReportConstants.PDF_COLOR_GRAY);
+            writeText(stream, regularFont, ReportConstants.PDF_FONT_LABEL, x + 8f, startY - 14f, labels[i]);
+            setColor(stream, ReportConstants.PDF_COLOR_DARK);
+            writeText(stream, boldFont, ReportConstants.PDF_FONT_VALUE, x + 8f, startY - 34f, values[i]);
+        }
+
+        return startY - ReportConstants.PDF_KPI_ROW_HEIGHT - 16f;
+    }
 
     /**
      * 섹션 헤더 — 진한 배경 박스 + 흰 텍스트

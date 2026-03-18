@@ -5,7 +5,7 @@ import java.util.List;
 
 public record WasteSection(
         BigDecimal totalWasteAmount,
-        BigDecimal totalWasteQuantity,
+        long totalWasteCount,
         List<ReasonEntry> reasonBreakdown,
         List<IngredientEntry> top5Ingredients
 ) {
@@ -19,6 +19,7 @@ public record WasteSection(
     public record IngredientEntry(
             String ingredientName,
             BigDecimal wasteQuantity,
+            String unit,
             BigDecimal wasteAmount
     ) {}
 }
