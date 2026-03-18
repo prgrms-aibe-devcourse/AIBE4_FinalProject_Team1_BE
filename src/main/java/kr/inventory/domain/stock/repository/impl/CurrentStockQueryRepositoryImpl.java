@@ -4,6 +4,7 @@ import com.querydsl.core.Tuple;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.NumberExpression;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import kr.inventory.ai.stock.tool.enums.StockOverviewSortBy;
 import kr.inventory.ai.stock.tool.enums.StockOverviewStatusFilter;
@@ -35,11 +36,12 @@ public class CurrentStockQueryRepositoryImpl implements CurrentStockQueryReposit
             String keyword,
             StockOverviewStatusFilter status,
             StockOverviewSortBy sortBy,
-            int limit
+            Integer limit
     ) {
-        NumberExpression<BigDecimal> currentQuantityExpr = batch.remainingQuantity.sum().coalesce(BigDecimal.ZERO);
+        NumberExpression<BigDecimal> currentQuantityExpr =
+                batch.remainingQuantity.sum().coalesce(BigDecimal.ZERO);
 
-        List<Tuple> rows = queryFactory
+        JPAQuery<Tuple> query = queryFactory
                 .select(
                         ingredient.ingredientId,
                         ingredient.ingredientPublicId,
@@ -58,8 +60,7 @@ public class CurrentStockQueryRepositoryImpl implements CurrentStockQueryReposit
                 .where(
                         ingredient.store.storeId.eq(storeId),
                         ingredient.status.eq(IngredientStatus.ACTIVE),
-                        containsKeyword(keyword),
-                        stockStatusCondition(status, currentQuantityExpr)
+                        containsKeyword(keyword)
                 )
                 .groupBy(
                         ingredient.ingredientId,
@@ -70,9 +71,14 @@ public class CurrentStockQueryRepositoryImpl implements CurrentStockQueryReposit
                         ingredient.unit,
                         ingredient.lowStockThreshold
                 )
-                .orderBy(orderSpecifiers(sortBy, currentQuantityExpr))
-                .limit(limit)
-                .fetch();
+                .having(stockStatusCondition(status, currentQuantityExpr))
+                .orderBy(orderSpecifiers(sortBy, currentQuantityExpr));
+
+        if (limit != null) {
+            query.limit(limit);
+        }
+
+        List<Tuple> rows = query.fetch();
 
         return rows.stream()
                 .map(row -> toSummary(row, currentQuantityExpr))

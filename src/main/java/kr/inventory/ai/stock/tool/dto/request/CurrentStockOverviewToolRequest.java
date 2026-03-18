@@ -16,14 +16,14 @@ public record CurrentStockOverviewToolRequest(
         return keyword.trim();
     }
 
-    public int resolvedLimit() {
+    public Integer resolvedLimit() {
         if (limit == null || limit <= 0) {
-            return 10;
+            return null;
         }
-        return Math.min(limit, 50);
+        return Math.min(limit, 100);
     }
 
     public StockOverviewSortBy resolvedSortBy() {
-        return sortBy == null ? StockOverviewSortBy.STOCK_ASC : sortBy;
+        return sortBy == null ? StockOverviewSortBy.NAME_ASC : sortBy;
     }
 }

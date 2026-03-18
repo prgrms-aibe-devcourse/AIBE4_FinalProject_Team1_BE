@@ -12,6 +12,6 @@ public interface CurrentStockQueryRepository {
             String keyword,
             StockOverviewStatusFilter status,
             StockOverviewSortBy sortBy,
-            int limit
+            Integer limit
     );
 }

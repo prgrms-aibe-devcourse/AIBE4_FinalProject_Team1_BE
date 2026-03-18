@@ -26,7 +26,7 @@ public class CurrentStockQueryService{
             String keyword,
             StockOverviewStatusFilter status,
             StockOverviewSortBy sortBy,
-            int limit
+            Integer limit
     ) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
