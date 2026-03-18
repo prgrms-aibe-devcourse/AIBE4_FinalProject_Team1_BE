@@ -23,29 +23,33 @@ public class StockShortageAiTools {;
     private final ChatToolContextProvider chatToolContextProvider;
     private final DateRangeResolver dateRangeResolver;
 
-    @Tool(
-            name = "get_stock_shortage_summary",
-            description = """
-                    재고 부족 이력을 조회합니다.
-                    """ + ToolDescriptionConstants.DATE_RANGE_PRESET
-    )
-    public StockShortageSummaryToolResponse getStockShortageSummary(
-            @ToolParam(description = "Ingredient name keyword")
-            String keyword,
-            @ToolParam(description = "Date range preset")
-            DateRangePreset period
-    ) {
-        ChatToolContext context = chatToolContextProvider.getRequired();
-        DateRange range = dateRangeResolver.resolve(period);
+	@Tool(
+		name = "get_stock_shortage_summary",
+		description = """
+			재고 부족 이력을 조회합니다.
+			특정 상태(예: PENDING, CLOSED)를 지정하여 필터링할 수 있습니다.
+			""" + ToolDescriptionConstants.DATE_RANGE_PRESET
+	)
+	public StockShortageSummaryToolResponse getStockShortageSummary(
+		@ToolParam(description = "Ingredient name keyword")
+		String keyword,
+		@ToolParam(description = "Date range preset")
+		DateRangePreset period,
+		@ToolParam(description = "StockShortage status (ex: PENDING, CLOSED)")
+		String status // 추가된 파라미터
+	) {
+		ChatToolContext context = chatToolContextProvider.getRequired();
+		DateRange range = dateRangeResolver.resolve(period);
 
-        return stockShortageAiQueryService.getStockShortageSummary(
-                context.userId(),
-                context.storePublicId(),
-                keyword,
-                range.from(),
-                range.to()
-        );
-    }
+		return stockShortageAiQueryService.getStockShortageSummary(
+			context.userId(),
+			context.storePublicId(),
+			keyword,
+			status,
+			range.from(),
+			range.to()
+		);
+	}
 
     // 해당 tool의 사용 유무 고민
     @Tool(

@@ -1,9 +1,12 @@
 package kr.inventory.domain.stock.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.UUID;
 
 import kr.inventory.domain.analytics.service.indexing.WasteIndexingService;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -62,6 +65,10 @@ public class WasteService {
 				StockErrorCode.INGREDIENT_NOT_FOUND));
 
 		batch.decreaseQuantity(item.quantity());
+		BigDecimal totalCost = batch.getUnitCost().multiply(batch.getInboundItem().getQuantity());
+
+		BigDecimal pricePerUnit = totalCost
+			.divide(batch.getInitialQuantity(), 4, RoundingMode.HALF_UP);
 
 		// 3. 폐기(Disposal) 메인 엔티티 생성 및 저장
 		WasteRecord wasteRecord = WasteRecord.create(
@@ -70,7 +77,7 @@ public class WasteService {
 			batch.getIngredient(),
 			item.quantity(),
 			item.reason(),
-			item.quantity().multiply(batch.getUnitCost()),
+			item.quantity().multiply(pricePerUnit).setScale(0, RoundingMode.FLOOR),
 			currentUser,
 			item.wasteDate()
 
