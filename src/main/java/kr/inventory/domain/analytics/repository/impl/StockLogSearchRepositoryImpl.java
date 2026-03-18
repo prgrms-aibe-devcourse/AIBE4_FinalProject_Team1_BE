@@ -1,13 +1,5 @@
 package kr.inventory.domain.analytics.repository.impl;
 
-import java.io.IOException;
-import java.util.List;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.stereotype.Repository;
-
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
@@ -16,6 +8,10 @@ import kr.inventory.domain.analytics.controller.dto.response.StockLogAnalyticRes
 import kr.inventory.domain.analytics.document.stock.StockLogDocument;
 import kr.inventory.domain.analytics.repository.StockLogSearchRepositoryCustom;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+
+import java.io.IOException;
+import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
@@ -29,7 +25,7 @@ public class StockLogSearchRepositoryImpl implements StockLogSearchRepositoryCus
 			SearchResponse<StockLogDocument> response = elasticsearchClient.search(s -> s
 				.index("stock_logs")
 				.from(0)
-				.size(request.size())
+                    .size(request.resolvedLimit())
 				.sort(sort -> sort.field(f -> f.field("createdAt").order(SortOrder.Desc)))
 				.query(q -> q.bool(b -> {
 					b.filter(f -> f.term(t -> t.field("storeId").value(storeId)));

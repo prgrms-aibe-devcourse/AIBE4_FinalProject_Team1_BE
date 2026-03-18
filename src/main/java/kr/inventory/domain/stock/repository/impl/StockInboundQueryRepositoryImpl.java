@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Repository
@@ -27,7 +28,9 @@ public class StockInboundQueryRepositoryImpl implements StockInboundQueryReposit
     public List<StockInboundSummary> findInboundSummaries(
             Long storeId,
             String keyword,
-            int limit
+            OffsetDateTime from,
+            OffsetDateTime to,
+            Integer limit
     ) {
         QStockInbound stockInbound = QStockInbound.stockInbound;
         QStockInboundItem stockInboundItem = QStockInboundItem.stockInboundItem;
@@ -53,7 +56,9 @@ public class StockInboundQueryRepositoryImpl implements StockInboundQueryReposit
                 .where(
                         storeIdEq(storeId, store),
                         confirmedOnly(stockInbound),
-                        keywordContains(keyword, vendor, stockInboundItem)
+                        keywordContains(keyword, vendor, stockInboundItem),
+                        inboundDateGoe(from, stockInbound),
+                        inboundDateLoe(to, stockInbound)
                 )
                 .groupBy(
                         stockInbound.inboundId,
@@ -91,5 +96,25 @@ public class StockInboundQueryRepositoryImpl implements StockInboundQueryReposit
         return vendor.name.containsIgnoreCase(keyword)
                 .or(stockInboundItem.rawProductName.containsIgnoreCase(keyword))
                 .or(stockInboundItem.productDisplayName.containsIgnoreCase(keyword));
+    }
+
+    private BooleanExpression inboundDateGoe(
+            OffsetDateTime from,
+            QStockInbound stockInbound
+    ) {
+        if (from == null) {
+            return null;
+        }
+        return stockInbound.inboundDate.goe(from.toLocalDate());
+    }
+
+    private BooleanExpression inboundDateLoe(
+            OffsetDateTime to,
+            QStockInbound stockInbound
+    ) {
+        if (to == null) {
+            return null;
+        }
+        return stockInbound.inboundDate.loe(to.toLocalDate());
     }
 }

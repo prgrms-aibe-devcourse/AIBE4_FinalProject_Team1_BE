@@ -1,14 +1,18 @@
 package kr.inventory.ai.stock.tool.dto.request;
 
+import java.time.OffsetDateTime;
+
 public record InboundListToolRequest(
     String keyword,
-    Integer limit
+    Integer limit,
+    OffsetDateTime from,
+    OffsetDateTime to
 ) {
     public int resolvedLimit(){
         if(limit == null || limit <=0){
-            return 10;
+            return 30;
         }
-        return Math.min(limit,20);
+        return Math.min(limit,30);
     }
 
     public String normalizedKeyword() {
