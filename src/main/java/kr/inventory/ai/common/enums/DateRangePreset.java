@@ -29,17 +29,22 @@ public enum DateRangePreset {
 
     @JsonCreator
     public static DateRangePreset from(String value) {
-        if (value == null) {
+        if (value == null || value.isBlank()) {
             return null;
         }
 
-        for (DateRangePreset preset : values()) {
-            if (preset.value.equalsIgnoreCase(value)) {
-                return preset;
-            }
-        }
+        String normalized = value.trim().toLowerCase();
 
-        throw new IllegalArgumentException("Unknown DateRangePreset: " + value);
+        return switch (normalized) {
+            case "today", "오늘" -> TODAY;
+            case "yesterday", "어제" -> YESTERDAY;
+            case "this_week", "이번 주", "금주" -> THIS_WEEK;
+            case "this_month", "이번 달", "이달" -> THIS_MONTH;
+            case "last_7_days", "최근 7일", "최근 일주일", "지난 7일" -> LAST_7_DAYS;
+            case "last_30_days", "최근 30일", "최근 한 달", "지난 30일" -> LAST_30_DAYS;
+            case "last_month", "지난달", "저번 달" -> LAST_MONTH;
+            default -> throw new IllegalArgumentException("Unknown DateRangePreset: " + value);
+        };
     }
 
     public static String toKoreanLabel(String presetValue, String fallback) {
