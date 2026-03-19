@@ -1,6 +1,7 @@
 package kr.inventory.ai.sales.tool.dto.request;
 
 import kr.inventory.ai.common.enums.DateRangePreset;
+import kr.inventory.ai.sales.constant.SalesConstants;
 import kr.inventory.ai.sales.tool.support.SalesToolDateRange;
 import kr.inventory.ai.sales.tool.support.SalesToolDateRangeResolver;
 import kr.inventory.domain.sales.entity.enums.SalesOrderStatus;
@@ -10,7 +11,6 @@ import kr.inventory.domain.sales.service.command.SalesLedgerSortBy;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Locale;
-import java.util.Map;
 import java.util.UUID;
 
 public record SalesOrderDetailToolRequest(
@@ -27,26 +27,6 @@ public record SalesOrderDetailToolRequest(
         String sortBy,
         Integer selectionIndex
 ) {
-    private static final Map<String, String> STATUS_ALIASES = Map.ofEntries(
-            Map.entry("완료", "COMPLETED"),
-            Map.entry("주문완료", "COMPLETED"),
-            Map.entry("completed", "COMPLETED"),
-            Map.entry("환불", "REFUNDED"),
-            Map.entry("환불주문", "REFUNDED"),
-            Map.entry("refunded", "REFUNDED"),
-            Map.entry("refund", "REFUNDED")
-    );
-
-    private static final Map<String, String> TYPE_ALIASES = Map.ofEntries(
-            Map.entry("홀", "DINE_IN"),
-            Map.entry("매장", "DINE_IN"),
-            Map.entry("매장식사", "DINE_IN"),
-            Map.entry("dinein", "DINE_IN"),
-            Map.entry("dine_in", "DINE_IN"),
-            Map.entry("포장", "TAKEOUT"),
-            Map.entry("takeout", "TAKEOUT"),
-            Map.entry("take_out", "TAKEOUT")
-    );
     public SalesToolDateRange resolvedDateRange() {
         return SalesToolDateRangeResolver.resolve(period, fromDate, toDate, DateRangePreset.LAST_7_DAYS);
     }
@@ -170,11 +150,11 @@ public record SalesOrderDetailToolRequest(
         String trimmed = value.trim();
         String aliasKey = trimmed.replace(" ", "").replace("-", "").toLowerCase(Locale.ROOT);
 
-        if (STATUS_ALIASES.containsKey(aliasKey)) {
-            return STATUS_ALIASES.get(aliasKey);
+        if (SalesConstants.STATUS_ALIASES.containsKey(aliasKey)) {
+            return SalesConstants.STATUS_ALIASES.get(aliasKey);
         }
-        if (TYPE_ALIASES.containsKey(aliasKey)) {
-            return TYPE_ALIASES.get(aliasKey);
+        if (SalesConstants.TYPE_ALIASES.containsKey(aliasKey)) {
+            return SalesConstants.TYPE_ALIASES.get(aliasKey);
         }
 
         return trimmed

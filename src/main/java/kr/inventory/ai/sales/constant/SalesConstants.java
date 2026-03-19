@@ -6,6 +6,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public final class SalesConstants {
 
@@ -20,6 +21,8 @@ public final class SalesConstants {
     public static final int DEFAULT_PAGE = 1;
     public static final int DEFAULT_SIZE = 10;
     public static final int MAX_SIZE = 50;
+
+    public static final Set<String> SUPPORTED_VIEW_TYPES = Set.of("combined", "day_only", "hour_only");
 
     public static final Map<String, String> STATUS_ALIASES = Map.ofEntries(
             Map.entry("완료", "COMPLETED"),

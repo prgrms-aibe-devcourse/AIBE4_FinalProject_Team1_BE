@@ -1,12 +1,12 @@
 package kr.inventory.ai.sales.tool.dto.request;
 
 import kr.inventory.ai.common.enums.DateRangePreset;
+import kr.inventory.ai.sales.constant.SalesConstants;
 import kr.inventory.ai.sales.tool.support.SalesToolDateRange;
 import kr.inventory.ai.sales.tool.support.SalesToolDateRangeResolver;
 
 import java.time.LocalDate;
 import java.util.Locale;
-import java.util.Set;
 
 public record SalesPeakToolRequest(
         DateRangePreset period,
@@ -15,8 +15,6 @@ public record SalesPeakToolRequest(
         Integer limit,
         String viewType
 ) {
-    private static final Set<String> SUPPORTED_VIEW_TYPES = Set.of("combined", "day_only", "hour_only");
-
     public boolean hasExplicitDateRange() {
         return fromDate != null && toDate != null;
     }
@@ -34,7 +32,7 @@ public record SalesPeakToolRequest(
 
     public String resolvedViewType() {
         String normalized = normalizedViewType();
-        if (!SUPPORTED_VIEW_TYPES.contains(normalized)) {
+        if (!SalesConstants.SUPPORTED_VIEW_TYPES.contains(normalized)) {
             throw new IllegalArgumentException("viewType must be combined, day_only, or hour_only");
         }
         return normalized;
