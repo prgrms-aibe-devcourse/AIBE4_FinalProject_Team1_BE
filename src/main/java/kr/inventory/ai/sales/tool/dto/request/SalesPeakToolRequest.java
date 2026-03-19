@@ -1,6 +1,9 @@
 package kr.inventory.ai.sales.tool.dto.request;
 
 import kr.inventory.ai.common.enums.DateRangePreset;
+import kr.inventory.ai.sales.constant.SalesConstants;
+import kr.inventory.ai.sales.tool.support.SalesToolDateRange;
+import kr.inventory.ai.sales.tool.support.SalesToolDateRangeResolver;
 
 import java.time.LocalDate;
 import java.util.Locale;
@@ -16,11 +19,23 @@ public record SalesPeakToolRequest(
         return fromDate != null && toDate != null;
     }
 
+    public SalesToolDateRange resolvedDateRange() {
+        return SalesToolDateRangeResolver.resolve(period, fromDate, toDate, DateRangePreset.LAST_7_DAYS);
+    }
+
     public int resolvedLimit() {
         if (limit == null || limit <= 0) {
             return 5;
         }
         return Math.min(limit, 20);
+    }
+
+    public String resolvedViewType() {
+        String normalized = normalizedViewType();
+        if (!SalesConstants.SUPPORTED_VIEW_TYPES.contains(normalized)) {
+            throw new IllegalArgumentException("viewType must be combined, day_only, or hour_only");
+        }
+        return normalized;
     }
 
     public String normalizedViewType() {

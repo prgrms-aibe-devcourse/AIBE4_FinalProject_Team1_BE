@@ -1,17 +1,16 @@
 package kr.inventory.domain.analytics.document.stock;
 
-import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.util.UUID;
-
+import kr.inventory.domain.analytics.constant.ElasticsearchIndex;
+import kr.inventory.domain.stock.entity.StockShortage;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.DateFormat;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
-import kr.inventory.domain.analytics.constant.ElasticsearchIndex;
-import kr.inventory.domain.stock.entity.StockShortage;
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Document(indexName = ElasticsearchIndex.StockShortage)
 public record StockShortageDocument(

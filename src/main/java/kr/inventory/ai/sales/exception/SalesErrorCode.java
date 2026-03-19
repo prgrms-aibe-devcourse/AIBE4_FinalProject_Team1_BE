@@ -8,20 +8,18 @@ import org.springframework.http.HttpStatus;
 @Getter
 @AllArgsConstructor
 public enum SalesErrorCode implements ErrorModel {
-
-    INVALID_DATE_RANGE(HttpStatus.BAD_REQUEST, "S001", "시작 날짜가 종료 날짜보다 늦을 수 없습니다."),
-    INVALID_BASE_DATE_RANGE(HttpStatus.BAD_REQUEST, "S002", "비교 기준 시작 날짜가 종료 날짜보다 늦을 수 없습니다."),
-    UNSUPPORTED_COMPARE_MODE(HttpStatus.BAD_REQUEST, "S003", "지원하지 않는 비교 모드입니다."),
-    INVALID_DATE_FORMAT(HttpStatus.BAD_REQUEST, "S004", "날짜 형식이 올바르지 않습니다. yyyy-MM-dd 형식이어야 합니다."),
-    BOTH_DATES_REQUIRED(HttpStatus.BAD_REQUEST, "S005", "시작 날짜와 종료 날짜를 모두 제공해야 합니다."),
-    UNSUPPORTED_PRESET(HttpStatus.BAD_REQUEST, "S006", "지원하지 않는 기간 설정입니다."),
-    PERIOD_AND_DATES_EXCLUSIVE(HttpStatus.BAD_REQUEST, "S007", "기간 프리셋과 날짜 범위를 동시에 사용할 수 없습니다."),
-    INVALID_VIEW_TYPE(HttpStatus.BAD_REQUEST, "S008", "viewType은 combined, day_only, hour_only 중 하나여야 합니다."),
-    INVALID_INTERVAL(HttpStatus.BAD_REQUEST, "S009", "interval은 day, week, month 중 하나여야 합니다."),
-    INVALID_METRIC(HttpStatus.BAD_REQUEST, "S010", "metric은 amount, order_count, both 중 하나여야 합니다."),
-    INVALID_RANK_BY(HttpStatus.BAD_REQUEST, "S011", "rankBy는 quantity 또는 amount여야 합니다."),
-    BASE_DATES_REQUIRED_FOR_CUSTOM_COMPARE(HttpStatus.BAD_REQUEST, "S012", "custom 비교 모드에는 baseFromDate와 baseToDate가 필요합니다."),
-    BASE_DATES_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "S013", "custom이 아닌 비교 모드에는 baseFromDate와 baseToDate를 사용할 수 없습니다.");
+    INVALID_DATE_RANGE(HttpStatus.BAD_REQUEST, "SAI001", "시작 날짜가 종료 날짜보다 늦을 수 없습니다."),
+    INVALID_DATE_FORMAT(HttpStatus.BAD_REQUEST, "SAI002", "날짜 형식이 올바르지 않습니다. yyyy-MM-dd 형식이어야 합니다."),
+    BOTH_DATES_REQUIRED(HttpStatus.BAD_REQUEST, "SAI003", "fromDate와 toDate는 함께 제공해야 합니다."),
+    UNSUPPORTED_PRESET(HttpStatus.BAD_REQUEST, "SAI004", "지원하지 않는 기간 프리셋입니다."),
+    INVALID_LEDGER_STATUS(HttpStatus.BAD_REQUEST, "SAI005", "status는 COMPLETED 또는 REFUNDED만 지원합니다."),
+    INVALID_LEDGER_TYPE(HttpStatus.BAD_REQUEST, "SAI006", "type은 DINE_IN 또는 TAKEOUT만 지원합니다."),
+    INVALID_AMOUNT_RANGE(HttpStatus.BAD_REQUEST, "SAI007", "amountMin은 amountMax보다 클 수 없습니다."),
+    INVALID_SORT_BY(HttpStatus.BAD_REQUEST, "SAI008", "sortBy는 ordered_at_desc, ordered_at_asc, total_amount_desc, total_amount_asc 중 하나여야 합니다."),
+    INVALID_SELECTION_INDEX(HttpStatus.BAD_REQUEST, "SAI009", "selectionIndex는 1 이상이어야 합니다."),
+    ORDER_DETAIL_LOOKUP_REQUIRES_CONDITION(HttpStatus.BAD_REQUEST, "SAI010", "orderPublicId 없이 상세 조회하려면 조회 조건이나 기간을 함께 제공해야 합니다."),
+    SALES_RECORD_NOT_FOUND(HttpStatus.NOT_FOUND, "SAI011", "조건에 맞는 주문 기록을 찾을 수 없습니다."),
+    INVALID_MENU_NAME(HttpStatus.BAD_REQUEST, "SAI012", "menuName은 비어 있을 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;

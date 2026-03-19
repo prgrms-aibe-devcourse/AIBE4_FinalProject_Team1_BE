@@ -129,7 +129,7 @@ public class StockInboundController {
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable UUID storePublicId,
             @ModelAttribute StockInboundSearchRequest searchRequest,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            @PageableDefault(size = 20) Pageable pageable
     ) {
         PageResponse<StockInboundListResponse> response = stockInboundService.getInbounds(
                 principal.getUserId(),

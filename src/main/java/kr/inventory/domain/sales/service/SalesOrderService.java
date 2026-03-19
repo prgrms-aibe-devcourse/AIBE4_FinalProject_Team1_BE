@@ -12,6 +12,7 @@ import kr.inventory.domain.reference.entity.enums.MenuStatus;
 import kr.inventory.domain.reference.repository.MenuRepository;
 import kr.inventory.domain.sales.controller.dto.request.SalesOrderCreateRequest;
 import kr.inventory.domain.sales.controller.dto.request.SalesOrderItemRequest;
+import kr.inventory.domain.sales.controller.dto.request.SalesOrderSearchRequest;
 import kr.inventory.domain.sales.controller.dto.response.SalesOrderResponse;
 import kr.inventory.domain.sales.entity.SalesOrder;
 import kr.inventory.domain.sales.entity.SalesOrderItem;
@@ -155,12 +156,14 @@ public class SalesOrderService {
         return SalesOrderResponse.from(order, items);
     }
 
-    public PageResponse<SalesOrderResponse> getStoreOrders(Long userId, UUID storePublicId, Pageable pageable) {
+    public PageResponse<SalesOrderResponse> getStoreOrders(Long userId, UUID storePublicId, SalesOrderSearchRequest request, Pageable pageable) {
+        validateSearchPeriod(request.from(), request.to());
+        validateAmountRange(request.amountMin(), request.amountMax());
+
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
-        Page<SalesOrder> page = salesOrderRepository.findStoreOrders(storeId, pageable);
+        Page<SalesOrder> page = salesOrderRepository.findStoreOrders(storeId, request, pageable);
 
-        // N+1 방지: 모든 주문 ID를 한번에 조회
         List<Long> orderIds = page.getContent().stream()
                 .map(SalesOrder::getSalesOrderId)
                 .toList();
@@ -169,11 +172,9 @@ public class SalesOrderService {
                 ? Collections.emptyList()
                 : salesOrderItemRepository.findBySalesOrderSalesOrderIdIn(orderIds);
 
-        // 주문 ID별로 항목 그룹핑
         Map<Long, List<SalesOrderItem>> itemsByOrderId = allItems.stream()
                 .collect(Collectors.groupingBy(item -> item.getSalesOrder().getSalesOrderId()));
 
-        // PageResponse로 변환
         Page<SalesOrderResponse> responsePage = page.map(order -> {
             List<SalesOrderItem> items = itemsByOrderId.getOrDefault(
                     order.getSalesOrderId(),
@@ -217,48 +218,17 @@ public class SalesOrderService {
         return SalesOrderResponse.from(order, items);
     }
 
-    /**
-     * 재료별 필요 수량 계산
-     */
-    private Map<Long, BigDecimal> calculateIngredientUsage(List<SalesOrderItem> items) {
-        Map<Long, BigDecimal> usageMap = new HashMap<>();
-
-        for (SalesOrderItem item : items) {
-            Menu menu = item.getMenu();
-            JsonNode ingredientsJson = menu.getIngredientsJson();
-
-            if (ingredientsJson == null || ingredientsJson.isEmpty()) {
-                continue;
-            }
-
-            if (ingredientsJson.has("ingredients") && ingredientsJson.get("ingredients").isArray()) {
-                for (JsonNode ingredientNode : ingredientsJson.get("ingredients")) {
-                    // ingredientId 검증
-                    if (!ingredientNode.has("ingredientId")) {
-                        throw new SalesOrderException(SalesOrderErrorCode.INVALID_INGREDIENT_DATA);
-                    }
-
-                    // quantity 검증 및 변환
-                    if (!ingredientNode.has("quantity")) {
-                        throw new SalesOrderException(SalesOrderErrorCode.INVALID_INGREDIENT_DATA);
-                    }
-
-                    Long ingredientId = ingredientNode.get("ingredientId").asLong();
-
-                    BigDecimal quantity;
-                    try {
-                        quantity = new BigDecimal(ingredientNode.get("quantity").asText());
-                    } catch (NumberFormatException e) {
-                        // 잘못된 형식의 재료 수량 데이터
-                        throw new SalesOrderException(SalesOrderErrorCode.INVALID_INGREDIENT_DATA);
-                    }
-
-                    BigDecimal totalQuantity = quantity.multiply(BigDecimal.valueOf(item.getQuantity()));
-                    usageMap.merge(ingredientId, totalQuantity, BigDecimal::add);
-                }
-            }
+    private void validateSearchPeriod(OffsetDateTime from, OffsetDateTime to) {
+        if (from != null && to != null && from.isAfter(to)) {
+            throw new SalesOrderException(SalesOrderErrorCode.INVALID_SEARCH_PERIOD);
         }
-
-        return usageMap;
     }
+
+    private void validateAmountRange(BigDecimal amountMin, BigDecimal amountMax) {
+        if (amountMin != null && amountMax != null && amountMin.compareTo(amountMax) > 0) {
+            throw new SalesOrderException(SalesOrderErrorCode.INVALID_AMOUNT_RANGE);
+        }
+    }
+
+
 }
