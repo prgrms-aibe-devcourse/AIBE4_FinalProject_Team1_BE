@@ -5,13 +5,17 @@ import static kr.inventory.domain.stock.entity.QWasteRecord.*;
 import static kr.inventory.domain.user.entity.QUser.*;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.util.StringUtils;
 
+import com.querydsl.core.types.Order;
+import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -43,7 +47,7 @@ public class WasteRecordRepositoryImpl implements WasteRecordRepositoryCustom {
 			)
 			.offset(pageable.getOffset())
 			.limit(pageable.getPageSize())
-			.orderBy(wasteRecord.wasteDate.desc())
+			.orderBy(getAllOrderSpecifiers(pageable))
 			.fetch();
 
 		// 2. 카운트 쿼리 (최적화를 위해 별도 실행)
@@ -58,6 +62,32 @@ public class WasteRecordRepositoryImpl implements WasteRecordRepositoryCustom {
 			);
 
 		return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
+	}
+
+	private OrderSpecifier<?>[] getAllOrderSpecifiers(Pageable pageable) {
+		List<OrderSpecifier<?>> orders = new ArrayList<>();
+
+		if (!pageable.getSort().isEmpty()) {
+			for (Sort.Order sortOrder : pageable.getSort()) {
+				Order direction = sortOrder.getDirection().isAscending() ? Order.ASC : Order.DESC;
+
+				switch (sortOrder.getProperty()) {
+					case "wasteDate":
+						orders.add(new OrderSpecifier<>(direction, wasteRecord.wasteDate));
+						break;
+					case "amount":
+						orders.add(new OrderSpecifier<>(direction, wasteRecord.wasteAmount));
+						break;
+					default:
+						orders.add(new OrderSpecifier<>(Order.DESC, wasteRecord.wasteDate));
+						break;
+				}
+			}
+		} else {
+			orders.add(new OrderSpecifier<>(Order.DESC, wasteRecord.wasteDate));
+		}
+
+		return orders.toArray(new OrderSpecifier[0]);
 	}
 
 	private BooleanExpression betweenDate(OffsetDateTime start, OffsetDateTime end) {

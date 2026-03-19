@@ -54,7 +54,7 @@ public class StockTakeService {
 	private final StoreRepository storeRepository;
 	private final UserRepository userRepository;
 	private final StockBatchIndexingService stockBatchIndexingService;
-    private final ShortageResolutionService shortageResolutionService;
+	private final ShortageResolutionService shortageResolutionService;
 
 	@Transactional(readOnly = true)
 	public PageResponse<StockTakeSheetResponse> getStockTakeSheets(
@@ -162,12 +162,12 @@ public class StockTakeService {
 
 		applyConfirmToItems(ctx, items, batchMap);
 
-        Set<Long> increasedIngredientIds = items.stream()
-                .filter(item -> item.getVarianceQty().signum() > 0)
-                .map(item -> item.getIngredient().getIngredientId())
-                .collect(Collectors.toSet());
+		Set<Long> increasedIngredientIds = items.stream()
+			.filter(item -> item.getVarianceQty().signum() > 0)
+			.map(item -> item.getIngredient().getIngredientId())
+			.collect(Collectors.toSet());
 
-        shortageResolutionService.closePendingShortagesIfStockRecovered(storeId, increasedIngredientIds);
+		shortageResolutionService.closePendingShortagesIfStockRecovered(storeId, increasedIngredientIds);
 
 		sheet.confirm();
 	}
@@ -398,6 +398,8 @@ public class StockTakeService {
 
 			batch.updateRemaining(after);
 
+			stockBatchIndexingService.index(batch);
+
 			stockLogService.logDeduction(
 				StockDeductionLogCommand.forStockTake(
 					ctx.store(),
@@ -443,11 +445,7 @@ public class StockTakeService {
 
 		ingredientStockBatchRepository.save(adjustmentBatch);
 
-		try {
-			stockBatchIndexingService.index(adjustmentBatch);
-		} catch (Exception e) {
-log.error("[ES] 입고 인덱싱 실패 batchId={}", adjustmentBatch.getBatchId(), e);
-		}
+		stockBatchIndexingService.index(adjustmentBatch);
 
 		stockLogService.logInbound(
 			StockInboundLogCommand.forStockTake(

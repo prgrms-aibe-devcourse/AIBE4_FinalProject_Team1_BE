@@ -12,7 +12,8 @@ import org.springframework.data.elasticsearch.annotations.FieldType;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
-import jakarta.persistence.Id;
+import org.springframework.data.annotation.Id;
+
 import kr.inventory.domain.analytics.constant.ElasticsearchIndex;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.stock.entity.IngredientStockBatch;

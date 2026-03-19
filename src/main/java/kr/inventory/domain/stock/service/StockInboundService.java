@@ -1,5 +1,6 @@
 package kr.inventory.domain.stock.service;
 
+import kr.inventory.domain.analytics.service.indexing.StockBatchIndexingService;
 import kr.inventory.domain.analytics.service.indexing.StockInboundIndexingService;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.entity.Vendor;
@@ -35,6 +36,7 @@ import kr.inventory.domain.user.repository.UserRepository;
 import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -52,322 +54,329 @@ import java.util.stream.Collectors;
 @Transactional
 public class StockInboundService {
 
-    private final StockInboundRepository stockInboundRepository;
-    private final StockInboundItemRepository stockInboundItemRepository;
-    private final IngredientStockBatchRepository ingredientStockBatchRepository;
-    private final StoreAccessValidator storeAccessValidator;
-    private final StoreRepository storeRepository;
-    private final VendorRepository vendorRepository;
-    private final UserRepository userRepository;
-    private final IngredientRepository ingredientRepository;
-    private final IngredientResolutionService ingredientResolutionService;
-    private final InboundSpecExtractor inboundSpecExtractor;
-    private final InboundQuantityNormalizer inboundQuantityNormalizer;
-    private final StockLogService stockLogService;
-    private final StockInboundIndexingService stockInboundIndexingService;
+	private final StockInboundRepository stockInboundRepository;
+	private final StockInboundItemRepository stockInboundItemRepository;
+	private final IngredientStockBatchRepository ingredientStockBatchRepository;
+	private final StoreAccessValidator storeAccessValidator;
+	private final StoreRepository storeRepository;
+	private final VendorRepository vendorRepository;
+	private final UserRepository userRepository;
+	private final IngredientRepository ingredientRepository;
+	private final IngredientResolutionService ingredientResolutionService;
+	private final InboundSpecExtractor inboundSpecExtractor;
+	private final InboundQuantityNormalizer inboundQuantityNormalizer;
+	private final StockLogService stockLogService;
+	private final StockInboundIndexingService stockInboundIndexingService;
+	private final StockBatchIndexingService stockBatchIndexingService;
 
-    public StockInboundResponse createManualInbound(Long userId, UUID storePublicId, ManualInboundRequest request) {
-        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
-        Store store = storeRepository.findById(storeId)
-                .orElseThrow(() -> new StockException(StockErrorCode.STORE_NOT_FOUND));
+	public StockInboundResponse createManualInbound(Long userId, UUID storePublicId, ManualInboundRequest request) {
+		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+		Store store = storeRepository.findById(storeId)
+			.orElseThrow(() -> new StockException(StockErrorCode.STORE_NOT_FOUND));
 
-        Vendor vendor = request.vendorPublicId() != null
-                ? vendorRepository.findByVendorPublicId(request.vendorPublicId())
-                .orElseThrow(() -> new StockException(StockErrorCode.VENDOR_NOT_FOUND))
-                : null;
+		Vendor vendor = request.vendorPublicId() != null
+			? vendorRepository.findByVendorPublicId(request.vendorPublicId())
+			.orElseThrow(() -> new StockException(StockErrorCode.VENDOR_NOT_FOUND))
+			: null;
 
-        StockInbound inbound = StockInbound.create(store, vendor, null, null, request.inboundDate());
-        stockInboundRepository.save(inbound);
+		StockInbound inbound = StockInbound.create(store, vendor, null, null, request.inboundDate());
+		stockInboundRepository.save(inbound);
 
-        List<StockInboundItem> items = request.items().stream()
-                .map(itemDto -> {
-                    StockInboundItem item = StockInboundItem.createRaw(
-                            inbound,
-                            itemDto.rawProductName(),
-                            itemDto.quantity(),
-                            itemDto.unitCost(),
-                            itemDto.expirationDate(),
-                            itemDto.specText()
-                    );
-                    applyNormalizedQuantity(item, null);
-                    return item;
-                })
-                .toList();
+		List<StockInboundItem> items = request.items().stream()
+			.map(itemDto -> {
+				StockInboundItem item = StockInboundItem.createRaw(
+					inbound,
+					itemDto.rawProductName(),
+					itemDto.quantity(),
+					itemDto.unitCost(),
+					itemDto.expirationDate(),
+					itemDto.specText()
+				);
+				applyNormalizedQuantity(item, null);
+				return item;
+			})
+			.toList();
 
-        stockInboundItemRepository.saveAll(items);
+		stockInboundItemRepository.saveAll(items);
 
-        List<StockInboundItemResponse> itemResponses = items.stream()
-                .map(StockInboundItemResponse::from)
-                .toList();
+		List<StockInboundItemResponse> itemResponses = items.stream()
+			.map(StockInboundItemResponse::from)
+			.toList();
 
-        return StockInboundResponse.from(inbound, itemResponses);
-    }
+		return StockInboundResponse.from(inbound, itemResponses);
+	}
 
-    public void confirmInbound(Long userId, UUID storePublicId, UUID inboundPublicId) {
-        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+	public void confirmInbound(Long userId, UUID storePublicId, UUID inboundPublicId) {
+		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
-        StockInbound inbound = stockInboundRepository.findByInboundPublicIdAndStoreStoreId(inboundPublicId, storeId)
-                .orElseThrow(() -> new StockException(StockErrorCode.INBOUND_NOT_FOUND));
+		StockInbound inbound = stockInboundRepository.findByInboundPublicIdAndStoreStoreId(inboundPublicId, storeId)
+			.orElseThrow(() -> new StockException(StockErrorCode.INBOUND_NOT_FOUND));
 
-        if (inbound.getStatus() != InboundStatus.DRAFT) {
-            throw new StockException(StockErrorCode.INBOUND_NOT_DRAFT_STATUS);
-        }
+		if (inbound.getStatus() != InboundStatus.DRAFT) {
+			throw new StockException(StockErrorCode.INBOUND_NOT_DRAFT_STATUS);
+		}
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new StockException(StockErrorCode.USER_NOT_FOUND));
+		User user = userRepository.findById(userId)
+			.orElseThrow(() -> new StockException(StockErrorCode.USER_NOT_FOUND));
 
-        List<StockInboundItem> items = stockInboundItemRepository.findByInboundInboundId(inbound.getInboundId());
+		List<StockInboundItem> items = stockInboundItemRepository.findByInboundInboundId(inbound.getInboundId());
 
-        boolean hasFailedItems = items.stream()
-                .anyMatch(item -> item.getResolutionStatus() == ResolutionStatus.FAILED);
+		boolean hasFailedItems = items.stream()
+			.anyMatch(item -> item.getResolutionStatus() == ResolutionStatus.FAILED);
 
-        if (hasFailedItems) {
-            throw new StockException(StockErrorCode.INBOUND_ITEMS_NOT_RESOLVED);
-        }
+		if (hasFailedItems) {
+			throw new StockException(StockErrorCode.INBOUND_ITEMS_NOT_RESOLVED);
+		}
 
-        inbound.confirm(user);
+		inbound.confirm(user);
 
-        Store store = inbound.getStore();
+		Store store = inbound.getStore();
 
-        // AUTO_SUGGESTED 상태이면서 ingredient가 null인 경우 자동 재료 생성 및 매핑 저장
-        for (StockInboundItem item : items) {
-            if (item.getResolutionStatus() == ResolutionStatus.AUTO_SUGGESTED && item.getIngredient() == null) {
-                if (item.getNormalizedRawKey() != null && !item.getNormalizedRawKey().isBlank()) {
-                    String originalKey = item.getNormalizedRawKey();
-                    Ingredient newIngredient = createAutoSuggestedIngredient(store, item);
-                    ingredientRepository.save(newIngredient);
-                    item.updateResolution(ResolutionStatus.AUTO_SUGGESTED, newIngredient, null);
+		// AUTO_SUGGESTED 상태이면서 ingredient가 null인 경우 자동 재료 생성 및 매핑 저장
+		for (StockInboundItem item : items) {
+			if (item.getResolutionStatus() == ResolutionStatus.AUTO_SUGGESTED && item.getIngredient() == null) {
+				if (item.getNormalizedRawKey() != null && !item.getNormalizedRawKey().isBlank()) {
+					String originalKey = item.getNormalizedRawKey();
+					Ingredient newIngredient = createAutoSuggestedIngredient(store, item);
+					ingredientRepository.save(newIngredient);
+					item.updateResolution(ResolutionStatus.AUTO_SUGGESTED, newIngredient, null);
 
-                    // 원본 정규화 키로 매핑 저장
-                    ingredientResolutionService.upsertMapping(store, storeId, originalKey, newIngredient);
+					// 원본 정규화 키로 매핑 저장
+					ingredientResolutionService.upsertMapping(store, storeId, originalKey, newIngredient);
 
-                    // 매핑 저장 후 normalizedRawKey를 재료의 정규화된 이름으로 업데이트
-                    String ingredientKey = newIngredient.getNormalizedName();
-                    if (ingredientKey != null && !ingredientKey.isBlank()) {
-                        item.updateNormalizedKeys(ingredientKey.trim().toLowerCase(), item.getNormalizedRawFull());
-                    }
-                }
-            }
-        }
+					// 매핑 저장 후 normalizedRawKey를 재료의 정규화된 이름으로 업데이트
+					String ingredientKey = newIngredient.getNormalizedName();
+					if (ingredientKey != null && !ingredientKey.isBlank()) {
+						item.updateNormalizedKeys(ingredientKey.trim().toLowerCase(), item.getNormalizedRawFull());
+					}
+				}
+			}
+		}
 
-        // CONFIRMED 상태 아이템의 매핑 저장 및 키 업데이트
-        items.stream()
-                .filter(item -> item.getResolutionStatus() == ResolutionStatus.CONFIRMED)
-                .filter(item -> item.getNormalizedRawKey() != null && item.getIngredient() != null)
-                .forEach(item -> {
-                    // 원본 정규화 키로 매핑 저장
-                    ingredientResolutionService.upsertMapping(
-                            store,
-                            storeId,
-                            item.getNormalizedRawKey(),
-                            item.getIngredient()
-                    );
+		// CONFIRMED 상태 아이템의 매핑 저장 및 키 업데이트
+		items.stream()
+			.filter(item -> item.getResolutionStatus() == ResolutionStatus.CONFIRMED)
+			.filter(item -> item.getNormalizedRawKey() != null && item.getIngredient() != null)
+			.forEach(item -> {
+				// 원본 정규화 키로 매핑 저장
+				ingredientResolutionService.upsertMapping(
+					store,
+					storeId,
+					item.getNormalizedRawKey(),
+					item.getIngredient()
+				);
 
-                    // 매핑 저장 후 normalizedRawKey를 재료의 정규화된 이름으로 업데이트
-                    String ingredientKey = item.getIngredient().getNormalizedName();
-                    if (ingredientKey != null && !ingredientKey.isBlank()) {
-                        item.updateNormalizedKeys(
-                                ingredientKey.trim().toLowerCase(),
-                                item.getNormalizedRawFull()
-                        );
-                    }
-                });
+				// 매핑 저장 후 normalizedRawKey를 재료의 정규화된 이름으로 업데이트
+				String ingredientKey = item.getIngredient().getNormalizedName();
+				if (ingredientKey != null && !ingredientKey.isBlank()) {
+					item.updateNormalizedKeys(
+						ingredientKey.trim().toLowerCase(),
+						item.getNormalizedRawFull()
+					);
+				}
+			});
 
-        for (StockInboundItem item : items) {
-            if (item.getIngredient() == null) {
-                continue;
-            }
+		for (StockInboundItem item : items) {
+			if (item.getIngredient() == null) {
+				continue;
+			}
 
-            applyNormalizedQuantity(item, item.getIngredient());
-            validateFinalUnitCompatibilityOrThrow(item, item.getIngredient());
+			applyNormalizedQuantity(item, item.getIngredient());
+			validateFinalUnitCompatibilityOrThrow(item, item.getIngredient());
 
-            IngredientStockBatch batch = IngredientStockBatch.createFromInbound(
-                    item.getIngredient(),
-                    item
-            );
-            ingredientStockBatchRepository.save(batch);
+			IngredientStockBatch batch = IngredientStockBatch.createFromInbound(
+				item.getIngredient(),
+				item
+			);
+			ingredientStockBatchRepository.save(batch);
 
-            BigDecimal balanceAfter = ingredientStockBatchRepository.calculateTotalQuantity(
-                    storeId,
-                    item.getIngredient().getIngredientId()
-            );
+			try {
+				stockBatchIndexingService.index(batch);
+			} catch (Exception e) {
+				log.error("[ES] 입고 인덱싱 실패 batchId={}", batch.getBatchId(), e);
+			}
 
-            StockInboundLogCommand command = StockInboundLogCommand.ofInbound(
-                    inbound,
-                    item,
-                    batch,
-                    balanceAfter,
-                    user
-            );
+			BigDecimal balanceAfter = ingredientStockBatchRepository.calculateTotalQuantity(
+				storeId,
+				item.getIngredient().getIngredientId()
+			);
 
-            stockLogService.logInbound(command);
-        }
+			StockInboundLogCommand command = StockInboundLogCommand.ofInbound(
+				inbound,
+				item,
+				batch,
+				balanceAfter,
+				user
+			);
 
-        try {
-            stockInboundIndexingService.index(inbound);
-        } catch (Exception e) {
-            log.error("[ES] 입고 인덱싱 실패 inboundId={}", inbound.getInboundId(), e);
-        }
-    }
+			stockLogService.logInbound(command);
+		}
 
-    @Transactional
-    public void updateItemNormalization(Long userId,
-                                        UUID storePublicId,
-                                        UUID inboundPublicId,
-                                        UUID inboundItemPublicId,
-                                        UpdateNormalizationRequest request) {
-        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+		try {
+			stockInboundIndexingService.index(inbound);
+		} catch (Exception e) {
+			log.error("[ES] 입고 인덱싱 실패 inboundId={}", inbound.getInboundId(), e);
+		}
+	}
 
-        StockInboundItem inboundItem = stockInboundItemRepository
-                .findWithInbound(inboundItemPublicId)
-                .orElseThrow(() -> new StockException(StockErrorCode.INBOUND_ITEM_NOT_FOUND));
+	@Transactional
+	public void updateItemNormalization(Long userId,
+		UUID storePublicId,
+		UUID inboundPublicId,
+		UUID inboundItemPublicId,
+		UpdateNormalizationRequest request) {
+		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
-        if (!inboundItem.getInbound().getInboundPublicId().equals(inboundPublicId)) {
-            throw new StockException(StockErrorCode.INBOUND_ITEM_NOT_FOUND);
-        }
+		StockInboundItem inboundItem = stockInboundItemRepository
+			.findWithInbound(inboundItemPublicId)
+			.orElseThrow(() -> new StockException(StockErrorCode.INBOUND_ITEM_NOT_FOUND));
 
-        if (!inboundItem.getInbound().getStore().getStoreId().equals(storeId)) {
-            throw new StockException(StockErrorCode.INBOUND_NOT_FOUND);
-        }
+		if (!inboundItem.getInbound().getInboundPublicId().equals(inboundPublicId)) {
+			throw new StockException(StockErrorCode.INBOUND_ITEM_NOT_FOUND);
+		}
 
-        if (request.specText() != null && !request.specText().isBlank()) {
-            inboundItem.updateSpecText(request.specText());
-        }
+		if (!inboundItem.getInbound().getStore().getStoreId().equals(storeId)) {
+			throw new StockException(StockErrorCode.INBOUND_NOT_FOUND);
+		}
 
-        // normalizedUnit과 normalizedUnitSize가 제공되면 정규화 수량 재계산
-        if (request.normalizedUnit() != null) {
-            IngredientUnit unit = parseIngredientUnit(request.normalizedUnit());
-            BigDecimal unitSize = request.normalizedUnitSize();
+		if (request.specText() != null && !request.specText().isBlank()) {
+			inboundItem.updateSpecText(request.specText());
+		}
 
-            if (unitSize != null && unitSize.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal normalizedQuantity = inboundItem.getQuantity().multiply(unitSize);
-                inboundItem.updateNormalizedQuantity(normalizedQuantity);
-            } else {
-                // unitSize가 없으면 원본 수량 사용
-                inboundItem.updateNormalizedQuantity(inboundItem.getQuantity());
-            }
-        }
-    }
+		// normalizedUnit과 normalizedUnitSize가 제공되면 정규화 수량 재계산
+		if (request.normalizedUnit() != null) {
+			IngredientUnit unit = parseIngredientUnit(request.normalizedUnit());
+			BigDecimal unitSize = request.normalizedUnitSize();
 
-    @Transactional(readOnly = true)
-    public StockInboundResponse getInbound(Long userId, UUID storePublicId, UUID inboundPublicId) {
-        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+			if (unitSize != null && unitSize.compareTo(BigDecimal.ZERO) > 0) {
+				BigDecimal normalizedQuantity = inboundItem.getQuantity().multiply(unitSize);
+				inboundItem.updateNormalizedQuantity(normalizedQuantity);
+			} else {
+				// unitSize가 없으면 원본 수량 사용
+				inboundItem.updateNormalizedQuantity(inboundItem.getQuantity());
+			}
+		}
+	}
 
-        StockInbound inbound = stockInboundRepository.findByInboundPublicIdAndStoreStoreId(inboundPublicId, storeId)
-                .orElseThrow(() -> new StockException(StockErrorCode.INBOUND_NOT_FOUND));
+	@Transactional(readOnly = true)
+	public StockInboundResponse getInbound(Long userId, UUID storePublicId, UUID inboundPublicId) {
+		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
-        List<StockInboundItem> items = stockInboundItemRepository.findByInboundInboundId(inbound.getInboundId());
-        List<StockInboundItemResponse> itemResponses = items.stream()
-                .map(StockInboundItemResponse::from)
-                .toList();
+		StockInbound inbound = stockInboundRepository.findByInboundPublicIdAndStoreStoreId(inboundPublicId, storeId)
+			.orElseThrow(() -> new StockException(StockErrorCode.INBOUND_NOT_FOUND));
 
-        return StockInboundResponse.from(inbound, itemResponses);
-    }
+		List<StockInboundItem> items = stockInboundItemRepository.findByInboundInboundId(inbound.getInboundId());
+		List<StockInboundItemResponse> itemResponses = items.stream()
+			.map(StockInboundItemResponse::from)
+			.toList();
 
-    @Transactional(readOnly = true)
-    public PageResponse<StockInboundListResponse> getInbounds(
-            Long userId,
-            UUID storePublicId,
-            StockInboundSearchRequest searchRequest,
-            Pageable pageable
-    ) {
-        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+		return StockInboundResponse.from(inbound, itemResponses);
+	}
 
-        List<InboundStatus> targetStatuses = List.of(InboundStatus.CONFIRMED, InboundStatus.DRAFT);
+	@Transactional(readOnly = true)
+	public PageResponse<StockInboundListResponse> getInbounds(
+		Long userId,
+		UUID storePublicId,
+		StockInboundSearchRequest searchRequest,
+		Pageable pageable
+	) {
+		Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
 
-        Page<StockInbound> inboundPage = stockInboundRepository
-                .searchInbounds(storeId, targetStatuses, searchRequest, pageable);
+		List<InboundStatus> targetStatuses = List.of(InboundStatus.CONFIRMED, InboundStatus.DRAFT);
 
-        List<Long> inboundIds = inboundPage.getContent().stream()
-                .map(StockInbound::getInboundId)
-                .toList();
+		Page<StockInbound> inboundPage = stockInboundRepository
+			.searchInbounds(storeId, targetStatuses, searchRequest, pageable);
 
-        Map<Long, InboundItemAggregate> aggregates = stockInboundItemRepository
-                .findAggregatesByInboundIds(inboundIds)
-                .stream()
-                .collect(Collectors.toMap(InboundItemAggregate::inboundId, a -> a));
+		List<Long> inboundIds = inboundPage.getContent().stream()
+			.map(StockInbound::getInboundId)
+			.toList();
 
-        Page<StockInboundListResponse> dtoPage = inboundPage.map(inboundEntity -> {
-            InboundItemAggregate aggregate = aggregates.getOrDefault(
-                    inboundEntity.getInboundId(),
-                    InboundItemAggregate.empty(inboundEntity.getInboundId())
-            );
+		Map<Long, InboundItemAggregate> aggregates = stockInboundItemRepository
+			.findAggregatesByInboundIds(inboundIds)
+			.stream()
+			.collect(Collectors.toMap(InboundItemAggregate::inboundId, a -> a));
 
-            return StockInboundListResponse.from(
-                    inboundEntity,
-                    aggregate.itemCount(),
-                    aggregate.totalCost()
-            );
-        });
+		Page<StockInboundListResponse> dtoPage = inboundPage.map(inboundEntity -> {
+			InboundItemAggregate aggregate = aggregates.getOrDefault(
+				inboundEntity.getInboundId(),
+				InboundItemAggregate.empty(inboundEntity.getInboundId())
+			);
 
-        return PageResponse.from(dtoPage);
-    }
+			return StockInboundListResponse.from(
+				inboundEntity,
+				aggregate.itemCount(),
+				aggregate.totalCost()
+			);
+		});
 
-    private Ingredient createAutoSuggestedIngredient(Store store, StockInboundItem item) {
-        InboundSpecExtractor.Spec spec = inboundSpecExtractor
-                .extract(item.getRawProductName(), item.getSpecText())
-                .orElse(null);
+		return PageResponse.from(dtoPage);
+	}
 
-        IngredientUnit unit = spec != null ? spec.unit() : IngredientUnit.EA;
-        BigDecimal unitSize = resolveIngredientUnitSize(spec, unit);
+	private Ingredient createAutoSuggestedIngredient(Store store, StockInboundItem item) {
+		InboundSpecExtractor.Spec spec = inboundSpecExtractor
+			.extract(item.getRawProductName(), item.getSpecText())
+			.orElse(null);
 
-        if (unitSize == null) {
-            return Ingredient.create(store, item.getNormalizedRawKey(), unit, null);
-        }
+		IngredientUnit unit = spec != null ? spec.unit() : IngredientUnit.EA;
+		BigDecimal unitSize = resolveIngredientUnitSize(spec, unit);
 
-        return Ingredient.create(store, item.getNormalizedRawKey(), unit, null, unitSize);
-    }
+		if (unitSize == null) {
+			return Ingredient.create(store, item.getNormalizedRawKey(), unit, null);
+		}
 
-    private BigDecimal resolveIngredientUnitSize(InboundSpecExtractor.Spec spec, IngredientUnit unit) {
-        if (spec == null || unit == null) {
-            return null;
-        }
+		return Ingredient.create(store, item.getNormalizedRawKey(), unit, null, unitSize);
+	}
 
-        if (unit == IngredientUnit.EA) {
-            return null;
-        }
+	private BigDecimal resolveIngredientUnitSize(InboundSpecExtractor.Spec spec, IngredientUnit unit) {
+		if (spec == null || unit == null) {
+			return null;
+		}
 
-        if (spec.unit() != unit) {
-            return null;
-        }
+		if (unit == IngredientUnit.EA) {
+			return null;
+		}
 
-        if (spec.unitSize() == null || spec.unitSize().compareTo(BigDecimal.ZERO) <= 0) {
-            return null;
-        }
+		if (spec.unit() != unit) {
+			return null;
+		}
 
-        return spec.unitSize();
-    }
+		if (spec.unitSize() == null || spec.unitSize().compareTo(BigDecimal.ZERO) <= 0) {
+			return null;
+		}
 
-    private void applyNormalizedQuantity(StockInboundItem item, Ingredient ingredient) {
-        InboundQuantityNormalizer.NormalizationResult result = inboundQuantityNormalizer.normalize(item, ingredient);
-        item.updateNormalizedQuantity(result.normalizedQuantity());
-    }
+		return spec.unitSize();
+	}
 
-    private void validateFinalUnitCompatibilityOrThrow(StockInboundItem item, Ingredient ingredient) {
-        InboundSpecExtractor.Spec spec = inboundSpecExtractor
-                .extract(item.getRawProductName(), item.getSpecText())
-                .orElse(null);
+	private void applyNormalizedQuantity(StockInboundItem item, Ingredient ingredient) {
+		InboundQuantityNormalizer.NormalizationResult result = inboundQuantityNormalizer.normalize(item, ingredient);
+		item.updateNormalizedQuantity(result.normalizedQuantity());
+	}
 
-        if (spec == null || ingredient == null || ingredient.getUnit() == null) {
-            return;
-        }
+	private void validateFinalUnitCompatibilityOrThrow(StockInboundItem item, Ingredient ingredient) {
+		InboundSpecExtractor.Spec spec = inboundSpecExtractor
+			.extract(item.getRawProductName(), item.getSpecText())
+			.orElse(null);
 
-        // G/ML 규격이 있는 품목은 EA 재료와 매핑되지 않도록 차단
-        if (spec.unit() != ingredient.getUnit()) {
-            throw new StockException(StockErrorCode.INVALID_INBOUND_ITEM_UNIT_MAPPING);
-        }
-    }
+		if (spec == null || ingredient == null || ingredient.getUnit() == null) {
+			return;
+		}
 
-    private IngredientUnit parseIngredientUnit(String unitStr) {
-        if (unitStr == null || unitStr.isBlank()) {
-            return IngredientUnit.EA;
-        }
+		// G/ML 규격이 있는 품목은 EA 재료와 매핑되지 않도록 차단
+		if (spec.unit() != ingredient.getUnit()) {
+			throw new StockException(StockErrorCode.INVALID_INBOUND_ITEM_UNIT_MAPPING);
+		}
+	}
 
-        return switch (unitStr.toUpperCase()) {
-            case "EA" -> IngredientUnit.EA;
-            case "G" -> IngredientUnit.G;
-            case "ML" -> IngredientUnit.ML;
-            default -> IngredientUnit.EA;
-        };
-    }
+	private IngredientUnit parseIngredientUnit(String unitStr) {
+		if (unitStr == null || unitStr.isBlank()) {
+			return IngredientUnit.EA;
+		}
+
+		return switch (unitStr.toUpperCase()) {
+			case "EA" -> IngredientUnit.EA;
+			case "G" -> IngredientUnit.G;
+			case "ML" -> IngredientUnit.ML;
+			default -> IngredientUnit.EA;
+		};
+	}
 }

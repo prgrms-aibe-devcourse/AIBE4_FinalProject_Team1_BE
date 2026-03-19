@@ -31,7 +31,7 @@ public record StockShortageDocument(
 	@Field(type = FieldType.Long)
 	Long ingredientId,
 
-	@Field(type = FieldType.Keyword, name = "keyword")
+	@Field(type = FieldType.Keyword)
 	String ingredientName,
 
 	@Field(type = FieldType.Double)
