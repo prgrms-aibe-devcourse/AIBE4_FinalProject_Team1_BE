@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.UUID;
 
+import kr.inventory.domain.analytics.service.indexing.StockBatchIndexingService;
 import kr.inventory.domain.analytics.service.indexing.WasteIndexingService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,6 +45,7 @@ public class WasteService {
 	private final UserRepository userRepository;
 	private final StockLogService stockLogService;
 	private final WasteIndexingService wasteIndexingService;
+	private final StockBatchIndexingService stockBatchIndexingService;
 
 	@Transactional
 	public void recordWaste(Long userId, UUID storePublicId, WasteRequest request) {
@@ -65,6 +67,9 @@ public class WasteService {
 				StockErrorCode.INGREDIENT_NOT_FOUND));
 
 		batch.decreaseQuantity(item.quantity());
+
+		stockBatchIndexingService.index(batch);
+
 		BigDecimal totalCost = batch.getUnitCost().multiply(batch.getInboundItem().getQuantity());
 
 		BigDecimal pricePerUnit = totalCost

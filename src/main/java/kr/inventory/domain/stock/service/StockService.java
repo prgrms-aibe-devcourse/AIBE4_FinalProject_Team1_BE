@@ -1,5 +1,6 @@
 package kr.inventory.domain.stock.service;
 
+import kr.inventory.domain.analytics.service.indexing.StockBatchIndexingService;
 import kr.inventory.domain.notification.service.trigger.StockThresholdNotificationTriggerService;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.repository.IngredientRepository;
@@ -9,6 +10,7 @@ import kr.inventory.domain.stock.service.command.IngredientStockTotal;
 import kr.inventory.domain.stock.service.command.StockDeductionLogCommand;
 import kr.inventory.domain.stock.service.command.StockDeductionRequest;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,15 +25,16 @@ import java.util.stream.Collectors;
 @Transactional
 public class StockService {
 	private final IngredientStockBatchRepository ingredientStockBatchRepository;
-    private final IngredientRepository ingredientRepository;
-    private final StockThresholdNotificationTriggerService stockThresholdNotificationTriggerService;
+	private final IngredientRepository ingredientRepository;
+	private final StockThresholdNotificationTriggerService stockThresholdNotificationTriggerService;
 	private final StockLogService stockLogService;
+	private final StockBatchIndexingService stockBatchIndexingService;
 
 	public Map<Long, BigDecimal> deductStockWithFEFO(StockDeductionRequest request) {
 		List<Long> sortedIds = getSortedIngredientIds(request.usageMap());
 
-        Map<Long, BigDecimal> beforeStockMap = getCurrentStockMap(request.storeId(), sortedIds);
-        Map<Long, Ingredient> ingredientMap = getIngredientMap(sortedIds);
+		Map<Long, BigDecimal> beforeStockMap = getCurrentStockMap(request.storeId(), sortedIds);
+		Map<Long, Ingredient> ingredientMap = getIngredientMap(sortedIds);
 
 		Map<Long, List<IngredientStockBatch>> batchGroup = fetchBatchesGroupedById(request.storeId(), sortedIds);
 
@@ -48,15 +51,15 @@ public class StockService {
 			}
 		}
 
-        Map<Long, BigDecimal> afterStockMap = getCurrentStockMapFromBatches(batchGroup, sortedIds);
+		Map<Long, BigDecimal> afterStockMap = getCurrentStockMapFromBatches(batchGroup, sortedIds);
 
-        triggerBelowThresholdNotifications(
-                request.storeId(),
-                sortedIds,
-                beforeStockMap,
-                afterStockMap,
-                ingredientMap
-        );
+		triggerBelowThresholdNotifications(
+			request.storeId(),
+			sortedIds,
+			beforeStockMap,
+			afterStockMap,
+			ingredientMap
+		);
 
 		return shortageMap;
 	}
@@ -85,6 +88,8 @@ public class StockService {
 
 			BigDecimal actualDeducted = batch.deductWithClamp(remaining);
 
+			stockBatchIndexingService.index(batch);
+
 			if (actualDeducted.signum() > 0) {
 				StockDeductionLogCommand logCommand = StockDeductionLogCommand.forSale(
 					batch,
@@ -101,75 +106,75 @@ public class StockService {
 		return remaining;
 	}
 
-    private Map<Long, BigDecimal> getCurrentStockMap(Long storeId, List<Long> ingredientIds) {
-        Map<Long, BigDecimal> result = new HashMap<>();
+	private Map<Long, BigDecimal> getCurrentStockMap(Long storeId, List<Long> ingredientIds) {
+		Map<Long, BigDecimal> result = new HashMap<>();
 
-        List<IngredientStockTotal> totals =
-                ingredientStockBatchRepository.findTotalRemainingByStoreIdAndIngredientIds(storeId, ingredientIds);
+		List<IngredientStockTotal> totals =
+			ingredientStockBatchRepository.findTotalRemainingByStoreIdAndIngredientIds(storeId, ingredientIds);
 
-        for (IngredientStockTotal total : totals) {
-            result.put(
-                    total.ingredientId(),
-                    total.totalQuantity() == null ? BigDecimal.ZERO : total.totalQuantity()
-            );
-        }
+		for (IngredientStockTotal total : totals) {
+			result.put(
+				total.ingredientId(),
+				total.totalQuantity() == null ? BigDecimal.ZERO : total.totalQuantity()
+			);
+		}
 
-        for (Long ingredientId : ingredientIds) {
-            result.putIfAbsent(ingredientId, BigDecimal.ZERO);
-        }
+		for (Long ingredientId : ingredientIds) {
+			result.putIfAbsent(ingredientId, BigDecimal.ZERO);
+		}
 
-        return result;
-    }
+		return result;
+	}
 
-    private Map<Long, BigDecimal> getCurrentStockMapFromBatches(
-            Map<Long, List<IngredientStockBatch>> batchGroup,
-            List<Long> ingredientIds
-    ) {
-        return ingredientIds.stream()
-                .collect(Collectors.toMap(
-                        ingredientId -> ingredientId,
-                        ingredientId -> batchGroup.getOrDefault(ingredientId, List.of()).stream()
-                                .map(IngredientStockBatch::getRemainingQuantity)
-                                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                ));
-    }
+	private Map<Long, BigDecimal> getCurrentStockMapFromBatches(
+		Map<Long, List<IngredientStockBatch>> batchGroup,
+		List<Long> ingredientIds
+	) {
+		return ingredientIds.stream()
+			.collect(Collectors.toMap(
+				ingredientId -> ingredientId,
+				ingredientId -> batchGroup.getOrDefault(ingredientId, List.of()).stream()
+					.map(IngredientStockBatch::getRemainingQuantity)
+					.reduce(BigDecimal.ZERO, BigDecimal::add)
+			));
+	}
 
-    private Map<Long, Ingredient> getIngredientMap(List<Long> ingredientIds) {
-        return ingredientRepository.findByIngredientIdIn(ingredientIds).stream()
-                .collect(Collectors.toMap(Ingredient::getIngredientId, ingredient -> ingredient));
-    }
+	private Map<Long, Ingredient> getIngredientMap(List<Long> ingredientIds) {
+		return ingredientRepository.findByIngredientIdIn(ingredientIds).stream()
+			.collect(Collectors.toMap(Ingredient::getIngredientId, ingredient -> ingredient));
+	}
 
-    private void triggerBelowThresholdNotifications(
-            Long storeId,
-            List<Long> ingredientIds,
-            Map<Long, BigDecimal> beforeStockMap,
-            Map<Long, BigDecimal> afterStockMap,
-            Map<Long, Ingredient> ingredientMap
-    ) {
-        List<Long> thresholdCrossedIngredientIds = ingredientIds.stream()
-                .filter(ingredientId -> {
-                    Ingredient ingredient = ingredientMap.get(ingredientId);
-                    if (ingredient == null) {
-                        return false;
-                    }
+	private void triggerBelowThresholdNotifications(
+		Long storeId,
+		List<Long> ingredientIds,
+		Map<Long, BigDecimal> beforeStockMap,
+		Map<Long, BigDecimal> afterStockMap,
+		Map<Long, Ingredient> ingredientMap
+	) {
+		List<Long> thresholdCrossedIngredientIds = ingredientIds.stream()
+			.filter(ingredientId -> {
+				Ingredient ingredient = ingredientMap.get(ingredientId);
+				if (ingredient == null) {
+					return false;
+				}
 
-                    BigDecimal threshold = ingredient.getLowStockThreshold();
-                    if (threshold == null) {
-                        return false;
-                    }
+				BigDecimal threshold = ingredient.getLowStockThreshold();
+				if (threshold == null) {
+					return false;
+				}
 
-                    BigDecimal before = beforeStockMap.getOrDefault(ingredientId, BigDecimal.ZERO);
-                    BigDecimal after = afterStockMap.getOrDefault(ingredientId, BigDecimal.ZERO);
+				BigDecimal before = beforeStockMap.getOrDefault(ingredientId, BigDecimal.ZERO);
+				BigDecimal after = afterStockMap.getOrDefault(ingredientId, BigDecimal.ZERO);
 
-                    return before.compareTo(threshold) >= 0
-                            && after.compareTo(threshold) < 0;
-                })
-                .toList();
+				return before.compareTo(threshold) >= 0
+					&& after.compareTo(threshold) < 0;
+			})
+			.toList();
 
-        stockThresholdNotificationTriggerService.notifyStoreMembersBelowThreshold(
-                storeId,
-                ingredientMap,
-                thresholdCrossedIngredientIds
-        );
-    }
+		stockThresholdNotificationTriggerService.notifyStoreMembersBelowThreshold(
+			storeId,
+			ingredientMap,
+			thresholdCrossedIngredientIds
+		);
+	}
 }
