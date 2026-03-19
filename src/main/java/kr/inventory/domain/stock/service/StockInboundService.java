@@ -1,5 +1,6 @@
 package kr.inventory.domain.stock.service;
 
+import kr.inventory.domain.analytics.service.indexing.StockBatchIndexingService;
 import kr.inventory.domain.analytics.service.indexing.StockInboundIndexingService;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.entity.Vendor;
@@ -50,20 +51,21 @@ import java.util.stream.Collectors;
 @Transactional
 public class StockInboundService {
 
-    private final StockInboundRepository stockInboundRepository;
-    private final StockInboundItemRepository stockInboundItemRepository;
-    private final IngredientStockBatchRepository ingredientStockBatchRepository;
-    private final StoreAccessValidator storeAccessValidator;
-    private final StoreRepository storeRepository;
-    private final VendorRepository vendorRepository;
-    private final UserRepository userRepository;
-    private final IngredientRepository ingredientRepository;
-    private final IngredientResolutionService ingredientResolutionService;
-    private final InboundSpecExtractor inboundSpecExtractor;
-    private final InboundQuantityNormalizer inboundQuantityNormalizer;
-    private final StockLogService stockLogService;
-    private final StockInboundIndexingService stockInboundIndexingService;
-    private final ShortageResolutionService shortageResolutionService;
+	private final StockInboundRepository stockInboundRepository;
+	private final StockInboundItemRepository stockInboundItemRepository;
+	private final IngredientStockBatchRepository ingredientStockBatchRepository;
+	private final StoreAccessValidator storeAccessValidator;
+	private final StoreRepository storeRepository;
+	private final VendorRepository vendorRepository;
+	private final UserRepository userRepository;
+	private final IngredientRepository ingredientRepository;
+	private final IngredientResolutionService ingredientResolutionService;
+	private final InboundSpecExtractor inboundSpecExtractor;
+	private final InboundQuantityNormalizer inboundQuantityNormalizer;
+	private final StockLogService stockLogService;
+	private final StockInboundIndexingService stockInboundIndexingService;
+	private final StockBatchIndexingService stockBatchIndexingService;
+	private final ShortageResolutionService shortageResolutionService;
 
     public StockInboundResponse createManualInbound(Long userId, UUID storePublicId, ManualInboundRequest request) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
@@ -179,8 +181,8 @@ public class StockInboundService {
                 continue;
             }
 
-            applyNormalizedQuantity(item, item.getIngredient());
-            validateFinalUnitCompatibilityOrThrow(item, item.getIngredient());
+			applyNormalizedQuantity(item, item.getIngredient());
+			validateFinalUnitCompatibilityOrThrow(item, item.getIngredient());
 
             IngredientStockBatch batch = IngredientStockBatch.createFromInbound(
                     item.getIngredient(),

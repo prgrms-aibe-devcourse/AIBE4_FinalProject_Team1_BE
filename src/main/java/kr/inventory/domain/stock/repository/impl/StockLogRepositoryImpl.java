@@ -19,6 +19,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import kr.inventory.domain.stock.controller.dto.request.StockLogSearchRequest;
 import kr.inventory.domain.stock.controller.dto.response.StockLogResponse;
 import kr.inventory.domain.stock.entity.StockLog;
+import kr.inventory.domain.stock.entity.enums.ReferenceType;
 import kr.inventory.domain.stock.entity.enums.TransactionType;
 import kr.inventory.domain.stock.repository.StockLogRepositoryCustom;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +37,9 @@ public class StockLogRepositoryImpl implements StockLogRepositoryCustom {
 		BooleanExpression[] predicates = {
 			storeIdEq(storeId),
 			dateBetween(condition.startDate(), condition.endDate()),
-			typeEq(condition.type()),
+			referenceTypeEq(condition.refType()),
+			TransactionTypeEq(condition.transactionType()),
+
 			ingredientNameContains(condition.ingredientName())
 		};
 
@@ -67,7 +70,11 @@ public class StockLogRepositoryImpl implements StockLogRepositoryCustom {
 		return storeId != null ? stockLog.store.storeId.eq(storeId) : null;
 	}
 
-	private BooleanExpression typeEq(TransactionType type) {
+	private BooleanExpression referenceTypeEq(ReferenceType type) {
+		return type != null ? stockLog.referenceType.eq(type) : null;
+	}
+
+	private BooleanExpression TransactionTypeEq(TransactionType type) {
 		return type != null ? stockLog.transactionType.eq(type) : null;
 	}
 
