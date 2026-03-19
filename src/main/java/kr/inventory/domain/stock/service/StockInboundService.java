@@ -41,9 +41,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -65,6 +63,7 @@ public class StockInboundService {
     private final InboundQuantityNormalizer inboundQuantityNormalizer;
     private final StockLogService stockLogService;
     private final StockInboundIndexingService stockInboundIndexingService;
+    private final ShortageResolutionService shortageResolutionService;
 
     public StockInboundResponse createManualInbound(Long userId, UUID storePublicId, ManualInboundRequest request) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
@@ -173,6 +172,8 @@ public class StockInboundService {
                     }
                 });
 
+        Set<Long> affectedIngredientIds = new HashSet<>();
+
         for (StockInboundItem item : items) {
             if (item.getIngredient() == null) {
                 continue;
@@ -186,6 +187,8 @@ public class StockInboundService {
                     item
             );
             ingredientStockBatchRepository.save(batch);
+
+            affectedIngredientIds.add(item.getIngredient().getIngredientId());
 
             BigDecimal balanceAfter = ingredientStockBatchRepository.calculateTotalQuantity(
                     storeId,
@@ -202,6 +205,8 @@ public class StockInboundService {
 
             stockLogService.logInbound(command);
         }
+
+        shortageResolutionService.closePendingShortagesIfStockRecovered(storeId, affectedIngredientIds);
 
         try {
             stockInboundIndexingService.index(inbound);
