@@ -33,7 +33,8 @@ public enum StockErrorCode implements ErrorModel {
     INVALID_SLIP_TITLE(HttpStatus.BAD_REQUEST, "S022", "전표 제목은 비어 있을 수 없습니다."),
     INVALID_INBOUND_ITEM_UNIT_MAPPING(HttpStatus.BAD_REQUEST, "S023", "입고 품목 규격과 재료 단위가 일치하지 않습니다."),
     SHORTAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "S024", "해당 부족 건을 찾을 수 없습니다."),
-    SHORAGE_LINK_ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "S025", "해당 부족 건과 연결된 주문을 찾을 수 없습니다.");
+    SHORAGE_LINK_ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "S025", "해당 부족 건과 연결된 주문을 찾을 수 없습니다."),
+    INGREDIENT_HAS_REMAINING_STOCK(HttpStatus.CONFLICT, "S026", "해당 재고가 아직 남아있습니다.");
 
 	private final HttpStatus status;
 	private final String code;
