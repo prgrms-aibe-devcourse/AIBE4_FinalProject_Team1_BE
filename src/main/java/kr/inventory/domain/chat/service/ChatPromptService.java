@@ -45,6 +45,10 @@ public class ChatPromptService {
             Use this metadata to provide contextually relevant follow-up questions.
             Do not repeat the same actionKey + periodKey combination that was just executed.
             When suggesting follow-up questions, prefer different analysis types or time periods.
+            IMPORTANT: Maintain domain consistency in follow-up suggestions.
+            If the current response is about stock or inbound records, only suggest stock-related follow-ups.
+            If the current response is about sales, orders, or menu performance, only suggest sales-related follow-ups.
+            Do not mix stock and sales domains in the same follow-up suggestion set.
             End your response with a section titled exactly "### 추천 질문" when useful follow-ups exist.
             In that section, provide 2 to 3 bullet items based on the suggestedFollowUps metadata.
             Each bullet should be a natural Korean question that aligns with the suggested action.
