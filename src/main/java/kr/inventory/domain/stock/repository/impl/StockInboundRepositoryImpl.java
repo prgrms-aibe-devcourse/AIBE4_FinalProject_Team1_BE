@@ -53,14 +53,6 @@ public class StockInboundRepositoryImpl implements StockInboundRepositoryCustom 
 				builder.and(stockInbound.vendor.name.containsIgnoreCase(searchRequest.vendorName().trim()));
 			}
 
-			if (searchRequest.inboundPublicId() != null && !searchRequest.inboundPublicId().isBlank()) {
-				String keyword = searchRequest.inboundPublicId().trim().toLowerCase();
-				builder.and(Expressions.stringTemplate(
-						"LOWER(CAST({0} AS VARCHAR))",
-						stockInbound.inboundPublicId
-				).like("%" + keyword + "%"));
-			}
-
 			if (searchRequest.inboundDateFrom() != null) {
 				builder.and(stockInbound.inboundDate.goe(searchRequest.inboundDateFrom()));
 			}
