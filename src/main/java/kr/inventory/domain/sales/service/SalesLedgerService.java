@@ -142,13 +142,13 @@ public class SalesLedgerService {
 
     private void validateSearchPeriod(OffsetDateTime from, OffsetDateTime to) {
         if (from.isAfter(to)) {
-            throw new SalesOrderException(SalesOrderErrorCode.INVALID_SALES_LEDGER_PERIOD);
+            throw new SalesOrderException(SalesOrderErrorCode.INVALID_SEARCH_PERIOD);
         }
     }
 
     private void validateAmountRange(BigDecimal amountMin, BigDecimal amountMax) {
         if (amountMin != null && amountMax != null && amountMin.compareTo(amountMax) > 0) {
-            throw new SalesOrderException(SalesOrderErrorCode.INVALID_SALES_LEDGER_PERIOD);
+            throw new SalesOrderException(SalesOrderErrorCode.INVALID_AMOUNT_RANGE);
         }
     }
 

@@ -120,7 +120,7 @@ class SalesLedgerServiceTest {
         assertThatThrownBy(() -> salesLedgerService.getSalesLedgerOrders(userId, storePublicId, request, PageRequest.of(0, 20)))
                 .isInstanceOf(SalesOrderException.class)
                 .extracting("errorModel")
-                .isEqualTo(SalesOrderErrorCode.INVALID_SALES_LEDGER_PERIOD);
+                .isEqualTo(SalesOrderErrorCode.INVALID_SEARCH_PERIOD);
     }
 
     @Test

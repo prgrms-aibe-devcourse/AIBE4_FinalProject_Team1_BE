@@ -7,6 +7,7 @@ import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.LockModeType;
 import kr.inventory.domain.dining.entity.QDiningTable;
+import kr.inventory.domain.sales.controller.dto.request.SalesOrderSearchRequest;
 import kr.inventory.domain.sales.controller.dto.response.SalesLedgerTotalSummaryResponse;
 import kr.inventory.domain.sales.entity.QSalesOrderItem;
 import kr.inventory.domain.sales.entity.SalesOrder;
@@ -23,10 +24,7 @@ import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static kr.inventory.domain.sales.entity.QSalesOrder.salesOrder;
 import static kr.inventory.domain.sales.entity.QSalesOrderItem.salesOrderItem;
@@ -52,6 +50,7 @@ public class SalesOrderRepositoryImpl implements SalesOrderRepositoryCustom {
         );
     }
 
+    // 주문 현황
     @Override
     public Optional<SalesOrder> findByOrderPublicIdWithItems(UUID orderPublicId, Long storeId) {
         QDiningTable diningTable = QDiningTable.diningTable;
@@ -69,11 +68,14 @@ public class SalesOrderRepositoryImpl implements SalesOrderRepositoryCustom {
     }
 
     @Override
-    public Page<SalesOrder> findStoreOrders(Long storeId, Pageable pageable) {
+    public Page<SalesOrder> findStoreOrders(Long storeId, SalesOrderSearchRequest request, Pageable pageable) {
+        QDiningTable diningTable = QDiningTable.diningTable;
+        BooleanExpression[] conditions = orderConditions(storeId, request);
+
         List<SalesOrder> orders = queryFactory
                 .selectFrom(salesOrder)
-                .leftJoin(salesOrder.diningTable).fetchJoin()
-                .where(salesOrder.store.storeId.eq(storeId))
+                .leftJoin(salesOrder.diningTable, diningTable).fetchJoin()
+                .where(conditions)
                 .orderBy(salesOrder.orderedAt.desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -82,13 +84,14 @@ public class SalesOrderRepositoryImpl implements SalesOrderRepositoryCustom {
         Long totalCount = queryFactory
                 .select(salesOrder.count())
                 .from(salesOrder)
-                .where(salesOrder.store.storeId.eq(storeId))
+                .where(conditions)
                 .fetchOne();
 
         long safeTotalCount = totalCount == null ? 0L : totalCount;
         return new PageImpl<>(orders, pageable, safeTotalCount);
     }
 
+    // 매출 내역
     @Override
     public Page<SalesOrder> findSalesLedgerOrders(
             Long storeId,
@@ -190,6 +193,23 @@ public class SalesOrderRepositoryImpl implements SalesOrderRepositoryCustom {
         BigDecimal totalNetAmount = totalAmount.subtract(totalRefundAmount);
 
         return new SalesLedgerTotalSummaryResponse(count, totalAmount, totalRefundAmount, totalNetAmount);
+    }
+
+    private BooleanExpression[] orderConditions(Long storeId, SalesOrderSearchRequest request) {
+        List<BooleanExpression> conditions = new ArrayList<>();
+        conditions.add(salesOrder.store.storeId.eq(storeId));
+
+        if (request.from() != null) {
+            conditions.add(salesOrder.orderedAt.goe(request.from().withOffsetSameInstant(ZoneOffset.UTC)));
+        }
+        if (request.to() != null) {
+            conditions.add(salesOrder.orderedAt.loe(request.to().withOffsetSameInstant(ZoneOffset.UTC)));
+        }
+
+        conditions.add(salesOrderStatusEq(request.status()));
+        conditions.add(totalAmountGoe(request.amountMin()));
+        conditions.add(totalAmountLoe(request.amountMax()));
+        return conditions.stream().filter(Objects::nonNull).toArray(BooleanExpression[]::new);
     }
 
     private BooleanExpression[] ledgerConditions(Long storeId, SalesLedgerQueryCondition condition) {

@@ -1,6 +1,7 @@
 package kr.inventory.domain.sales.controller;
 
 import kr.inventory.domain.auth.security.CustomUserDetails;
+import kr.inventory.domain.sales.controller.dto.request.SalesLedgerSearchRequest;
 import kr.inventory.domain.sales.controller.dto.response.SalesLedgerOrderDetailResponse;
 import kr.inventory.domain.sales.controller.dto.response.SalesLedgerOrderSummaryResponse;
 import kr.inventory.domain.sales.entity.enums.SalesOrderStatus;
@@ -69,7 +70,7 @@ class SalesLedgerControllerTest {
                 new PageImpl<>(List.of(content), PageRequest.of(0, 20), 1)
         );
 
-        given(salesLedgerService.getSalesLedgerOrders(eq(userId), eq(storePublicId), any(), any())).willReturn(response);
+        given(salesLedgerService.getSalesLedgerOrders(eq(userId), eq(storePublicId), any(SalesLedgerSearchRequest.class), any(PageRequest.class))).willReturn(response);
 
         mockMvc.perform(get("/api/sales/{storePublicId}/orders", storePublicId)
                         .with(csrf())

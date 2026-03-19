@@ -26,9 +26,8 @@ public class PurchaseOrderRepositoryImpl implements PurchaseOrderRepositoryCusto
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public Page<PurchaseOrder> findByStoreIdWithFilters(Long storeId, PurchaseOrderSearchRequest searchRequest,
-            Pageable pageable) {
-        // 공통 where 조건
+    public Page<PurchaseOrder> findByStoreIdWithFilters(Long storeId, PurchaseOrderSearchRequest searchRequest, Pageable pageable) {
+
         BooleanExpression[] whereConditions = {
                 purchaseOrder.store.storeId.eq(storeId),
                 statusEq(searchRequest.status()),

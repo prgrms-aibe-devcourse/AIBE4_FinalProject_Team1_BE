@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import kr.inventory.domain.auth.security.CustomUserDetails;
 import kr.inventory.domain.sales.controller.dto.request.SalesOrderCreateRequest;
+import kr.inventory.domain.sales.controller.dto.request.SalesOrderSearchRequest;
 import kr.inventory.domain.sales.controller.dto.response.SalesOrderResponse;
 import kr.inventory.domain.sales.service.SalesOrderService;
 import kr.inventory.global.common.PageResponse;
@@ -49,11 +50,13 @@ public class SalesOrderController {
     public ResponseEntity<PageResponse<SalesOrderResponse>> getStoreOrders(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable UUID storePublicId,
+            @Valid @ModelAttribute SalesOrderSearchRequest request,
             @PageableDefault(size = 20) Pageable pageable
     ) {
         PageResponse<SalesOrderResponse> response = salesOrderService.getStoreOrders(
                 principal.getUserId(),
                 storePublicId,
+                request,
                 pageable
         );
 
