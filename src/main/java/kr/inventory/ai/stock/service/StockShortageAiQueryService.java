@@ -85,6 +85,7 @@ public class StockShortageAiQueryService {
 			response.ingredientName(),
 			response.totalShortageAmount(),
 			response.affectedOrderCount(),
+            response.status(),
 			response.lastOccurrenceTime()
 		);
 	}
