@@ -225,7 +225,7 @@ class SalesOrderControllerTest {
                 new PageImpl<>(List.of(response), PageRequest.of(0, 20), 1)
         );
 
-        given(salesOrderService.getStoreOrders(eq(userId), eq(storePublicId), any()))
+        given(salesOrderService.getStoreOrders(eq(userId), eq(storePublicId), any(), any()))
                 .willReturn(pageResponse);
 
         // when & then

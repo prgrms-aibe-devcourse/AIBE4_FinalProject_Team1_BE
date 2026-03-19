@@ -1,5 +1,6 @@
 package kr.inventory.domain.sales.repository;
 
+import kr.inventory.domain.sales.controller.dto.request.SalesOrderSearchRequest;
 import kr.inventory.domain.sales.controller.dto.response.SalesLedgerTotalSummaryResponse;
 import kr.inventory.domain.sales.entity.SalesOrder;
 import kr.inventory.domain.sales.entity.enums.SalesOrderStatus;
@@ -17,7 +18,11 @@ public interface SalesOrderRepositoryCustom {
 
     Optional<SalesOrder> findByOrderPublicIdWithItems(UUID orderPublicId, Long storeId);
 
-    Page<SalesOrder> findStoreOrders(Long storeId, Pageable pageable);
+    Page<SalesOrder> findStoreOrders(
+            Long storeId,
+            SalesOrderSearchRequest request,
+            Pageable pageable
+    );
 
     Page<SalesOrder> findSalesLedgerOrders(
             Long storeId,
