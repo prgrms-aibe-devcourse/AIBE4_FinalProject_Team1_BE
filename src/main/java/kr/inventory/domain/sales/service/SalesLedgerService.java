@@ -11,6 +11,7 @@ import kr.inventory.domain.sales.exception.SalesOrderErrorCode;
 import kr.inventory.domain.sales.exception.SalesOrderException;
 import kr.inventory.domain.sales.repository.SalesOrderItemRepository;
 import kr.inventory.domain.sales.repository.SalesOrderRepository;
+import kr.inventory.domain.sales.service.command.SalesLedgerQueryCondition;
 import kr.inventory.domain.store.service.StoreAccessValidator;
 import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
@@ -46,7 +47,6 @@ public class SalesLedgerService {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
         SalesOrderStatus statusFilter = request.status();
 
-        // 1. 페이지 데이터 조회
         Page<SalesOrder> orderPage = salesOrderRepository.findSalesLedgerOrders(
                 storeId,
                 request.from(),
@@ -56,18 +56,22 @@ public class SalesLedgerService {
                 pageable
         );
 
-        Map<Long, Long> itemCountByOrderId = getItemCountMap(orderPage.getContent());
+        return toLedgerOrderPage(orderPage, pageable);
+    }
 
-        Page<SalesLedgerOrderSummaryResponse> responsePage = orderPage.map(order -> {
-            Long itemCount = itemCountByOrderId.getOrDefault(order.getSalesOrderId(), 0L);
-            BigDecimal refundAmount = calculateRefundAmount(order);
-            BigDecimal netAmount = calculateNetAmount(order.getTotalAmount(), refundAmount);
+    public PageResponse<SalesLedgerOrderSummaryResponse> getSalesLedgerOrders(
+            Long userId,
+            UUID storePublicId,
+            SalesLedgerQueryCondition condition,
+            Pageable pageable
+    ) {
+        validateSearchPeriod(condition.from(), condition.to());
+        validateAmountRange(condition.amountMin(), condition.amountMax());
 
-            return SalesLedgerOrderSummaryResponse.from(
-                    order, Math.toIntExact(itemCount), refundAmount, netAmount);
-        });
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+        Page<SalesOrder> orderPage = salesOrderRepository.findSalesLedgerOrders(storeId, condition, pageable);
 
-        return PageResponse.from(responsePage);
+        return toLedgerOrderPage(orderPage, pageable);
     }
 
     public SalesLedgerTotalSummaryResponse getSalesLedgerTotalSummary(
@@ -88,6 +92,18 @@ public class SalesLedgerService {
         );
     }
 
+    public SalesLedgerTotalSummaryResponse getSalesLedgerTotalSummary(
+            Long userId,
+            UUID storePublicId,
+            SalesLedgerQueryCondition condition
+    ) {
+        validateSearchPeriod(condition.from(), condition.to());
+        validateAmountRange(condition.amountMin(), condition.amountMax());
+
+        Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
+        return salesOrderRepository.calculateSalesLedgerSummary(storeId, condition);
+    }
+
     public SalesLedgerOrderDetailResponse getSalesLedgerOrder(
             Long userId,
             UUID storePublicId,
@@ -106,8 +122,32 @@ public class SalesLedgerService {
         return SalesLedgerOrderDetailResponse.from(order, items, refundAmount, netAmount);
     }
 
+    private PageResponse<SalesLedgerOrderSummaryResponse> toLedgerOrderPage(
+            Page<SalesOrder> orderPage,
+            Pageable pageable
+    ) {
+        Map<Long, Long> itemCountByOrderId = getItemCountMap(orderPage.getContent());
+
+        Page<SalesLedgerOrderSummaryResponse> responsePage = orderPage.map(order -> {
+            Long itemCount = itemCountByOrderId.getOrDefault(order.getSalesOrderId(), 0L);
+            BigDecimal refundAmount = calculateRefundAmount(order);
+            BigDecimal netAmount = calculateNetAmount(order.getTotalAmount(), refundAmount);
+
+            return SalesLedgerOrderSummaryResponse.from(
+                    order, Math.toIntExact(itemCount), refundAmount, netAmount);
+        });
+
+        return PageResponse.from(responsePage);
+    }
+
     private void validateSearchPeriod(OffsetDateTime from, OffsetDateTime to) {
         if (from.isAfter(to)) {
+            throw new SalesOrderException(SalesOrderErrorCode.INVALID_SALES_LEDGER_PERIOD);
+        }
+    }
+
+    private void validateAmountRange(BigDecimal amountMin, BigDecimal amountMax) {
+        if (amountMin != null && amountMax != null && amountMin.compareTo(amountMax) > 0) {
             throw new SalesOrderException(SalesOrderErrorCode.INVALID_SALES_LEDGER_PERIOD);
         }
     }
