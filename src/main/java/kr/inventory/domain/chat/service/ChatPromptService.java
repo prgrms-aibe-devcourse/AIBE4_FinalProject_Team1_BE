@@ -30,8 +30,11 @@ public class ChatPromptService {
             Prefer actionable and practically useful guidance over vague summaries.
             Keep the response concise, but do not omit important conditions, edge cases, or limitations.
             When helpful, clearly distinguish confirmed facts, assumptions, and recommendations.
-            Use tools whenever the user asks about stock, inbound records, stock shortage history, sales summaries, sales trends, peak sales periods, or top menu rankings.
+            Use tools whenever the user asks about stock, inbound records, stock shortage history, sales summaries, sales trends, sales comparisons, peak sales periods, top menu rankings, sales records, order details, or report access.
             For sales-related questions, prefer tool results over guessing and explicitly mention the exact date range returned by the tool.
+            For sales record questions, use filters such as status, type, menu name, amount range, table code, and sort order when they help answer the user's request.
+            For order-detail questions, use orderPublicId when available. If it is not available, resolve a single matching order from the user's filtering conditions and explain which order was selected.
+            For comparison questions, prefer the dedicated sales-comparison tool over manually inferring comparisons from a single summary result.
             For sales trend results, describe whether the trend is rising or falling based on overallChangeRate when possible, and mention highestPoint, lowestPoint, or latestPoint when they help the answer.
             For sales peak results, mention bestDayOfWeek, bestHour, topDays, topHours, or topTimeSlots when they help answer the question. If the user asks about lunch versus dinner, infer it from the returned peak hours and explain the basis briefly.
             For top menu ranking results, mention whether the ranking is based on quantity or amount, and use totalQuantity, totalAmount, or amountShareRate when they help explain which menu led sales.

@@ -1,23 +1,57 @@
 package kr.inventory.ai.sales.service;
 
+import kr.inventory.ai.common.enums.DateRangePreset;
 import kr.inventory.ai.sales.constant.SalesConstants;
 import kr.inventory.ai.sales.exception.SalesErrorCode;
 import kr.inventory.ai.sales.exception.SalesException;
-import kr.inventory.ai.sales.tool.dto.response.*;
+import kr.inventory.ai.sales.support.SalesSuggestedActionProvider;
+import kr.inventory.ai.sales.tool.dto.request.MenuSalesDetailToolRequest;
+import kr.inventory.ai.sales.tool.dto.request.SalesOrderDetailToolRequest;
+import kr.inventory.ai.sales.tool.dto.request.SalesPeakToolRequest;
+import kr.inventory.ai.sales.tool.dto.request.SalesRecordsToolRequest;
+import kr.inventory.ai.sales.tool.dto.request.SalesRefundSummaryToolRequest;
+import kr.inventory.ai.sales.tool.dto.request.SalesSummaryToolRequest;
+import kr.inventory.ai.sales.tool.dto.request.SalesTrendToolRequest;
+import kr.inventory.ai.sales.tool.dto.request.TopMenuRankingToolRequest;
+import kr.inventory.ai.sales.tool.dto.response.MenuSalesDetailToolResponse;
+import kr.inventory.ai.sales.tool.dto.response.SalesOrderDetailToolResponse;
+import kr.inventory.ai.sales.tool.dto.response.SalesPeakDayToolResponse;
+import kr.inventory.ai.sales.tool.dto.response.SalesPeakHourToolResponse;
+import kr.inventory.ai.sales.tool.dto.response.SalesPeakItemToolResponse;
+import kr.inventory.ai.sales.tool.dto.response.SalesPeakToolResponse;
+import kr.inventory.ai.sales.tool.dto.response.SalesRecordItemToolResponse;
+import kr.inventory.ai.sales.tool.dto.response.SalesRecordsPageInfoToolResponse;
+import kr.inventory.ai.sales.tool.dto.response.SalesRecordsSummaryToolResponse;
+import kr.inventory.ai.sales.tool.dto.response.SalesRecordsToolResponse;
+import kr.inventory.ai.sales.tool.dto.response.SalesRefundSummaryToolResponse;
+import kr.inventory.ai.sales.tool.dto.response.SalesSummaryToolResponse;
+import kr.inventory.ai.sales.tool.dto.response.SalesTrendPointToolResponse;
+import kr.inventory.ai.sales.tool.dto.response.SalesTrendToolResponse;
+import kr.inventory.ai.sales.tool.dto.response.TopMenuRankingItemToolResponse;
+import kr.inventory.ai.sales.tool.dto.response.TopMenuRankingToolResponse;
+import kr.inventory.ai.sales.tool.support.SalesToolDateRange;
+import kr.inventory.ai.sales.tool.support.SalesToolDateRangeResolver;
 import kr.inventory.domain.analytics.controller.dto.response.MenuRankingResponse;
+import kr.inventory.domain.analytics.controller.dto.response.MenuSalesDetailResponse;
+import kr.inventory.domain.analytics.controller.dto.response.RefundSummaryResponse;
 import kr.inventory.domain.analytics.controller.dto.response.SalesPeakResponse;
 import kr.inventory.domain.analytics.controller.dto.response.SalesSummaryResponse;
 import kr.inventory.domain.analytics.controller.dto.response.SalesTrendResponse;
 import kr.inventory.domain.analytics.service.SalesAnalyticsService;
+import kr.inventory.domain.sales.controller.dto.response.SalesLedgerOrderDetailResponse;
+import kr.inventory.domain.sales.controller.dto.response.SalesLedgerOrderSummaryResponse;
+import kr.inventory.domain.sales.controller.dto.response.SalesLedgerTotalSummaryResponse;
+import kr.inventory.domain.sales.service.SalesLedgerService;
+import kr.inventory.domain.sales.service.command.SalesLedgerQueryCondition;
+import kr.inventory.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.format.TextStyle;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -31,130 +65,231 @@ import java.util.stream.Collectors;
 public class SalesAiQueryService {
 
     private final SalesAnalyticsService salesAnalyticsService;
+    private final SalesLedgerService salesLedgerService;
+    private final SalesSuggestedActionProvider salesSuggestedActionProvider;
 
-    public SalesSummaryToolResponse getSalesSummary(
-            Long userId,
-            UUID storePublicId,
-            java.time.OffsetDateTime from,
-            java.time.OffsetDateTime to,
-            String interval,
-            String compareMode,
-            String periodKey,
-            String preset,
-            java.time.OffsetDateTime customBaseFrom,
-            java.time.OffsetDateTime customBaseTo
-    ) {
-        validateInterval(interval);
-        validateCompareMode(compareMode);
+    public SalesSummaryToolResponse getSalesSummary(Long userId, UUID storePublicId, SalesSummaryToolRequest request) {
+        SalesToolDateRange currentRange = SalesToolDateRangeResolver.resolve(
+                request.period(),
+                request.fromDate(),
+                request.toDate(),
+                DateRangePreset.LAST_7_DAYS
+        );
+        String interval = request.normalizedInterval();
+        String compareMode = request.normalizedCompareMode();
 
-        LocalDate currentFrom = from != null ? from.toLocalDate() : null;
-        LocalDate currentTo = to != null ? to.toLocalDate() : null;
-        LocalDate providedBaseFrom = customBaseFrom != null ? customBaseFrom.toLocalDate() : null;
-        LocalDate providedBaseTo = customBaseTo != null ? customBaseTo.toLocalDate() : null;
-
-        LocalDate[] baseRange = resolveBaseRange(currentFrom, currentTo, compareMode, providedBaseFrom, providedBaseTo);
-        LocalDate baseFrom = baseRange[0];
-        LocalDate baseTo = baseRange[1];
+        SalesToolDateRange baseRange = switch (compareMode) {
+            case "previous_period" -> {
+                long days = currentRange.toDate().toEpochDay() - currentRange.fromDate().toEpochDay() + 1;
+                LocalDate baseTo = currentRange.fromDate().minusDays(1);
+                LocalDate baseFrom = baseTo.minusDays(days - 1);
+                yield new SalesToolDateRange(
+                        "previous_period",
+                        baseFrom,
+                        baseTo,
+                        baseFrom.atStartOfDay(SalesConstants.KST).toOffsetDateTime(),
+                        baseTo.atTime(23, 59, 59).atZone(SalesConstants.KST).toOffsetDateTime()
+                );
+            }
+            case "same_period_last_week" -> {
+                LocalDate baseFrom = currentRange.fromDate().minusWeeks(1);
+                LocalDate baseTo = currentRange.toDate().minusWeeks(1);
+                yield new SalesToolDateRange(
+                        "same_period_last_week",
+                        baseFrom,
+                        baseTo,
+                        baseFrom.atStartOfDay(SalesConstants.KST).toOffsetDateTime(),
+                        baseTo.atTime(23, 59, 59).atZone(SalesConstants.KST).toOffsetDateTime()
+                );
+            }
+            case "same_period_last_month" -> {
+                LocalDate baseFrom = currentRange.fromDate().minusMonths(1);
+                LocalDate baseTo = currentRange.toDate().minusMonths(1);
+                yield new SalesToolDateRange(
+                        "same_period_last_month",
+                        baseFrom,
+                        baseTo,
+                        baseFrom.atStartOfDay(SalesConstants.KST).toOffsetDateTime(),
+                        baseTo.atTime(23, 59, 59).atZone(SalesConstants.KST).toOffsetDateTime()
+                );
+            }
+            case "custom" -> {
+                LocalDate baseFromDate = request.baseFromDate();
+                LocalDate baseToDate = request.baseToDate();
+                if (baseFromDate == null || baseToDate == null) {
+                    throw new SalesException(SalesErrorCode.BOTH_DATES_REQUIRED);
+                }
+                if (baseFromDate.isAfter(baseToDate)) {
+                    throw new SalesException(SalesErrorCode.INVALID_DATE_RANGE);
+                }
+                yield new SalesToolDateRange(
+                        "custom",
+                        baseFromDate,
+                        baseToDate,
+                        baseFromDate.atStartOfDay(SalesConstants.KST).toOffsetDateTime(),
+                        baseToDate.atTime(23, 59, 59).atZone(SalesConstants.KST).toOffsetDateTime()
+                );
+            }
+            default -> throw new IllegalArgumentException("Unsupported compareMode: " + compareMode);
+        };
 
         SalesSummaryResponse current = salesAnalyticsService.getSalesSummarySnapshot(
                 userId,
                 storePublicId,
-                from,
-                to
+                currentRange.fromDateTime(),
+                currentRange.toDateTime()
         );
         SalesSummaryResponse base = salesAnalyticsService.getSalesSummarySnapshot(
                 userId,
                 storePublicId,
-                baseFrom.atStartOfDay(SalesConstants.KST).toOffsetDateTime(),
-                baseTo.atTime(23, 59, 59).atZone(SalesConstants.KST).toOffsetDateTime()
+                baseRange.fromDateTime(),
+                baseRange.toDateTime()
         );
 
-        return new SalesSummaryToolResponse(
-                "sales.summary",
-                periodKey,
-                preset,
-                currentFrom,
-                currentTo,
+        long currentOrderCount = current.totalOrderCount();
+        long baseOrderCount = base.totalOrderCount();
+        Double orderCountGrowthRate = baseOrderCount == 0L
+                ? (currentOrderCount > 0L ? 100.0 : 0.0)
+                : ((double) (currentOrderCount - baseOrderCount) / baseOrderCount) * 100.0;
+
+        BigDecimal currentTotalAmount = current.totalAmount() != null ? current.totalAmount() : BigDecimal.ZERO;
+        BigDecimal baseTotalAmount = base.totalAmount();
+        Double totalAmountGrowthRate = baseTotalAmount == null || baseTotalAmount.compareTo(BigDecimal.ZERO) == 0
+                ? (currentTotalAmount.compareTo(BigDecimal.ZERO) > 0 ? 100.0 : 0.0)
+                : currentTotalAmount.subtract(baseTotalAmount)
+                        .divide(baseTotalAmount, 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100))
+                        .doubleValue();
+
+        BigDecimal currentAvgAmount = current.averageOrderAmount() != null ? current.averageOrderAmount() : BigDecimal.ZERO;
+        BigDecimal baseAvgAmount = base.averageOrderAmount();
+        Double avgAmountGrowthRate = baseAvgAmount == null || baseAvgAmount.compareTo(BigDecimal.ZERO) == 0
+                ? (currentAvgAmount.compareTo(BigDecimal.ZERO) > 0 ? 100.0 : 0.0)
+                : currentAvgAmount.subtract(baseAvgAmount)
+                        .divide(baseAvgAmount, 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100))
+                        .doubleValue();
+
+        BigDecimal currentMaxAmount = current.maxOrderAmount() != null ? current.maxOrderAmount() : BigDecimal.ZERO;
+        BigDecimal baseMaxAmount = base.maxOrderAmount();
+        Double maxAmountGrowthRate = baseMaxAmount == null || baseMaxAmount.compareTo(BigDecimal.ZERO) == 0
+                ? (currentMaxAmount.compareTo(BigDecimal.ZERO) > 0 ? 100.0 : 0.0)
+                : currentMaxAmount.subtract(baseMaxAmount)
+                        .divide(baseMaxAmount, 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100))
+                        .doubleValue();
+
+        return SalesSummaryToolResponse.from(
+                currentRange,
+                baseRange,
                 interval,
                 compareMode,
-                baseFrom,
-                baseTo,
-                current.totalOrderCount(),
-                current.totalAmount(),
-                current.averageOrderAmount(),
-                current.maxOrderAmount(),
-                current.minOrderAmount(),
-                calculateGrowthRate(current.totalOrderCount(), base.totalOrderCount()),
-                calculateGrowthRate(current.totalAmount(), base.totalAmount()),
-                calculateGrowthRate(current.averageOrderAmount(), base.averageOrderAmount()),
-                calculateGrowthRate(current.maxOrderAmount(), base.maxOrderAmount()),
-                buildSuggestedFollowUps("sales.summary", periodKey)
+                current,
+                base,
+                orderCountGrowthRate,
+                totalAmountGrowthRate,
+                avgAmountGrowthRate,
+                maxAmountGrowthRate,
+                salesSuggestedActionProvider.buildSummaryFollowUps(currentRange)
         );
     }
 
-    public SalesTrendToolResponse getSalesTrend(
-            Long userId,
-            UUID storePublicId,
-            java.time.OffsetDateTime from,
-            java.time.OffsetDateTime to,
-            String interval,
-            String metric,
-            String periodKey,
-            String preset
-    ) {
-        validateInterval(interval);
-        validateMetric(metric);
+    public SalesTrendToolResponse getSalesTrend(Long userId, UUID storePublicId, SalesTrendToolRequest request) {
+        SalesToolDateRange range = SalesToolDateRangeResolver.resolve(
+                request.period(),
+                request.fromDate(),
+                request.toDate(),
+                DateRangePreset.LAST_7_DAYS
+        );
+        String interval = request.normalizedInterval();
+        String metric = request.normalizedMetric();
 
         List<SalesTrendPointToolResponse> trend = salesAnalyticsService.getSalesTrend(
                         userId,
                         storePublicId,
-                        from,
-                        to,
+                        range.fromDateTime(),
+                        range.toDateTime(),
                         interval
                 ).stream()
-                .map(this::toTrendPoint)
+                .map(SalesTrendPointToolResponse::from)
                 .toList();
 
-        SalesTrendPointToolResponse highestPoint = selectExtremePoint(trend, metric, true);
-        SalesTrendPointToolResponse lowestPoint = selectExtremePoint(trend, metric, false);
-        SalesTrendPointToolResponse latestPoint = trend.isEmpty() ? null : trend.get(trend.size() - 1);
-        Double overallChangeRate = calculateOverallChangeRate(trend, metric);
+        SalesTrendPointToolResponse highestPoint = null;
+        if (!trend.isEmpty()) {
+            ToDoubleFunction<SalesTrendPointToolResponse> metricExtractorHigh = switch (metric) {
+                case "order_count" -> point -> point.orderCount();
+                default -> point -> point.totalAmount() != null ? point.totalAmount().doubleValue() : 0.0;
+            };
+            Comparator<SalesTrendPointToolResponse> comparatorHigh = Comparator.comparingDouble(metricExtractorHigh)
+                    .reversed()
+                    .thenComparing(SalesTrendPointToolResponse::date);
+            highestPoint = trend.stream().sorted(comparatorHigh).findFirst().orElse(null);
+        }
 
-        return new SalesTrendToolResponse(
-                "sales.trend",
-                periodKey,
-                preset,
-                from != null ? from.toLocalDate() : null,
-                to != null ? to.toLocalDate() : null,
+        SalesTrendPointToolResponse lowestPoint = null;
+        if (!trend.isEmpty()) {
+            ToDoubleFunction<SalesTrendPointToolResponse> metricExtractorLow = switch (metric) {
+                case "order_count" -> point -> point.orderCount();
+                default -> point -> point.totalAmount() != null ? point.totalAmount().doubleValue() : 0.0;
+            };
+            Comparator<SalesTrendPointToolResponse> comparatorLow = Comparator.comparingDouble(metricExtractorLow)
+                    .thenComparing(SalesTrendPointToolResponse::date);
+            lowestPoint = trend.stream().sorted(comparatorLow).findFirst().orElse(null);
+        }
+
+        SalesTrendPointToolResponse latestPoint = trend.isEmpty() ? null : trend.get(trend.size() - 1);
+
+        Double overallChangeRate = null;
+        if (trend.size() >= 2) {
+            SalesTrendPointToolResponse first = trend.get(0);
+            SalesTrendPointToolResponse last = trend.get(trend.size() - 1);
+
+            if ("order_count".equals(metric)) {
+                long currentCount = last.orderCount();
+                long previousCount = first.orderCount();
+                overallChangeRate = previousCount == 0L
+                        ? (currentCount > 0L ? 100.0 : 0.0)
+                        : ((double) (currentCount - previousCount) / previousCount) * 100.0;
+            } else {
+                BigDecimal currentAmount = last.totalAmount() != null ? last.totalAmount() : BigDecimal.ZERO;
+                BigDecimal previousAmount = first.totalAmount() != null ? first.totalAmount() : BigDecimal.ZERO;
+                overallChangeRate = previousAmount.compareTo(BigDecimal.ZERO) == 0
+                        ? (currentAmount.compareTo(BigDecimal.ZERO) > 0 ? 100.0 : 0.0)
+                        : currentAmount.subtract(previousAmount)
+                                .divide(previousAmount, 4, RoundingMode.HALF_UP)
+                                .multiply(BigDecimal.valueOf(100))
+                                .doubleValue();
+            }
+        }
+
+        return SalesTrendToolResponse.from(
+                range,
                 interval,
                 metric,
-                trend.size(),
+                trend,
                 highestPoint,
                 lowestPoint,
                 latestPoint,
                 overallChangeRate,
-                trend,
-                buildSuggestedFollowUps("sales.trend", periodKey)
+                salesSuggestedActionProvider.buildTrendFollowUps(range)
         );
     }
 
-    public SalesPeakToolResponse getSalesPeak(
-            Long userId,
-            UUID storePublicId,
-            java.time.OffsetDateTime from,
-            java.time.OffsetDateTime to,
-            int limit,
-            String viewType,
-            String periodKey,
-            String preset
-    ) {
-        validateViewType(viewType);
+    public SalesPeakToolResponse getSalesPeak(Long userId, UUID storePublicId, SalesPeakToolRequest request) {
+        SalesToolDateRange range = SalesToolDateRangeResolver.resolve(
+                request.period(),
+                request.fromDate(),
+                request.toDate(),
+                DateRangePreset.LAST_7_DAYS
+        );
+        int limit = request.resolvedLimit();
+        String viewType = request.normalizedViewType();
 
         List<SalesPeakResponse> rawPeaks = salesAnalyticsService.getSalesPeak(
                 userId,
                 storePublicId,
-                from,
-                to
+                range.fromDateTime(),
+                range.toDateTime()
         );
 
         List<SalesPeakItemToolResponse> topTimeSlots = rawPeaks.stream()
@@ -163,7 +298,7 @@ public class SalesAiQueryService {
                         .thenComparingInt(SalesPeakResponse::dayOfWeek)
                         .thenComparingInt(SalesPeakResponse::hour))
                 .limit(limit)
-                .map(this::toPeakItem)
+                .map(SalesPeakItemToolResponse::from)
                 .toList();
 
         List<SalesPeakDayToolResponse> topDays = rawPeaks.stream()
@@ -175,11 +310,7 @@ public class SalesAiQueryService {
                 .sorted(Map.Entry.<Integer, Long>comparingByValue().reversed()
                         .thenComparing(Map.Entry.comparingByKey()))
                 .limit(limit)
-                .map(entry -> new SalesPeakDayToolResponse(
-                        entry.getKey(),
-                        toDayLabel(entry.getKey()),
-                        entry.getValue()
-                ))
+                .map(entry -> SalesPeakDayToolResponse.from(entry.getKey(), entry.getValue()))
                 .toList();
 
         List<SalesPeakHourToolResponse> topHours = rawPeaks.stream()
@@ -191,53 +322,40 @@ public class SalesAiQueryService {
                 .sorted(Map.Entry.<Integer, Long>comparingByValue().reversed()
                         .thenComparing(Map.Entry.comparingByKey()))
                 .limit(limit)
-                .map(entry -> new SalesPeakHourToolResponse(
-                        entry.getKey(),
-                        toTimeRange(entry.getKey()),
-                        entry.getValue()
-                ))
+                .map(entry -> SalesPeakHourToolResponse.from(entry.getKey(), entry.getValue()))
                 .toList();
 
         List<SalesPeakItemToolResponse> responseTimeSlots = "combined".equals(viewType) ? topTimeSlots : List.of();
         List<SalesPeakDayToolResponse> responseDays = "hour_only".equals(viewType) ? List.of() : topDays;
         List<SalesPeakHourToolResponse> responseHours = "day_only".equals(viewType) ? List.of() : topHours;
 
-        return new SalesPeakToolResponse(
-                "sales.peak",
-                periodKey,
-                preset,
-                from != null ? from.toLocalDate() : null,
-                to != null ? to.toLocalDate() : null,
+        return SalesPeakToolResponse.from(
+                range,
                 viewType,
-                responseTimeSlots.size(),
                 responseTimeSlots,
-                responseDays.size(),
                 responseDays,
-                responseHours.size(),
                 responseHours,
                 topDays.isEmpty() ? null : topDays.get(0),
                 topHours.isEmpty() ? null : topHours.get(0),
-                buildSuggestedFollowUps("sales.peak", periodKey)
+                salesSuggestedActionProvider.buildPeakFollowUps(range)
         );
     }
 
-    public TopMenuRankingToolResponse getTopMenuRanking(
-            Long userId,
-            UUID storePublicId,
-            java.time.OffsetDateTime from,
-            java.time.OffsetDateTime to,
-            int topN,
-            String rankBy,
-            String periodKey,
-            String preset
-    ) {
-        validateRankBy(rankBy);
+    public TopMenuRankingToolResponse getTopMenuRanking(Long userId, UUID storePublicId, TopMenuRankingToolRequest request) {
+        SalesToolDateRange range = SalesToolDateRangeResolver.resolve(
+                request.period(),
+                request.fromDate(),
+                request.toDate(),
+                DateRangePreset.LAST_7_DAYS
+        );
+        int topN = request.resolvedTopN();
+        String rankBy = request.normalizedRankBy();
 
         List<MenuRankingResponse> ranking = salesAnalyticsService.getMenuRanking(
                 userId,
                 storePublicId,
-                from,
-                to,
+                range.fromDateTime(),
+                range.toDateTime(),
                 topN,
                 rankBy
         );
@@ -245,246 +363,170 @@ public class SalesAiQueryService {
         SalesSummaryResponse summary = salesAnalyticsService.getSalesSummarySnapshot(
                 userId,
                 storePublicId,
-                from,
-                to
+                range.fromDateTime(),
+                range.toDateTime()
         );
         BigDecimal totalSalesAmount = summary.totalAmount();
 
         List<TopMenuRankingItemToolResponse> menus = ranking.stream()
-                .map(item -> toMenuItem(item, totalSalesAmount))
+                .map(item -> TopMenuRankingItemToolResponse.from(item, totalSalesAmount))
                 .toList();
 
-        return new TopMenuRankingToolResponse(
-                "sales.top_menu",
-                periodKey,
-                preset,
-                from != null ? from.toLocalDate() : null,
-                to != null ? to.toLocalDate() : null,
+        return TopMenuRankingToolResponse.from(
+                range,
                 rankBy,
                 totalSalesAmount,
-                menus.size(),
                 menus,
-                buildSuggestedFollowUps("sales.top_menu", periodKey)
+                salesSuggestedActionProvider.buildTopMenuFollowUps(range, rankBy)
         );
     }
 
-    private LocalDate[] resolveBaseRange(
-            LocalDate currentFrom,
-            LocalDate currentTo,
-            String compareMode,
-            LocalDate providedBaseFrom,
-            LocalDate providedBaseTo
-    ) {
-        return switch (compareMode) {
-            case "previous_period" -> {
-                long days = currentTo.toEpochDay() - currentFrom.toEpochDay() + 1;
-                LocalDate baseTo = currentFrom.minusDays(1);
-                LocalDate baseFrom = baseTo.minusDays(days - 1);
-                yield new LocalDate[]{baseFrom, baseTo};
-            }
-            case "same_period_last_week" -> new LocalDate[]{
-                    currentFrom.minusWeeks(1),
-                    currentTo.minusWeeks(1)
-            };
-            case "same_period_last_month" -> new LocalDate[]{
-                    currentFrom.minusMonths(1),
-                    currentTo.minusMonths(1)
-            };
-            case "custom" -> {
-                if (providedBaseFrom == null || providedBaseTo == null) {
-                    throw new SalesException(SalesErrorCode.UNSUPPORTED_COMPARE_MODE);
-                }
-                yield new LocalDate[]{providedBaseFrom, providedBaseTo};
-            }
-            default -> throw new SalesException(SalesErrorCode.UNSUPPORTED_COMPARE_MODE);
-        };
-    }
-
-
-    private Double calculateGrowthRate(long current, long previous) {
-        if (previous == 0L) {
-            return current > 0L ? 100.0 : 0.0;
-        }
-        return ((double) (current - previous) / previous) * 100.0;
-    }
-
-    private Double calculateGrowthRate(BigDecimal current, BigDecimal previous) {
-        BigDecimal safeCurrent = current != null ? current : BigDecimal.ZERO;
-        if (previous == null || previous.compareTo(BigDecimal.ZERO) == 0) {
-            return safeCurrent.compareTo(BigDecimal.ZERO) > 0 ? 100.0 : 0.0;
-        }
-        return safeCurrent.subtract(previous)
-                .divide(previous, 4, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100))
-                .doubleValue();
-    }
-
-    private SalesTrendPointToolResponse selectExtremePoint(
-            List<SalesTrendPointToolResponse> trend,
-            String metric,
-            boolean highest
-    ) {
-        if (trend.isEmpty()) {
-            return null;
+    public SalesRecordsToolResponse getSalesRecords(Long userId, UUID storePublicId, SalesRecordsToolRequest request) {
+        BigDecimal amountMin = request.resolvedAmountMin();
+        BigDecimal amountMax = request.resolvedAmountMax();
+        if (amountMin != null && amountMax != null && amountMin.compareTo(amountMax) > 0) {
+            throw new SalesException(SalesErrorCode.INVALID_AMOUNT_RANGE);
         }
 
-        ToDoubleFunction<SalesTrendPointToolResponse> metricExtractor = switch (metric) {
-            case "order_count" -> point -> point.orderCount();
-            default -> point -> point.totalAmount() != null ? point.totalAmount().doubleValue() : 0.0;
-        };
+        SalesToolDateRange range = request.resolvedDateRange();
+        SalesLedgerQueryCondition condition = new SalesLedgerQueryCondition(
+                range.fromDateTime(),
+                range.toDateTime(),
+                request.resolvedStatus(),
+                request.resolvedType(),
+                request.normalizedMenuName(),
+                request.resolvedAmountMin(),
+                request.resolvedAmountMax(),
+                request.normalizedTableCode(),
+                request.resolvedSortBy()
+        );
 
-        Comparator<SalesTrendPointToolResponse> comparator = Comparator.comparingDouble(metricExtractor);
-        if (highest) {
-            comparator = comparator.reversed();
-        }
-        comparator = comparator.thenComparing(SalesTrendPointToolResponse::date);
+        PageResponse<SalesLedgerOrderSummaryResponse> orderPage = salesLedgerService.getSalesLedgerOrders(
+                userId,
+                storePublicId,
+                condition,
+                PageRequest.of(request.resolvedPageIndex(), request.resolvedSize())
+        );
+        SalesLedgerTotalSummaryResponse summary = salesLedgerService.getSalesLedgerTotalSummary(
+                userId,
+                storePublicId,
+                condition
+        );
 
-        return trend.stream().sorted(comparator).findFirst().orElse(null);
-    }
+        List<SalesRecordItemToolResponse> orders = orderPage.content().stream()
+                .map(SalesRecordItemToolResponse::from)
+                .toList();
 
-    private Double calculateOverallChangeRate(List<SalesTrendPointToolResponse> trend, String metric) {
-        if (trend.size() < 2) {
-            return null;
-        }
-
-        SalesTrendPointToolResponse first = trend.get(0);
-        SalesTrendPointToolResponse last = trend.get(trend.size() - 1);
-
-        if ("order_count".equals(metric)) {
-            return calculateGrowthRate(last.orderCount(), first.orderCount());
-        }
-
-        return calculateGrowthRate(
-                last.totalAmount() != null ? last.totalAmount() : BigDecimal.ZERO,
-                first.totalAmount() != null ? first.totalAmount() : BigDecimal.ZERO
+        return SalesRecordsToolResponse.from(
+                range,
+                request.normalizedStatus(),
+                request.normalizedType(),
+                SalesRecordsSummaryToolResponse.from(summary),
+                orders,
+                SalesRecordsPageInfoToolResponse.from(orderPage),
+                salesSuggestedActionProvider.buildRecordsFollowUps(range, orders)
         );
     }
 
-    private SalesTrendPointToolResponse toTrendPoint(SalesTrendResponse response) {
-        return new SalesTrendPointToolResponse(
-                response.date(),
-                response.orderCount(),
-                response.totalAmount()
+    public SalesOrderDetailToolResponse getSalesOrderDetail(Long userId, UUID storePublicId, SalesOrderDetailToolRequest request) {
+        BigDecimal amountMin = request.resolvedAmountMin();
+        BigDecimal amountMax = request.resolvedAmountMax();
+        if (amountMin != null && amountMax != null && amountMin.compareTo(amountMax) > 0) {
+            throw new SalesException(SalesErrorCode.INVALID_AMOUNT_RANGE);
+        }
+
+        UUID targetOrderPublicId = request.orderPublicId();
+
+        if (targetOrderPublicId == null) {
+            if (!request.hasDirectOrderPublicId() && !request.hasLookupCondition()) {
+                throw new SalesException(SalesErrorCode.ORDER_DETAIL_LOOKUP_REQUIRES_CONDITION);
+            }
+            SalesToolDateRange range = request.resolvedDateRange();
+            SalesLedgerQueryCondition condition = new SalesLedgerQueryCondition(
+                    range.fromDateTime(),
+                    range.toDateTime(),
+                    request.resolvedStatus(),
+                    request.resolvedType(),
+                    request.normalizedMenuName(),
+                    request.resolvedAmountMin(),
+                    request.resolvedAmountMax(),
+                    request.normalizedTableCode(),
+                    request.resolvedSortBy()
+            );
+
+            PageResponse<SalesLedgerOrderSummaryResponse> lookupPage = salesLedgerService.getSalesLedgerOrders(
+                    userId,
+                    storePublicId,
+                    condition,
+                    PageRequest.of(request.resolvedSelectionIndex() - 1, 1)
+            );
+
+            if (lookupPage.content().isEmpty()) {
+                throw new SalesException(SalesErrorCode.SALES_RECORD_NOT_FOUND);
+            }
+
+            targetOrderPublicId = lookupPage.content().get(0).orderPublicId();
+        }
+
+        SalesLedgerOrderDetailResponse detail = salesLedgerService.getSalesLedgerOrder(
+                userId,
+                storePublicId,
+                targetOrderPublicId
+        );
+
+        return SalesOrderDetailToolResponse.from(
+                detail,
+                salesSuggestedActionProvider.buildOrderDetailFollowUps(detail)
         );
     }
 
-    private SalesPeakItemToolResponse toPeakItem(SalesPeakResponse response) {
-        return new SalesPeakItemToolResponse(
-                response.dayOfWeek(),
-                toDayLabel(response.dayOfWeek()),
-                response.hour(),
-                toTimeRange(response.hour()),
-                response.orderCount()
+    public SalesRefundSummaryToolResponse getRefundSummary(Long userId, UUID storePublicId, SalesRefundSummaryToolRequest request) {
+        SalesToolDateRange range = SalesToolDateRangeResolver.resolve(
+                request.period(),
+                request.fromDate(),
+                request.toDate(),
+                DateRangePreset.LAST_7_DAYS
+        );
+
+        RefundSummaryResponse response = salesAnalyticsService.getRefundSummary(
+                userId,
+                storePublicId,
+                range.fromDateTime(),
+                range.toDateTime()
+        );
+
+        return SalesRefundSummaryToolResponse.from(
+                range,
+                response,
+                salesSuggestedActionProvider.buildRefundFollowUps(range)
         );
     }
 
-    private TopMenuRankingItemToolResponse toMenuItem(MenuRankingResponse response, BigDecimal totalSalesAmount) {
-        return new TopMenuRankingItemToolResponse(
-                response.rank(),
-                response.menuName(),
-                response.totalQuantity(),
-                response.totalAmount(),
-                calculateAmountShareRate(response.totalAmount(), totalSalesAmount)
+    public MenuSalesDetailToolResponse getMenuSalesDetail(Long userId, UUID storePublicId, MenuSalesDetailToolRequest request) {
+        SalesToolDateRange range = SalesToolDateRangeResolver.resolve(
+                request.period(),
+                request.fromDate(),
+                request.toDate(),
+                DateRangePreset.LAST_7_DAYS
+        );
+        String menuName = request.normalizedMenuName();
+        if (menuName == null) {
+            throw new SalesException(SalesErrorCode.INVALID_MENU_NAME);
+        }
+
+        MenuSalesDetailResponse response = salesAnalyticsService.getMenuSalesDetail(
+                userId,
+                storePublicId,
+                range.fromDateTime(),
+                range.toDateTime(),
+                menuName
+        );
+
+        return MenuSalesDetailToolResponse.from(
+                range,
+                response,
+                salesSuggestedActionProvider.buildMenuDetailFollowUps(range, response.menuName())
         );
     }
 
-    private BigDecimal calculateAmountShareRate(BigDecimal menuAmount, BigDecimal totalSalesAmount) {
-        if (menuAmount == null || totalSalesAmount == null || totalSalesAmount.compareTo(BigDecimal.ZERO) == 0) {
-            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
-        }
-        return menuAmount
-                .divide(totalSalesAmount, 4, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100))
-                .setScale(2, RoundingMode.HALF_UP);
-    }
-
-    private String toDayLabel(int dayOfWeek) {
-        return DayOfWeek.of(dayOfWeek).getDisplayName(TextStyle.FULL, SalesConstants.DAY_LABEL_LOCALE);
-    }
-
-    private String toTimeRange(int hour) {
-        return String.format("%02d:00-%02d:59", hour, hour);
-    }
-
-    private List<kr.inventory.ai.sales.tool.dto.response.SuggestedAction> buildSuggestedFollowUps(
-            String currentActionKey,
-            String currentPeriodKey
-    ) {
-        List<kr.inventory.ai.sales.tool.dto.response.SuggestedAction> suggestions = new java.util.ArrayList<>();
-
-        switch (currentActionKey) {
-            case "sales.summary" -> {
-                suggestions.add(new kr.inventory.ai.sales.tool.dto.response.SuggestedAction(
-                        "sales.trend", "매출 추이 보기", currentPeriodKey
-                ));
-                suggestions.add(new kr.inventory.ai.sales.tool.dto.response.SuggestedAction(
-                        "sales.top_menu", "상위 메뉴 순위", currentPeriodKey
-                ));
-                if (!"today".equals(currentPeriodKey)) {
-                    suggestions.add(new kr.inventory.ai.sales.tool.dto.response.SuggestedAction(
-                            "sales.summary", "오늘 매출 요약", "today"
-                    ));
-                }
-            }
-            case "sales.trend" -> {
-                suggestions.add(new kr.inventory.ai.sales.tool.dto.response.SuggestedAction(
-                        "sales.peak", "피크 시간대 분석", currentPeriodKey
-                ));
-                suggestions.add(new kr.inventory.ai.sales.tool.dto.response.SuggestedAction(
-                        "sales.summary", "매출 요약 보기", currentPeriodKey
-                ));
-            }
-            case "sales.peak" -> {
-                suggestions.add(new kr.inventory.ai.sales.tool.dto.response.SuggestedAction(
-                        "sales.top_menu", "인기 메뉴 확인", currentPeriodKey
-                ));
-                suggestions.add(new kr.inventory.ai.sales.tool.dto.response.SuggestedAction(
-                        "sales.trend", "매출 추이 보기", currentPeriodKey
-                ));
-            }
-            case "sales.top_menu" -> {
-                suggestions.add(new kr.inventory.ai.sales.tool.dto.response.SuggestedAction(
-                        "sales.summary", "전체 매출 요약", currentPeriodKey
-                ));
-                suggestions.add(new kr.inventory.ai.sales.tool.dto.response.SuggestedAction(
-                        "sales.peak", "피크 시간대 분석", currentPeriodKey
-                ));
-            }
-        }
-
-        return suggestions;
-    }
-
-    private void validateInterval(String interval) {
-        if (!"day".equals(interval) && !"week".equals(interval) && !"month".equals(interval)) {
-            throw new SalesException(SalesErrorCode.INVALID_INTERVAL);
-        }
-    }
-
-    private void validateMetric(String metric) {
-        if (!"amount".equals(metric) && !"order_count".equals(metric) && !"both".equals(metric)) {
-            throw new SalesException(SalesErrorCode.INVALID_METRIC);
-        }
-    }
-
-    private void validateRankBy(String rankBy) {
-        if (!"quantity".equals(rankBy) && !"amount".equals(rankBy)) {
-            throw new SalesException(SalesErrorCode.INVALID_RANK_BY);
-        }
-    }
-
-    private void validateCompareMode(String compareMode) {
-        if (!"previous_period".equals(compareMode)
-                && !"same_period_last_week".equals(compareMode)
-                && !"same_period_last_month".equals(compareMode)
-                && !"custom".equals(compareMode)) {
-            throw new SalesException(SalesErrorCode.UNSUPPORTED_COMPARE_MODE);
-        }
-    }
-
-    private void validateViewType(String viewType) {
-        if (!"combined".equals(viewType) && !"day_only".equals(viewType) && !"hour_only".equals(viewType)) {
-            throw new SalesException(SalesErrorCode.INVALID_VIEW_TYPE);
-        }
-    }
 }

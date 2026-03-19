@@ -1,40 +1,39 @@
 package kr.inventory.ai.sales.tool.dto.response;
 
 import kr.inventory.ai.sales.tool.support.SalesToolDateRange;
+import kr.inventory.domain.analytics.controller.dto.response.RefundSummaryResponse;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
-public record TopMenuRankingToolResponse(
+public record SalesRefundSummaryToolResponse(
         String actionKey,
         String periodKey,
         String preset,
         LocalDate fromDate,
         LocalDate toDate,
-        String rankBy,
-        BigDecimal totalSalesAmount,
-        int count,
-        List<TopMenuRankingItemToolResponse> menus,
+        long refundCount,
+        BigDecimal totalRefundAmount,
+        double refundRate,
+        BigDecimal affectedNetSales,
         List<SuggestedAction> suggestedFollowUps
 ) {
-    public static TopMenuRankingToolResponse from(
+    public static SalesRefundSummaryToolResponse from(
             SalesToolDateRange range,
-            String rankBy,
-            BigDecimal totalSalesAmount,
-            List<TopMenuRankingItemToolResponse> menus,
+            RefundSummaryResponse response,
             List<SuggestedAction> suggestedFollowUps
     ) {
-        return new TopMenuRankingToolResponse(
-                "sales.top_menu_ranking",
+        return new SalesRefundSummaryToolResponse(
+                "sales.refund_summary",
                 range.preset(),
                 range.preset(),
                 range.fromDate(),
                 range.toDate(),
-                rankBy,
-                totalSalesAmount,
-                menus.size(),
-                menus,
+                response.refundCount(),
+                response.totalRefundAmount(),
+                response.refundRate(),
+                response.totalRefundAmount(),
                 suggestedFollowUps
         );
     }

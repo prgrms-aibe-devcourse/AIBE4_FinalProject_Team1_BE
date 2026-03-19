@@ -1,20 +1,16 @@
 package kr.inventory.ai.sales.tool.support;
 
+import kr.inventory.ai.common.enums.DateRangePreset;
 import kr.inventory.ai.sales.constant.SalesConstants;
 import kr.inventory.ai.sales.exception.SalesErrorCode;
 import kr.inventory.ai.sales.exception.SalesException;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Locale;
 
 public final class SalesToolDateRangeResolver {
-
-    private static final ZoneId KST = SalesConstants.KST;
-    private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
 
     private SalesToolDateRangeResolver() {
     }
@@ -39,7 +35,7 @@ public final class SalesToolDateRangeResolver {
         }
 
         String normalizedPreset = normalizePreset(hasText(preset) ? preset : defaultPreset);
-        LocalDate today = LocalDate.now(KST);
+        LocalDate today = LocalDate.now(SalesConstants.KST);
 
         return switch (normalizedPreset) {
             case "today" -> toRange("today", today, today);
@@ -60,20 +56,46 @@ public final class SalesToolDateRangeResolver {
         };
     }
 
+    public static SalesToolDateRange resolve(
+            DateRangePreset preset,
+            LocalDate fromDate,
+            LocalDate toDate,
+            DateRangePreset defaultPreset
+    ) {
+        boolean hasFrom = fromDate != null;
+        boolean hasTo = toDate != null;
+
+        if (hasFrom || hasTo) {
+            if (!hasFrom || !hasTo) {
+                throw new SalesException(SalesErrorCode.BOTH_DATES_REQUIRED);
+            }
+            if (fromDate.isAfter(toDate)) {
+                throw new SalesException(SalesErrorCode.INVALID_DATE_RANGE);
+            }
+            return toRange("custom", fromDate, toDate);
+        }
+
+        String resolvedPreset = preset != null
+                ? preset.getValue()
+                : defaultPreset != null ? defaultPreset.getValue() : DateRangePreset.LAST_7_DAYS.getValue();
+
+        return resolve(resolvedPreset, null, null, DateRangePreset.LAST_7_DAYS.getValue());
+    }
+
     public static LocalDate parseLocalDate(String value, String fieldName) {
         return parseDate(value, fieldName);
     }
 
     private static SalesToolDateRange toRange(String preset, LocalDate fromDate, LocalDate toDate) {
-        OffsetDateTime fromDateTime = fromDate.atStartOfDay(KST).toOffsetDateTime();
-        OffsetDateTime toDateTime = toDate.atTime(23, 59, 59).atZone(KST).toOffsetDateTime();
+        OffsetDateTime fromDateTime = fromDate.atStartOfDay(SalesConstants.KST).toOffsetDateTime();
+        OffsetDateTime toDateTime = toDate.atTime(23, 59, 59).atZone(SalesConstants.KST).toOffsetDateTime();
 
         return new SalesToolDateRange(preset, fromDate, toDate, fromDateTime, toDateTime);
     }
 
     private static LocalDate parseDate(String value, String fieldName) {
         try {
-            return LocalDate.parse(value.trim(), ISO_DATE);
+            return LocalDate.parse(value.trim(), SalesConstants.ISO_DATE);
         } catch (DateTimeParseException exception) {
             throw new SalesException(SalesErrorCode.INVALID_DATE_FORMAT);
         }
