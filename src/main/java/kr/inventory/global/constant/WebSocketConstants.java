@@ -2,6 +2,9 @@ package kr.inventory.global.constant;
 
 public final class WebSocketConstants {
 
+    private WebSocketConstants() {
+    }
+
     // Authorization 헤더
     public static final String AUTHORIZATION_HEADER = "Authorization";
     public static final String AUTHORIZATION_HEADER_LOWER_CASE = "authorization";
@@ -12,6 +15,7 @@ public final class WebSocketConstants {
     // WebSocket 세션 속성
     public static final String SESSION_AUTHORIZATION = "WS_AUTHORIZATION";
     public static final String SESSION_ACCESS_TOKEN = "WS_ACCESS_TOKEN";
+    public static final String SESSION_AUTHENTICATION = "WS_AUTHENTICATION";
 
     // Query 파라미터
     public static final String TOKEN_PARAM = "token";
@@ -35,4 +39,17 @@ public final class WebSocketConstants {
     // 에러 메시지
     public static final String ERROR_NO_USER_INFO = "인증된 사용자 정보를 찾을 수 없습니다.";
     public static final String ERROR_INVALID_USER_ID = "사용자 식별자를 해석할 수 없습니다.";
+
+    // WebSocket 설정 상수
+    public static final long[] SIMPLE_BROKER_HEARTBEAT = {10000L, 10000L};
+    public static final int INBOUND_CORE_POOL_SIZE = 4;
+    public static final int INBOUND_MAX_POOL_SIZE = 16;
+    public static final int OUTBOUND_CORE_POOL_SIZE = 4;
+    public static final int OUTBOUND_MAX_POOL_SIZE = 16;
+    public static final int CHANNEL_QUEUE_CAPACITY = 1000;
+    public static final int MESSAGE_SIZE_LIMIT = 64 * 1024;
+    public static final int SEND_BUFFER_SIZE_LIMIT = 512 * 1024;
+    public static final int SEND_TIME_LIMIT_MS = 15_000;
+    public static final int TIME_TO_FIRST_MESSAGE_MS = 60_000;
+
 }

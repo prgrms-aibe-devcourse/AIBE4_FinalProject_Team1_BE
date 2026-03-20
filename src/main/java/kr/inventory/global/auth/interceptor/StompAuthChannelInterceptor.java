@@ -36,17 +36,25 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         log.debug("[StompInterceptor] Received STOMP message - command: {}, destination: {}, sessionId: {}",
                 accessor.getCommand(), accessor.getDestination(), accessor.getSessionId());
 
-        if (!requiresAuthentication(accessor.getCommand()) || accessor.getUser() != null) {
-            log.debug("[StompInterceptor] Skipping auth - command: {}, requiresAuth: {}, hasUser: {}",
-                    accessor.getCommand(), requiresAuthentication(accessor.getCommand()), accessor.getUser() != null);
+        if (!requiresAuthentication(accessor.getCommand())) {
+            return message;
+        }
+
+        if (accessor.getUser() != null) {
+            return message;
+        }
+
+        Authentication sessionAuthentication = resolveSessionAuthentication(accessor);
+        if (sessionAuthentication != null) {
+            accessor.setUser(sessionAuthentication);
             return message;
         }
 
         String accessToken = resolveToken(accessor);
         if (!StringUtils.hasText(accessToken)) {
-            log.warn("[StompInterceptor] No access token found - command: {}, sessionId: {}",
+            log.warn("[StompInterceptor] Rejecting STOMP frame without access token - command: {}, sessionId: {}",
                     accessor.getCommand(), accessor.getSessionId());
-            return message;
+            return null;
         }
 
         if (!jwtProvider.validateToken(accessToken)) {
@@ -74,6 +82,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
         Authentication authentication = jwtProvider.getAuthentication(accessToken);
         accessor.setUser(authentication);
+        storeSessionAuthentication(accessor, authentication);
         return message;
     }
 
@@ -81,6 +90,29 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         return StompCommand.CONNECT.equals(command)
                 || StompCommand.SEND.equals(command)
                 || StompCommand.SUBSCRIBE.equals(command);
+    }
+
+    private Authentication resolveSessionAuthentication(StompHeaderAccessor accessor) {
+        Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
+        if (sessionAttributes == null || sessionAttributes.isEmpty()) {
+            return null;
+        }
+
+        Object value = sessionAttributes.get(WebSocketConstants.SESSION_AUTHENTICATION);
+        if (value instanceof Authentication authentication) {
+            return authentication;
+        }
+
+        return null;
+    }
+
+    private void storeSessionAuthentication(StompHeaderAccessor accessor, Authentication authentication) {
+        Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
+        if (sessionAttributes == null) {
+            return;
+        }
+
+        sessionAttributes.put(WebSocketConstants.SESSION_AUTHENTICATION, authentication);
     }
 
     private String resolveToken(StompHeaderAccessor accessor) {
