@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface MenuRepository extends JpaRepository<Menu, Long> {
+public interface MenuRepository extends JpaRepository<Menu, Long>, MenuRepositoryCustom {
 
     // ACTIVE 전용 조회 (DELETED 제외)
     List<Menu> findAllByStoreStoreIdAndStatusNot(Long storeId, MenuStatus status);

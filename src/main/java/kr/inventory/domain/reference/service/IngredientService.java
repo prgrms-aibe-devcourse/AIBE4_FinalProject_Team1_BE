@@ -2,15 +2,21 @@ package kr.inventory.domain.reference.service;
 
 import kr.inventory.domain.reference.controller.dto.request.IngredientCreateRequest;
 import kr.inventory.domain.reference.controller.dto.request.IngredientSearchRequest;
-import kr.inventory.domain.reference.controller.dto.response.IngredientResponse;
 import kr.inventory.domain.reference.controller.dto.request.IngredientUpdateRequest;
+import kr.inventory.domain.reference.controller.dto.response.IngredientResponse;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.reference.entity.enums.IngredientStatus;
 import kr.inventory.domain.reference.entity.enums.IngredientUnit;
 import kr.inventory.domain.reference.exception.IngredientErrorCode;
 import kr.inventory.domain.reference.exception.IngredientException;
+import kr.inventory.domain.reference.exception.MenuErrorCode;
+import kr.inventory.domain.reference.exception.MenuException;
 import kr.inventory.domain.reference.repository.IngredientRepository;
+import kr.inventory.domain.reference.repository.MenuRepository;
+import kr.inventory.domain.stock.exception.StockErrorCode;
+import kr.inventory.domain.stock.exception.StockException;
 import kr.inventory.domain.stock.normalization.model.InboundSpecExtractor;
+import kr.inventory.domain.stock.repository.IngredientStockBatchRepository;
 import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.exception.StoreErrorCode;
 import kr.inventory.domain.store.exception.StoreException;
@@ -37,6 +43,8 @@ public class IngredientService {
     private final StoreRepository storeRepository;
     private final StoreAccessValidator storeAccessValidator;
     private final InboundSpecExtractor specExtractor;
+    private final MenuRepository menuRepository;
+    private final IngredientStockBatchRepository ingredientStockBatchRepository;
 
     @Transactional
     public IngredientResponse createIngredient(Long userId, UUID storePublicId, IngredientCreateRequest request) {
@@ -116,7 +124,29 @@ public class IngredientService {
     public void deleteIngredient(Long userId, UUID storePublicId, UUID ingredientPublicId) {
         Long storeId = storeAccessValidator.validateAndGetStoreId(userId, storePublicId);
         Ingredient ingredient = getValidIngredient(ingredientPublicId, storeId);
+
+        validateDeletable(storeId, ingredient);
+
         ingredient.delete();
+    }
+
+    private void validateDeletable(Long storeId, Ingredient ingredient) {
+        validateNotUsedByActiveMenu(storeId, ingredient.getIngredientPublicId());
+        validateNoRemainingStock(storeId, ingredient.getIngredientId());
+    }
+
+    private void validateNotUsedByActiveMenu(Long storeId, UUID ingredientPublicId) {
+        boolean usedByActiveMenu = menuRepository.existsActiveMenuUsingIngredient(storeId, ingredientPublicId);
+        if (usedByActiveMenu) {
+            throw new MenuException(MenuErrorCode.INGREDIENT_IN_USE_BY_ACTIVE_MENU);
+        }
+    }
+
+    private void validateNoRemainingStock(Long storeId, Long ingredientId) {
+        BigDecimal remainingStock = ingredientStockBatchRepository.calculateTotalQuantity(storeId, ingredientId);
+        if(remainingStock.compareTo(BigDecimal.ZERO) > 0){
+            throw new StockException(StockErrorCode.INGREDIENT_HAS_REMAINING_STOCK);
+        }
     }
 
     private Ingredient getValidIngredient(UUID ingredientPublicId, Long storeId) {
