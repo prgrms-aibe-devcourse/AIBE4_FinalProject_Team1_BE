@@ -32,6 +32,7 @@ public class StockAiTools {
             name = "get_low_stock_ingredients",
             description = """
                     현재 로그인한 사용자의 매장에서 재고가 임계치 미만인 재료 목록을 조회합니다.
+                    임계치 미만의 재료는 재고 소진 임박이라고 할 수 있습니다.
                     """
     )
     public List<LowStockIngredientResponse> getLowStockIngredients() {
