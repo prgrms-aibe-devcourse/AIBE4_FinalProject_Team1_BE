@@ -159,18 +159,10 @@ public class IngredientResolutionService {
         if (activeIngredients != null && !activeIngredients.isEmpty()) {
             List<ScoredCandidate> scored = scoreCandidates(tokens, activeIngredients, inboundItem);
             if (!scored.isEmpty()) {
-                List<ScoredCandidate> top = scored.stream()
-                        .limit(InboundItemResolutionConstants.TOP_N_CANDIDATES)
-                        .toList();
+                ScoredCandidate topCandidate = scored.get(0);
 
-                double topScore = top.get(0).score;
-                double secondScore = top.size() >= 2 ? top.get(1).score : 0.0;
-
-                boolean confidentAuto = topScore >= InboundItemResolutionConstants.AUTO_SCORE_THRESHOLD
-                        && (top.size() == 1 || (topScore - secondScore >= InboundItemResolutionConstants.AUTO_GAP_THRESHOLD));
-
-                if (confidentAuto) {
-                    Ingredient chosen = top.get(0).ingredient;
+                if (topCandidate.score >= InboundItemResolutionConstants.TOP1_MIN_SCORE_THRESHOLD) {
+                    Ingredient chosen = topCandidate.ingredient;
                     inboundItem.updateResolution(ResolutionStatus.AUTO_SUGGESTED, chosen, null);
                     applyNormalizedQuantity(inboundItem, chosen);
                     updateInboundItemKeyToIngredientNormalizedName(inboundItem, chosen, normalizedFull);
@@ -381,7 +373,6 @@ public class IngredientResolutionService {
         inboundItem.updateNormalizedQuantity(result.normalizedQuantity());
     }
 
-
     private boolean isUnitCompatible(StockInboundItem inboundItem, Ingredient ingredient) {
         if (ingredient == null || ingredient.getUnit() == null) {
             return true;
@@ -440,8 +431,8 @@ public class IngredientResolutionService {
     }
 
     private List<ScoredCandidate> scoreCandidates(List<String> tokens,
-                                               List<Ingredient> ingredients,
-                                               StockInboundItem inboundItem) {
+                                                  List<Ingredient> ingredients,
+                                                  StockInboundItem inboundItem) {
         Set<String> query = tokens.stream()
                 .map(t -> t.trim().toLowerCase())
                 .filter(t -> !t.isBlank())

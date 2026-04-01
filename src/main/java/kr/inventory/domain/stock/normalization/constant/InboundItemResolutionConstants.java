@@ -5,9 +5,8 @@ import java.util.regex.Pattern;
 
 public final class InboundItemResolutionConstants {
 
-    public static final double AUTO_SCORE_THRESHOLD = 0.85;
-    public static final double AUTO_GAP_THRESHOLD = 0.25;
-    public static final int TOP_N_CANDIDATES = 5;
+    // 2차 Jaccard 스코어링에서는 top1만 사용하고, 점수가 이 값보다 낮으면 추천하지 않는다.
+    public static final double TOP1_MIN_SCORE_THRESHOLD = 0.25;
 
     public static final Set<String> STOP_WORDS = Set.of(
             // 법인/회사 표기
@@ -64,4 +63,7 @@ public final class InboundItemResolutionConstants {
 
     public static final Pattern PROMOTION_PACK_TOKEN =
             Pattern.compile("^\\d+[x*+]\\d+$|^\\d+개입$", Pattern.CASE_INSENSITIVE);
+
+    private InboundItemResolutionConstants() {
+    }
 }
