@@ -15,7 +15,8 @@ scrape_configs:
         refresh_interval: 5s
     relabel_configs:
       - source_labels: ['__meta_docker_container_name']
-        regex: '/(backend|web|postgres)'
+        regex: '/.*(backend|web|redis|postgres).*'
+        replacement: '$1'
         target_label: 'container'
     pipeline_stages:
       - drop:
