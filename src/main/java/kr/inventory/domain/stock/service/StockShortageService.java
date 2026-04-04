@@ -49,7 +49,7 @@ public class StockShortageService {
 
 		List<Long> ingredientIds = shortageMap.keySet().stream().toList();
 
-		Set<Long> alreadyPendingIds =
+		Set<Long> alreadyPendingIngredientIds =
 			stockShortageRepository.findPendingIngredientIds(storeId, ingredientIds);
 		Map<Long, Ingredient> ingredientMap = fetchIngredientMap(ingredientIds);
 
@@ -57,7 +57,7 @@ public class StockShortageService {
 
         indexShortagesToElasticsearch(salesOrderId, shortages);
 
-        processNotifications(storeId, ingredientMap, shortageMap.keySet(), alreadyPendingIds);
+        processNotifications(storeId, ingredientMap, shortageMap.keySet(), alreadyPendingIngredientIds);
 	}
 
     private Map<Long, Ingredient> fetchIngredientMap(List<Long> ingredientIds) {

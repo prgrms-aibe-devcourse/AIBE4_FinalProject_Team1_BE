@@ -12,7 +12,7 @@ public class NotificationAsyncHandler {
 
     @Async("notificationTaskExecutor")
     @EventListener
-    public void handleRequest(NotificationPublishRequestEvent event){
+    public void handleNotificationEvent(NotificationPublishRequestEvent event){
         notificationPublishService.publish(event.command());
     }
 }
