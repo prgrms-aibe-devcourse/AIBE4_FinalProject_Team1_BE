@@ -45,53 +45,71 @@ public class StockShortageService {
 		Map<Long, BigDecimal> usageMap,
 		Map<Long, BigDecimal> shortageMap
 	) {
-		if (shortageMap == null || shortageMap.isEmpty()) {
-			return;
-		}
+        if (shortageMap == null || shortageMap.isEmpty()) return;
 
 		List<Long> ingredientIds = shortageMap.keySet().stream().toList();
 
 		Set<Long> alreadyPendingIngredientIds =
 			stockShortageRepository.findPendingIngredientIds(storeId, ingredientIds);
+		Map<Long, Ingredient> ingredientMap = fetchIngredientMap(ingredientIds);
 
-		Map<Long, Ingredient> ingredientMap = ingredientRepository.findAllById(ingredientIds).stream()
-			.collect(Collectors.toMap(Ingredient::getIngredientId, Function.identity()));
+		List<StockShortage> shortages = createAndSaveShortages(storeId, salesOrderId, usageMap, shortageMap);
 
-		List<StockShortage> shortages = shortageMap.entrySet().stream()
-			.map(entry -> {
-				Long ingredientId = entry.getKey();
-				BigDecimal shortageAmount = entry.getValue();
-				BigDecimal requiredAmount = usageMap.get(ingredientId);
+        indexShortagesToElasticsearch(salesOrderId, shortages);
 
-				return StockShortage.createPending(
-					storeId,
-					salesOrderId,
-					ingredientId,
-					requiredAmount,
-					shortageAmount
-				);
-			})
-			.toList();
-
-		stockShortageRepository.saveAll(shortages);
-
-		try {
-			stockShortageService.index(shortages);
-		} catch (Exception e) {
-			log.error("[ES] 재고 부족 데이터 인덱싱 실패 salesOrderId={}", salesOrderId, e);
-		}
-
-		List<Long> newlyShortageIngredientIds = shortageMap.keySet().stream()
-			.filter(ingredientId -> !alreadyPendingIngredientIds.contains(ingredientId))
-			.toList();
-
-		stockShortageNotificationTriggerService.notifyStoreMembersStockShortage(
-			storeId,
-			ingredientMap,
-			newlyShortageIngredientIds
-		);
-
+        processNotifications(storeId, ingredientMap, shortageMap.keySet(), alreadyPendingIngredientIds);
 	}
+
+    private Map<Long, Ingredient> fetchIngredientMap(List<Long> ingredientIds) {
+        return ingredientRepository.findAllById(ingredientIds).stream()
+                .collect(Collectors.toMap(Ingredient::getIngredientId, Function.identity()));
+    }
+
+    private List<StockShortage> createAndSaveShortages(
+            Long storeId,
+            Long salesOrderId,
+            Map<Long, BigDecimal> usageMap,
+            Map<Long, BigDecimal> shortageMap
+    ) {
+        List<StockShortage> shortages = shortageMap.entrySet().stream()
+                .map(entry -> StockShortage.createPending(
+                        storeId,
+                        salesOrderId,
+                        entry.getKey(),
+                        usageMap.get(entry.getKey()),
+                        entry.getValue()
+                ))
+                .toList();
+
+        return stockShortageRepository.saveAll(shortages);
+    }
+
+    private void indexShortagesToElasticsearch(Long salesOrderId, List<StockShortage> shortages) {
+        try {
+            stockShortageService.index(shortages);
+        } catch (Exception e) {
+            log.error("[ES] 재고 부족 데이터 인덱싱 실패 salesOrderId={}", salesOrderId, e);
+        }
+    }
+
+    private void processNotifications(
+            Long storeId,
+            Map<Long, Ingredient> ingredientMap,
+            Set<Long> currentIngredientIds,
+            Set<Long> alreadyPendingIds
+    ) {
+        List<Long> newlyShortageIds = currentIngredientIds.stream()
+                .filter(id -> !alreadyPendingIds.contains(id))
+                .toList();
+
+        if (!newlyShortageIds.isEmpty()) {
+            stockShortageNotificationTriggerService.notifyStoreMembersStockShortage(
+                    storeId,
+                    ingredientMap,
+                    newlyShortageIds
+            );
+        }
+    }
 
 	@Transactional(readOnly = true)
 	public PageResponse<StockShortageGroupResponse> getShortagesGroupedByOrder(
