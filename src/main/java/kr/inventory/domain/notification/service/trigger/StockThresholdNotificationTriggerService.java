@@ -1,10 +1,11 @@
 package kr.inventory.domain.notification.service.trigger;
 
 import kr.inventory.domain.notification.service.publish.NotificationPublishCommand;
-import kr.inventory.domain.notification.service.publish.NotificationPublishService;
+import kr.inventory.domain.notification.service.publish.NotificationPublishRequestEvent;
 import kr.inventory.domain.reference.entity.Ingredient;
 import kr.inventory.domain.store.service.StoreMemberQueryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,7 +19,7 @@ import java.util.Map;
 public class StockThresholdNotificationTriggerService {
 
     private final StoreMemberQueryService storeMemberQueryService;
-    private final NotificationPublishService notificationPublishService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public void notifyStoreMembersBelowThreshold(
             Long storeId,
@@ -55,7 +56,7 @@ public class StockThresholdNotificationTriggerService {
                             ingredientNames
                     );
 
-            notificationPublishService.publish(command);
+            eventPublisher.publishEvent(new NotificationPublishRequestEvent(command));
         }
     }
 }

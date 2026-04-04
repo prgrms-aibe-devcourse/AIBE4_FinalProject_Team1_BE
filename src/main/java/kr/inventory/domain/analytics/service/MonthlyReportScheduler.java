@@ -1,18 +1,15 @@
 package kr.inventory.domain.analytics.service;
 
 import kr.inventory.domain.notification.service.publish.NotificationPublishCommand;
-import kr.inventory.domain.notification.service.publish.NotificationPublishService;
-import kr.inventory.domain.store.entity.StoreMember;
-import kr.inventory.domain.store.entity.enums.StoreMemberStatus;
+import kr.inventory.domain.notification.service.publish.NotificationPublishRequestEvent;
 import kr.inventory.domain.store.repository.StoreMemberRepository;
-import kr.inventory.domain.store.repository.StoreRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.YearMonth;
-import java.util.List;
 
 @Slf4j
 @Component
@@ -20,7 +17,7 @@ import java.util.List;
 public class MonthlyReportScheduler {
 
      private final StoreMemberRepository storeMemberRepository;
-     private final NotificationPublishService notificationPublishService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 매월 1일 03:00 실행 (KST)
@@ -33,22 +30,20 @@ public class MonthlyReportScheduler {
 
         // 전체 매장을 순회하며 ACTIVE 멤버에게 MONTHLY_OPS_REPORT_READY 알림 발송
         storeMemberRepository.findAllActiveWithUserAndStore()
-            .forEach(member -> {
-                try {
-                    notificationPublishService.publish(
-                            NotificationPublishCommand.monthlyReportReady(
-                                    member.getUser().getUserId(),
-                                    member.getStore().getStorePublicId(),
-                                    lastMonth.toString()
-                            )
-                    );
-                } catch (Exception e) {
-                    log.error("[MonthlyReportScheduler] 알림 발송 실패 - userId: {}, storeId: {}",
-                            member.getUser().getUserId(),
-                            member.getStore().getStorePublicId(),
-                            e);
-                }
-            });
+                .forEach(member -> {
+                    try {
+                        NotificationPublishCommand command = NotificationPublishCommand.monthlyReportReady(
+                                member.getUser().getUserId(),
+                                member.getStore().getStorePublicId(),
+                                lastMonth.toString()
+                        );
+                        eventPublisher.publishEvent(new NotificationPublishRequestEvent(command));
+
+                    } catch (Exception e) {
+                        log.error("[MonthlyReportScheduler] 이벤트 발행 실패 - userId: {}",
+                                member.getUser().getUserId(), e);
+                    }
+                });
 
         log.info("[MonthlyReportScheduler] {} 월간 리포트 스케줄러 완료", lastMonth);
     }

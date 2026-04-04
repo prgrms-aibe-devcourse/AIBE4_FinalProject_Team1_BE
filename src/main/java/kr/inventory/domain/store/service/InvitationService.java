@@ -1,6 +1,7 @@
 package kr.inventory.domain.store.service;
 
 import kr.inventory.domain.notification.service.publish.NotificationPublishCommand;
+import kr.inventory.domain.notification.service.publish.NotificationPublishRequestEvent;
 import kr.inventory.domain.notification.service.publish.NotificationPublishService;
 import kr.inventory.domain.store.constant.InvitationConstants;
 import kr.inventory.domain.store.controller.dto.request.InvitationAcceptRequest;
@@ -24,6 +25,7 @@ import kr.inventory.domain.user.exception.UserException;
 import kr.inventory.domain.user.repository.UserRepository;
 import kr.inventory.global.config.InvitationProperties;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +48,7 @@ public class InvitationService {
     private final UserRepository userRepository;
     private final InvitationProperties invitationProperties;
     private final NotificationPublishService notificationPublishService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public InvitationCreateResponse createInvitation(Long userId, UUID storePublicId) {
@@ -149,14 +152,14 @@ public class InvitationService {
     }
 
     private void sendInvitationNotifications(User joinedUser, Store store, StoreMemberRole role) {
-        notificationPublishService.publish(
+        eventPublisher.publishEvent(new NotificationPublishRequestEvent(
                 NotificationPublishCommand.storeMemberRegistered(
                         joinedUser.getUserId(),
                         store.getStorePublicId(),
                         store.getName(),
                         role.name()
                 )
-        );
+        ));
 
         storeMemberRepository.findAllByStoreStoreIdWithUser(store.getStoreId())
                 .stream()
@@ -165,16 +168,17 @@ public class InvitationService {
                 .map(member -> member.getUser().getUserId())
                 .filter(ownerUserId -> !ownerUserId.equals(joinedUser.getUserId()))
                 .distinct()
-                .forEach(ownerUserId -> notificationPublishService.publish(
-                        NotificationPublishCommand.storeMemberJoined(
-                                ownerUserId,
-                                store.getStorePublicId(),
-                                store.getName(),
-                                joinedUser.getUserId(),
-                                joinedUser.getName(),
-                                role.name()
-                        )
-                ));
+                .forEach(ownerUserId -> {
+                    NotificationPublishCommand command = NotificationPublishCommand.storeMemberJoined(
+                            ownerUserId,
+                            store.getStorePublicId(),
+                            store.getName(),
+                            joinedUser.getUserId(),
+                            joinedUser.getName(),
+                            role.name()
+                    );
+                    eventPublisher.publishEvent(new NotificationPublishRequestEvent(command));
+                });
     }
 
     public InvitationItemResponse getActiveInvitation(UUID storePublicId) {
