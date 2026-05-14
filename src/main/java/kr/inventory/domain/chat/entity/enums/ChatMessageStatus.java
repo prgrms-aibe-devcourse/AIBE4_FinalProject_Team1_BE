@@ -4,5 +4,6 @@ public enum ChatMessageStatus {
     QUEUED,
     PROCESSING,
     COMPLETED,
-    FAILED
+    FAILED,
+    INTERRUPTED
 }

@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import kr.inventory.domain.chat.monitoring.ChatMetricsRecorder;
 import kr.inventory.domain.chat.service.ChatWorkerService;
 import kr.inventory.global.constant.WebSocketConstants;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +44,7 @@ public class ChatStreamConsumer {
     private final StringRedisTemplate redisTemplate;
     private final ChatStreamProperties chatStreamProperties;
     private final ChatWorkerService chatWorkerService;
+    private final ChatMetricsRecorder chatMetricsRecorder;
 
     private final AtomicBoolean started = new AtomicBoolean(false);
     private final AtomicBoolean stopping = new AtomicBoolean(false);
@@ -62,6 +64,7 @@ public class ChatStreamConsumer {
     public void start() {
         if (started.compareAndSet(false, true)) {
             scaleUpTo(normalizeWorkerCount(chatStreamProperties.getMinWorkers()));
+            refreshWorkerMetrics();
         }
     }
 
@@ -75,6 +78,7 @@ public class ChatStreamConsumer {
             int desiredWorkers = calculateDesiredWorkerCount();
             scaleUpTo(desiredWorkers);
             scaleDownTo(desiredWorkers);
+            refreshWorkerMetrics();
         }
     }
 
@@ -158,6 +162,7 @@ public class ChatStreamConsumer {
             if (future != null) {
                 future.cancel(true);
             }
+            chatMetricsRecorder.recordScaleEvent("down");
             remaining--;
         }
     }
@@ -171,6 +176,8 @@ public class ChatStreamConsumer {
 
         Future<?> future = workerExecutor.submit(() -> runWorker(worker));
         worker.future(future);
+        chatMetricsRecorder.recordScaleEvent("up");
+        refreshWorkerMetrics();
 
         log.info(
                 "Started chat stream worker. consumerName={}, activeWorkers={}",
@@ -193,6 +200,7 @@ public class ChatStreamConsumer {
                 }
 
                 worker.markBusy();
+                refreshWorkerMetrics();
                 try {
                     boolean shouldAcknowledge = handleOne(record);
                     if (shouldAcknowledge) {
@@ -210,6 +218,7 @@ public class ChatStreamConsumer {
                     log.error("Failed to finish chat stream record. recordId={}", record.recordId(), e);
                 } finally {
                     worker.markIdle();
+                    refreshWorkerMetrics();
                 }
             }
         } catch (Exception e) {
@@ -224,6 +233,7 @@ public class ChatStreamConsumer {
             }
         } finally {
             workers.remove(worker.workerId(), worker);
+            refreshWorkerMetrics();
             log.info(
                     "Stopped chat stream worker. consumerName={}, activeWorkers={}",
                     worker.consumerName(),
@@ -400,6 +410,20 @@ public class ChatStreamConsumer {
             return new String(bytes, StandardCharsets.UTF_8);
         }
         return String.valueOf(rawValue);
+    }
+
+    private void refreshWorkerMetrics() {
+        chatMetricsRecorder.updateWorkerState(
+                workers.size(),
+                busyWorkerCount(),
+                outstandingStreamSize()
+        );
+    }
+
+    private int busyWorkerCount() {
+        return (int) workers.values().stream()
+                .filter(WorkerSlot::isBusy)
+                .count();
     }
 
     private int normalizeWorkerCount(int requestedWorkers) {

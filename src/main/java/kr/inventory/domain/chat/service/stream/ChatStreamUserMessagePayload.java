@@ -11,7 +11,8 @@ public record ChatStreamUserMessagePayload(
         Long threadId,
         Long requestMessageId,
         String clientMessageId,
-        String content
+        String content,
+        Long queuedAtEpochMillis
 ) {
     public static ChatStreamUserMessagePayload initRecord() {
         return new ChatStreamUserMessagePayload(
@@ -20,7 +21,8 @@ public record ChatStreamUserMessagePayload(
                 null,
                 null,
                 null,
-                "INIT"
+                "INIT",
+                System.currentTimeMillis()
         );
     }
 
@@ -42,6 +44,9 @@ public record ChatStreamUserMessagePayload(
         }
         if (content != null) {
             map.put(ChatConstants.CONTENT, content);
+        }
+        if (queuedAtEpochMillis != null) {
+            map.put(ChatConstants.QUEUED_AT_EPOCH_MILLIS, String.valueOf(queuedAtEpochMillis));
         }
 
         return map;
@@ -74,13 +79,18 @@ public record ChatStreamUserMessagePayload(
                 ? String.valueOf(value.get(ChatConstants.CONTENT))
                 : null;
 
+        Long queuedAtEpochMillis = value.containsKey(ChatConstants.QUEUED_AT_EPOCH_MILLIS)
+                ? Long.parseLong(String.valueOf(value.get(ChatConstants.QUEUED_AT_EPOCH_MILLIS)))
+                : null;
+
         return new ChatStreamUserMessagePayload(
                 type,
                 userId,
                 threadId,
                 requestMessageId,
                 clientMessageId,
-                content
+                content,
+                queuedAtEpochMillis
         );
     }
 }

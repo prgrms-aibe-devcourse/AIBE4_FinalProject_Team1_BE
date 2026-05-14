@@ -17,6 +17,7 @@ import kr.inventory.domain.chat.repository.ChatThreadRepository;
 import kr.inventory.domain.chat.service.command.AcceptedUserMessageResult;
 import kr.inventory.domain.chat.service.command.CompletedChatResult;
 import kr.inventory.domain.chat.service.command.FailedChatResult;
+import kr.inventory.domain.chat.service.command.InterruptedChatResult;
 import kr.inventory.domain.chat.service.command.QueuedChatDispatchTarget;
 import kr.inventory.domain.store.entity.Store;
 import kr.inventory.domain.store.service.StoreAccessValidator;
@@ -55,10 +56,7 @@ public class ChatPersistenceService {
     ) {
         User userReference = entityManager.getReference(User.class, userId);
 
-        ChatThread thread = chatThreadRepository.findActiveThreadByIdAndUser(threadId, userReference)
-                .orElseThrow(() -> new ChatException(ChatErrorCode.THREAD_NOT_FOUND));
-
-        storeAccessValidator.validateAndGetStoreId(userId, thread.getStorePublicId());
+        ChatThread thread = getAccessibleThreadForWrite(userId, threadId, userReference);
 
         ChatMessage duplicated = chatMessageRepository.findByThreadThreadIdAndClientMessageId(threadId, clientMessageId)
                 .orElse(null);
@@ -80,6 +78,19 @@ public class ChatPersistenceService {
                 userId,
                 ChatMessageResponse.from(userMessage),
                 false
+        );
+    }
+
+    public ChatThread validateThreadAccess(Long userId, Long threadId) {
+        User userReference = entityManager.getReference(User.class, userId);
+        return getAccessibleThread(userId, threadId, userReference);
+    }
+
+    public Optional<ChatMessage> findProcessingMessage(Long threadId) {
+        return chatMessageRepository.findFirstByThreadThreadIdAndRoleAndStatusOrderByMessageIdAsc(
+                threadId,
+                ChatMessageRole.USER,
+                ChatMessageStatus.PROCESSING
         );
     }
 
@@ -123,14 +134,6 @@ public class ChatPersistenceService {
         return chatMessageRepository.findThreadIdsHavingQueuedUserMessages(limit);
     }
 
-    public void markProcessing(Long requestMessageId) {
-        ChatMessage requestMessage = getRequiredUserMessage(requestMessageId);
-
-        if (requestMessage.getStatus() == ChatMessageStatus.QUEUED) {
-            requestMessage.markProcessing();
-        }
-    }
-
     public CompletedChatResult completeWithAssistantMessage(
             Long requestMessageId,
             String assistantContent,
@@ -153,6 +156,10 @@ public class ChatPersistenceService {
 
         if (requestMessage.getStatus() == ChatMessageStatus.FAILED) {
             throw new ChatException(ChatErrorCode.ALREADY_FAILED);
+        }
+
+        if (requestMessage.getStatus() == ChatMessageStatus.INTERRUPTED) {
+            throw new ChatException(ChatErrorCode.ALREADY_INTERRUPTED);
         }
 
         ChatThread thread = requestMessage.getThread();
@@ -185,11 +192,41 @@ public class ChatPersistenceService {
     public FailedChatResult markFailed(Long requestMessageId, String errorMessage) {
         ChatMessage requestMessage = getRequiredUserMessage(requestMessageId);
 
-        if (requestMessage.getStatus() != ChatMessageStatus.COMPLETED) {
+        if (requestMessage.getStatus() != ChatMessageStatus.COMPLETED
+                && requestMessage.getStatus() != ChatMessageStatus.INTERRUPTED) {
             requestMessage.markFailed(errorMessage);
         }
 
         return FailedChatResult.from(requestMessage, errorMessage);
+    }
+
+    public InterruptedChatResult markInterrupted(Long requestMessageId, String reason) {
+        ChatMessage requestMessage = getRequiredUserMessage(requestMessageId);
+
+        if (requestMessage.getStatus() != ChatMessageStatus.COMPLETED
+                && requestMessage.getStatus() != ChatMessageStatus.FAILED
+                && requestMessage.getStatus() != ChatMessageStatus.INTERRUPTED) {
+            requestMessage.markInterrupted(reason);
+        }
+
+        return InterruptedChatResult.from(requestMessage, reason);
+    }
+
+
+    private ChatThread getAccessibleThreadForWrite(Long userId, Long threadId, User userReference) {
+        ChatThread thread = chatThreadRepository.findActiveThreadByIdAndUserForUpdate(threadId, userReference)
+                .orElseThrow(() -> new ChatException(ChatErrorCode.THREAD_NOT_FOUND));
+
+        storeAccessValidator.validateAndGetStoreId(userId, thread.getStorePublicId());
+        return thread;
+    }
+
+    private ChatThread getAccessibleThread(Long userId, Long threadId, User userReference) {
+        ChatThread thread = chatThreadRepository.findActiveThreadByIdAndUser(threadId, userReference)
+                .orElseThrow(() -> new ChatException(ChatErrorCode.THREAD_NOT_FOUND));
+
+        storeAccessValidator.validateAndGetStoreId(userId, thread.getStorePublicId());
+        return thread;
     }
 
     private ChatMessage getRequiredUserMessage(Long requestMessageId) {

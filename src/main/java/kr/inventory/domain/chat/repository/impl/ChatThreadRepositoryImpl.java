@@ -6,6 +6,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import jakarta.persistence.LockModeType;
 import kr.inventory.domain.chat.controller.dto.response.ChatThreadSummaryResponse;
 import kr.inventory.domain.chat.entity.ChatThread;
 import kr.inventory.domain.chat.entity.QChatMessage;
@@ -55,6 +56,24 @@ public class ChatThreadRepositoryImpl implements ChatThreadRepositoryCustom {
                 )
                 .orderBy(chatThread.lastMessageAt.desc(), chatThread.threadId.desc())
                 .fetch();
+    }
+
+
+    @Override
+    public Optional<ChatThread> findActiveThreadByIdAndUserForUpdate(Long threadId, User user) {
+        QChatThread chatThread = QChatThread.chatThread;
+
+        ChatThread result = queryFactory
+                .selectFrom(chatThread)
+                .where(
+                        chatThread.threadId.eq(threadId),
+                        chatThread.user.eq(user),
+                        chatThread.status.eq(ChatThreadStatus.ACTIVE)
+                )
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+                .fetchOne();
+
+        return Optional.ofNullable(result);
     }
 
     @Override

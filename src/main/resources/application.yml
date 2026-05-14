@@ -19,8 +19,8 @@ spring:
         api-key: ${GEMINI_API_KEY}
         chat:
           options:
-            model: gemini-2.5-flash
-            temperature: 0.2
+            model: ${LLM_DEFAULT_MODEL:gemini-2.5-flash}
+            temperature: ${LLM_FLASH_TEMPERATURE:0.2}
 
   datasource:
     url: ${DB_URL}
@@ -77,6 +77,15 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        chat.queue.wait: true
+        chat.worker.processing: true
+        chat.llm.duration: true
+      percentiles:
+        chat.queue.wait: 0.5,0.95
+        chat.worker.processing: 0.5,0.95
+        chat.llm.duration: 0.5,0.95
 
 springdoc:
   api-docs:
@@ -110,6 +119,19 @@ nts:
 llm:
   provider: gemini
   model: gemini-2.5-flash
+  flash-model: gemini-2.5-flash
+  reasoning-model: gemini-2.5-pro
+  review-model: gemini-2.5-flash
+  flash-temperature: 0.2
+  reasoning-temperature: 0.1
+  review-temperature: 0.1
+  flash-thinking-budget: 0
+  reasoning-thinking-budget: 2048
+  flash-max-output-tokens: 4096
+  reasoning-max-output-tokens: 8192
+  review-max-output-tokens: 4096
+  review-enabled: true
+  review-min-answer-length: 220
   gemini:
     api-key: ${GEMINI_API_KEY}
     base-url: https://generativelanguage.googleapis.com/v1beta
@@ -127,3 +149,7 @@ chat:
     poll-count: 10
     poll-block-seconds: 2
     poll-fixed-delay-ms: 1000
+    min-workers: 1
+    max-workers: 2
+    scale-check-fixed-delay-ms: 1000
+    scale-down-idle-seconds: 15
