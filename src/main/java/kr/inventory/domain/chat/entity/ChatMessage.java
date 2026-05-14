@@ -89,4 +89,9 @@ public class ChatMessage extends CreatedAtEntity {
         this.status = ChatMessageStatus.FAILED;
         this.errorMessage = errorMessage;
     }
+
+    public void markInterrupted(String reason) {
+        this.status = ChatMessageStatus.INTERRUPTED;
+        this.errorMessage = reason;
+    }
 }
