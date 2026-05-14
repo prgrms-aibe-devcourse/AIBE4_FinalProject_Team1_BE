@@ -24,12 +24,12 @@ public class ChatThreadDispatchService {
     private final ChatStreamPublisher chatStreamPublisher;
     private final ChatProcessingLeaseService chatProcessingLeaseService;
     private final ChatStreamProperties chatStreamProperties;
+    private final ChatExecutionRegistry chatExecutionRegistry;
 
     public void dispatchHeadOfLine(Long threadId) {
-        if (threadId == null) {
+        if (threadId == null || chatExecutionRegistry.hasActiveExecution(threadId)) {
             return;
         }
-
         if (Thread.currentThread().isInterrupted()) {
             Thread.currentThread().interrupt();
             return;
@@ -41,8 +41,11 @@ public class ChatThreadDispatchService {
         }
 
         QueuedChatDispatchTarget reservedTarget = null;
-
         try {
+            if (chatExecutionRegistry.hasActiveExecution(threadId)) {
+                return;
+            }
+
             reservedTarget = chatPersistenceService.reserveNextQueuedMessage(threadId).orElse(null);
             if (reservedTarget == null) {
                 return;
@@ -54,38 +57,27 @@ public class ChatThreadDispatchService {
                 return;
             }
 
-            chatStreamPublisher.publishUserMessage(
-                    new ChatStreamUserMessagePayload(
-                            ChatStreamMessageType.USER_MESSAGE,
-                            reservedTarget.userId(),
-                            reservedTarget.threadId(),
-                            reservedTarget.requestMessageId(),
-                            reservedTarget.clientMessageId(),
-                            reservedTarget.content()
-                    )
-            );
+            chatStreamPublisher.publishUserMessage(new ChatStreamUserMessagePayload(
+                    ChatStreamMessageType.USER_MESSAGE,
+                    reservedTarget.userId(),
+                    reservedTarget.threadId(),
+                    reservedTarget.requestMessageId(),
+                    reservedTarget.clientMessageId(),
+                    reservedTarget.content(),
+                    System.currentTimeMillis()
+            ));
         } catch (Exception e) {
             if (reservedTarget != null) {
                 revertToQueuedQuietly(reservedTarget.requestMessageId());
             }
-
             if (isInterruptLike(e)) {
                 Thread.currentThread().interrupt();
-                log.warn(
-                        "Interrupted while dispatching chat head-of-line. threadId={}, requestMessageId={}",
-                        threadId,
-                        reservedTarget != null ? reservedTarget.requestMessageId() : null,
-                        e
-                );
                 return;
             }
-
-            log.error(
-                    "Failed to dispatch chat head-of-line. threadId={}, requestMessageId={}",
+            log.error("Failed to dispatch chat head-of-line. threadId={}, requestMessageId={}",
                     threadId,
                     reservedTarget != null ? reservedTarget.requestMessageId() : null,
-                    e
-            );
+                    e);
         } finally {
             chatProcessingLeaseService.release(dispatchLease);
         }
@@ -101,13 +93,11 @@ public class ChatThreadDispatchService {
         List<Long> threadIds = chatPersistenceService.findThreadIdsHavingQueuedUserMessages(
                 Math.max(1, chatStreamProperties.getDispatchRecoveryBatchSize())
         );
-
         for (Long threadId : threadIds) {
             if (Thread.currentThread().isInterrupted()) {
                 Thread.currentThread().interrupt();
                 return;
             }
-
             dispatchHeadOfLine(threadId);
         }
     }
@@ -116,11 +106,7 @@ public class ChatThreadDispatchService {
         try {
             chatPersistenceService.revertToQueued(requestMessageId);
         } catch (Exception e) {
-            log.error(
-                    "Failed to revert chat message back to QUEUED. requestMessageId={}",
-                    requestMessageId,
-                    e
-            );
+            log.error("Failed to revert chat message back to QUEUED. requestMessageId={}", requestMessageId, e);
         }
     }
 
@@ -128,7 +114,6 @@ public class ChatThreadDispatchService {
         if (Thread.currentThread().isInterrupted()) {
             return true;
         }
-
         Throwable cursor = throwable;
         while (cursor != null) {
             if (cursor instanceof InterruptedException
@@ -139,7 +124,6 @@ public class ChatThreadDispatchService {
             }
             cursor = cursor.getCause();
         }
-
         return false;
     }
 }

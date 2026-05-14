@@ -8,6 +8,7 @@ import kr.inventory.domain.chat.entity.enums.ChatMessageStatus;
 import kr.inventory.domain.chat.service.command.AcceptedUserMessageResult;
 import kr.inventory.domain.chat.service.command.CompletedChatResult;
 import kr.inventory.domain.chat.service.command.FailedChatResult;
+import kr.inventory.domain.chat.service.command.InterruptedChatResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -30,19 +31,10 @@ public class ChatPushService {
                 OffsetDateTime.now()
         );
 
-        messagingTemplate.convertAndSendToUser(
-                String.valueOf(result.userId()),
-                ChatConstants.USER_QUEUE_DESTINATION,
-                payload
-        );
+        messagingTemplate.convertAndSendToUser(String.valueOf(result.userId()), ChatConstants.USER_QUEUE_DESTINATION, payload);
     }
 
-    public void sendProcessing(
-            Long userId,
-            Long threadId,
-            Long requestMessageId,
-            String clientMessageId
-    ) {
+    public void sendProcessing(Long userId, Long threadId, Long requestMessageId, String clientMessageId) {
         ChatRealtimeEventResponse payload = new ChatRealtimeEventResponse(
                 ChatRealtimeEventType.CHAT_PROCESSING,
                 threadId,
@@ -54,11 +46,7 @@ public class ChatPushService {
                 OffsetDateTime.now()
         );
 
-        messagingTemplate.convertAndSendToUser(
-                String.valueOf(userId),
-                ChatConstants.USER_QUEUE_DESTINATION,
-                payload
-        );
+        messagingTemplate.convertAndSendToUser(String.valueOf(userId), ChatConstants.USER_QUEUE_DESTINATION, payload);
     }
 
     public void sendCompleted(CompletedChatResult result) {
@@ -73,11 +61,7 @@ public class ChatPushService {
                 OffsetDateTime.now()
         );
 
-        messagingTemplate.convertAndSendToUser(
-                String.valueOf(result.userId()),
-                ChatConstants.USER_QUEUE_DESTINATION,
-                payload
-        );
+        messagingTemplate.convertAndSendToUser(String.valueOf(result.userId()), ChatConstants.USER_QUEUE_DESTINATION, payload);
     }
 
     public void sendFailed(FailedChatResult result) {
@@ -92,10 +76,21 @@ public class ChatPushService {
                 OffsetDateTime.now()
         );
 
-        messagingTemplate.convertAndSendToUser(
-                String.valueOf(result.userId()),
-                ChatConstants.USER_QUEUE_DESTINATION,
-                payload
+        messagingTemplate.convertAndSendToUser(String.valueOf(result.userId()), ChatConstants.USER_QUEUE_DESTINATION, payload);
+    }
+
+    public void sendInterrupted(InterruptedChatResult result) {
+        ChatRealtimeEventResponse payload = new ChatRealtimeEventResponse(
+                ChatRealtimeEventType.CHAT_INTERRUPTED,
+                result.threadId(),
+                result.requestMessageId(),
+                result.clientMessageId(),
+                ChatMessageStatus.INTERRUPTED,
+                null,
+                result.reason(),
+                OffsetDateTime.now()
         );
+
+        messagingTemplate.convertAndSendToUser(String.valueOf(result.userId()), ChatConstants.USER_QUEUE_DESTINATION, payload);
     }
 }

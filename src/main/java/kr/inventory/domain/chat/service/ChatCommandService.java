@@ -3,8 +3,10 @@ package kr.inventory.domain.chat.service;
 import java.util.UUID;
 import kr.inventory.domain.chat.constant.ChatConstants;
 import kr.inventory.domain.chat.controller.dto.response.ChatThreadCreateResponse;
+import kr.inventory.domain.chat.entity.enums.ChatInterruptStrategy;
 import kr.inventory.domain.chat.exception.ChatErrorCode;
 import kr.inventory.domain.chat.exception.ChatException;
+import kr.inventory.domain.chat.monitoring.ChatMetricsRecorder;
 import kr.inventory.domain.chat.service.command.AcceptedUserMessageResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +21,8 @@ public class ChatCommandService {
     private final ChatPersistenceService chatPersistenceService;
     private final ChatPushService chatPushService;
     private final ChatThreadDispatchService chatThreadDispatchService;
+    private final ChatExecutionRegistry chatExecutionRegistry;
+    private final ChatMetricsRecorder chatMetricsRecorder;
 
     public ChatThreadCreateResponse createThread(Long userId, String rawTitle, UUID storePublicId) {
         String title = normalizeTitle(rawTitle);
@@ -29,15 +33,17 @@ public class ChatCommandService {
             Long userId,
             Long threadId,
             String rawClientMessageId,
-            String rawContent
+            String rawContent,
+            ChatInterruptStrategy rawInterruptStrategy
     ) {
-        log.info("[ChatCommand] Accepting user message - userId: {}, threadId: {}, clientMessageId: {}, contentLength: {}",
-                userId, threadId, rawClientMessageId, rawContent != null ? rawContent.length() : 0);
-
         String clientMessageId = normalizeClientMessageId(rawClientMessageId);
         String content = normalizeContent(rawContent);
+        ChatInterruptStrategy interruptStrategy = normalizeInterruptStrategy(rawInterruptStrategy);
 
-        log.debug("[ChatCommand] After normalization - clientMessageId: {}, content: {}", clientMessageId, content);
+        if (interruptStrategy == ChatInterruptStrategy.INTERRUPT_CURRENT
+                || (interruptStrategy == ChatInterruptStrategy.AUTO && chatExecutionRegistry.hasActiveExecution(threadId))) {
+            requestInterruptQuietly(threadId, "새로운 사용자 질문이 도착하여 현재 답변 생성을 중단합니다.");
+        }
 
         AcceptedUserMessageResult accepted = chatPersistenceService.persistUserMessage(
                 userId,
@@ -46,25 +52,28 @@ public class ChatCommandService {
                 content
         );
 
-        log.info("[ChatCommand] Message persisted - messageId: {}", accepted.requestMessage().messageId());
-
+        chatMetricsRecorder.recordAccepted(accepted.duplicated());
         chatPushService.sendAccepted(accepted);
-        log.debug("[ChatCommand] Accepted event sent to user");
-
         chatThreadDispatchService.dispatchHeadOfLine(accepted.requestMessage().threadId());
-        log.debug("[ChatCommand] Message dispatched to worker");
+    }
+
+    private void requestInterruptQuietly(Long threadId, String reason) {
+        try {
+            chatExecutionRegistry.requestInterrupt(threadId, reason)
+                    .ifPresent(target -> chatMetricsRecorder.recordInterruptRequested());
+        } catch (Exception e) {
+            log.warn("Failed to request interrupt. threadId={}, reason={}", threadId, e.getMessage());
+        }
     }
 
     private String normalizeTitle(String rawTitle) {
         if (!StringUtils.hasText(rawTitle)) {
             return ChatConstants.DEFAULT_THREAD_TITLE;
         }
-
         String title = rawTitle.trim();
         if (title.length() > ChatConstants.MAX_TITLE_LENGTH) {
             throw new ChatException(ChatErrorCode.TITLE_TOO_LONG);
         }
-
         return title;
     }
 
@@ -72,12 +81,10 @@ public class ChatCommandService {
         if (!StringUtils.hasText(rawContent)) {
             throw new ChatException(ChatErrorCode.CONTENT_EMPTY);
         }
-
         String content = rawContent.trim();
         if (content.length() > ChatConstants.MAX_CONTENT_LENGTH) {
             throw new ChatException(ChatErrorCode.CONTENT_TOO_LONG);
         }
-
         return content;
     }
 
@@ -85,12 +92,14 @@ public class ChatCommandService {
         if (!StringUtils.hasText(rawClientMessageId)) {
             throw new ChatException(ChatErrorCode.CLIENT_MESSAGE_ID_EMPTY);
         }
-
         String clientMessageId = rawClientMessageId.trim();
         if (clientMessageId.length() > ChatConstants.MAX_CLIENT_MESSAGE_ID_LENGTH) {
             throw new ChatException(ChatErrorCode.CLIENT_MESSAGE_ID_TOO_LONG);
         }
-
         return clientMessageId;
+    }
+
+    private ChatInterruptStrategy normalizeInterruptStrategy(ChatInterruptStrategy rawInterruptStrategy) {
+        return rawInterruptStrategy == null ? ChatInterruptStrategy.AUTO : rawInterruptStrategy;
     }
 }

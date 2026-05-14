@@ -1,5 +1,7 @@
 package kr.inventory.global.llm.client.springai;
 
+import java.util.ArrayList;
+import java.util.List;
 import kr.inventory.ai.sales.tool.SalesAiTools;
 import kr.inventory.ai.stock.tool.StockAiTools;
 import kr.inventory.ai.stock.tool.StockInboundAiTools;
@@ -8,6 +10,7 @@ import kr.inventory.ai.stock.tool.StockShortageAiTools;
 import kr.inventory.global.llm.client.LlmClient;
 import kr.inventory.global.llm.dto.LlmChatRequest;
 import kr.inventory.global.llm.dto.LlmChatResponse;
+import kr.inventory.global.llm.dto.LlmExecutionOptions;
 import kr.inventory.global.llm.dto.LlmMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
@@ -16,11 +19,9 @@ import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -32,7 +33,6 @@ public class SpringAiLlmClient implements LlmClient {
     private final StockShortageAiTools stockShortageAiTools;
     private final StockInboundAiTools stockInboundAiTools;
     private final StockLogAiTools stockLogAiTools;
-
 
     @Override
     public LlmChatResponse chat(LlmChatRequest request) {
@@ -60,12 +60,44 @@ public class SpringAiLlmClient implements LlmClient {
             }
         }
 
-        String content = inventoryChatClient
-                .prompt(new Prompt(promptMessages))
-                .tools(salesAiTools, stockAiTools, stockShortageAiTools, stockInboundAiTools, stockLogAiTools)
-                .call()
-                .content();
+        var promptSpec = inventoryChatClient.prompt(new Prompt(promptMessages));
+        GoogleGenAiChatOptions options = toOptions(request.options());
+        if (options != null) {
+            promptSpec = promptSpec.options(options);
+        }
 
-        return new LlmChatResponse(content, "google-genai");
+        if (request.options() == null || request.options().toolEnabled()) {
+            promptSpec = promptSpec.tools(salesAiTools, stockAiTools, stockShortageAiTools, stockInboundAiTools, stockLogAiTools);
+        }
+
+        String content = promptSpec.call().content();
+        String model = request.options() != null && StringUtils.hasText(request.options().model())
+                ? request.options().model()
+                : "google-genai";
+
+        return new LlmChatResponse(content, model);
+    }
+
+    private GoogleGenAiChatOptions toOptions(LlmExecutionOptions options) {
+        if (options == null) {
+            return null;
+        }
+
+        GoogleGenAiChatOptions.Builder builder = GoogleGenAiChatOptions.builder();
+
+        if (StringUtils.hasText(options.model())) {
+            builder.model(options.model().trim());
+        }
+        if (options.temperature() != null) {
+            builder.temperature(options.temperature());
+        }
+        if (options.maxOutputTokens() != null) {
+            builder.maxOutputTokens(options.maxOutputTokens());
+        }
+        if (options.thinkingBudget() != null) {
+            builder.thinkingBudget(options.thinkingBudget());
+        }
+
+        return builder.build();
     }
 }

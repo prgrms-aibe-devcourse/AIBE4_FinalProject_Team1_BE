@@ -12,4 +12,6 @@ public interface ChatThreadRepositoryCustom {
     List<ChatThreadSummaryResponse> findSummariesByUser(User user, UUID storePublicId);
 
     Optional<ChatThread> findActiveThreadByIdAndUser(Long threadId, User user);
+
+    Optional<ChatThread> findActiveThreadByIdAndUserForUpdate(Long threadId, User user);
 }

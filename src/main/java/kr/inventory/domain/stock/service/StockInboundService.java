@@ -64,7 +64,6 @@ public class StockInboundService {
 	private final InboundQuantityNormalizer inboundQuantityNormalizer;
 	private final StockLogService stockLogService;
 	private final StockInboundIndexingService stockInboundIndexingService;
-	private final StockBatchIndexingService stockBatchIndexingService;
 	private final ShortageResolutionService shortageResolutionService;
 
     public StockInboundResponse createManualInbound(Long userId, UUID storePublicId, ManualInboundRequest request) {

@@ -15,6 +15,7 @@ import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Slf4j
@@ -176,11 +177,28 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    public ResponseEntity<Void> handleAsyncRequestNotUsableException(
+            AsyncRequestNotUsableException e,
+            HttpServletRequest request
+    ) {
+        log.debug("Client disconnected before async response completed. path={}, reason={}",
+                getRequestPath(request),
+                e.getMessage());
+
+        return ResponseEntity.noContent().build();
+    }
+
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleException(
+    public ResponseEntity<?> handleException(
             Exception e,
             HttpServletRequest request
     ) {
+        if (isClientAbortException(e)) {
+            log.debug("Client connection aborted. path={}, reason={}", getRequestPath(request), e.getMessage());
+            return ResponseEntity.noContent().build();
+        }
+
         log.error("Unexpected exception occurred", e);
 
         return ResponseEntity.internalServerError().body(
@@ -190,6 +208,21 @@ public class GlobalExceptionHandler {
                         getRequestPath(request)
                 )
         );
+    }
+
+    private boolean isClientAbortException(Throwable throwable) {
+        Throwable cursor = throwable;
+        while (cursor != null) {
+            String className = cursor.getClass().getName();
+            String message = cursor.getMessage();
+            if (className.contains("ClientAbortException")
+                    || className.contains("AsyncRequestNotUsableException")
+                    || (message != null && message.contains("Broken pipe"))) {
+                return true;
+            }
+            cursor = cursor.getCause();
+        }
+        return false;
     }
 
     private String getRequestPath(HttpServletRequest request) {

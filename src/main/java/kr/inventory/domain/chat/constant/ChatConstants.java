@@ -25,4 +25,5 @@ public final class ChatConstants {
     public static final String REQUEST_MESSAGE_ID = "requestMessageId";
     public static final String CLIENT_MESSAGE_ID = "clientMessageId";
     public static final String CONTENT = "content";
+    public static final String QUEUED_AT_EPOCH_MILLIS = "queuedAtEpochMillis";
 }

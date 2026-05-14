@@ -45,7 +45,8 @@ public class ChatMessageRepositoryImpl implements ChatMessageRepositoryCustom {
                 .where(
                         chatMessage.thread.threadId.eq(threadId),
                         chatMessage.messageId.loe(upToMessageId),
-                        chatMessage.status.ne(ChatMessageStatus.FAILED)
+                        chatMessage.status.ne(ChatMessageStatus.FAILED),
+                        chatMessage.status.ne(ChatMessageStatus.INTERRUPTED)
                 )
                 .orderBy(chatMessage.messageId.desc())
                 .limit(size)

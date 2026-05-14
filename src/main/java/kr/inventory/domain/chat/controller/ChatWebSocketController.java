@@ -2,6 +2,7 @@ package kr.inventory.domain.chat.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import java.security.Principal;
 import kr.inventory.domain.chat.controller.dto.request.ChatSendMessageRequest;
 import kr.inventory.domain.chat.service.ChatCommandService;
 import kr.inventory.global.util.WebSocketUtil;
@@ -9,8 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Controller;
-
-import java.security.Principal;
 
 @Controller
 @RequiredArgsConstructor
@@ -20,16 +19,14 @@ public class ChatWebSocketController {
 
     @Operation(summary = "채팅 메시지 전송")
     @MessageMapping("/chat.send")
-    public void send(
-            @Payload @Valid ChatSendMessageRequest request,
-            Principal principal
-    ) {
+    public void send(@Payload @Valid ChatSendMessageRequest request, Principal principal) {
         Long userId = WebSocketUtil.extractUserId(principal);
         chatCommandService.acceptUserMessage(
                 userId,
                 request.threadId(),
                 request.clientMessageId(),
-                request.content()
+                request.content(),
+                request.interruptStrategy()
         );
     }
 }

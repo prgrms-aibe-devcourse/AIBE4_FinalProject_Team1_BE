@@ -4,6 +4,7 @@ import java.util.List;
 
 public record LlmChatRequest(
         String systemPrompt,
-        List<LlmMessage> messages
+        List<LlmMessage> messages,
+        LlmExecutionOptions options
 ) {
 }
